@@ -27,8 +27,8 @@ api.interceptors.request.use(
 // Add response interceptor to handle errors and transform data
 api.interceptors.response.use(
   (response) => {
-    // Return just the data portion of the response
-    return response.data;
+    // Handle both direct data responses and responses with data property
+    return response.data || response;
   },
   (error) => {
     if (error.response) {
@@ -38,9 +38,9 @@ api.interceptors.response.use(
         localStorage.removeItem("user");
         window.location.href = "/auth";
       }
-      return Promise.reject(error.response.data);
+      throw error.response.data;
     }
-    return Promise.reject(error);
+    throw error;
   }
 );
 

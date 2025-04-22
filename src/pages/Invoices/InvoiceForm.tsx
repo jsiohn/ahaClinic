@@ -37,9 +37,9 @@ interface InvoiceFormData {
   clientId: string;
   animalId: string;
   date: string;
-  status: "PENDING" | "PAID" | "CANCELLED";
-  paymentMethod?: string;
-  paymentDate?: string;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
+  paymentDate?: string | null;
 }
 
 const schema = yup.object().shape({
@@ -48,18 +48,30 @@ const schema = yup.object().shape({
   date: yup.string().required("Date is required"),
   status: yup
     .string()
-    .oneOf(["PENDING", "PAID", "CANCELLED"])
+    .oneOf(["draft", "sent", "paid", "overdue", "cancelled"] as const)
     .required("Status is required"),
-  paymentMethod: yup.string().when("status", {
-    is: "PAID",
-    then: (schema) => schema.required("Payment method is required"),
-    otherwise: (schema) => schema.optional(),
-  }),
-  paymentDate: yup.string().when("status", {
-    is: "PAID",
-    then: (schema) => schema.required("Payment date is required"),
-    otherwise: (schema) => schema.optional(),
-  }),
+  paymentMethod: yup
+    .string()
+    .transform((value) => (value === "" ? null : value))
+    .nullable()
+    .oneOf(["cash", "credit_card", "bank_transfer", "check", null])
+    .when("status", {
+      is: "paid",
+      then: (schema) =>
+        schema
+          .required("Payment method is required")
+          .oneOf(["cash", "credit_card", "bank_transfer", "check"]),
+      otherwise: (schema) => schema.nullable().default(null),
+    }),
+  paymentDate: yup
+    .string()
+    .transform((value) => (value === "" ? null : value))
+    .nullable()
+    .when("status", {
+      is: "paid",
+      then: (schema) => schema.required("Payment date is required"),
+      otherwise: (schema) => schema.nullable().default(null),
+    }),
 });
 
 const defaultProcedures = [
@@ -90,8 +102,8 @@ export default function InvoiceForm({
       date:
         invoice?.date.toISOString().split("T")[0] ||
         new Date().toISOString().split("T")[0],
-      status: invoice?.status || "PENDING",
-      paymentMethod: invoice?.paymentMethod,
+      status: invoice?.status || "draft",
+      paymentMethod: invoice?.paymentMethod || null,
       paymentDate: invoice?.paymentDate?.toISOString().split("T")[0],
     },
   });
@@ -235,15 +247,17 @@ export default function InvoiceForm({
                   control={control}
                   render={({ field }) => (
                     <Select {...field} label="Status">
-                      <MenuItem value="PENDING">Pending</MenuItem>
-                      <MenuItem value="PAID">Paid</MenuItem>
-                      <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                      <MenuItem value="draft">Draft</MenuItem>
+                      <MenuItem value="sent">Sent</MenuItem>
+                      <MenuItem value="paid">Paid</MenuItem>
+                      <MenuItem value="overdue">Overdue</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
                     </Select>
                   )}
                 />
               </FormControl>
             </Grid>
-            {status === "PAID" && (
+            {status === "paid" && (
               <>
                 <Grid item xs={12} sm={4}>
                   <FormControl fullWidth error={!!errors.paymentMethod}>
@@ -253,10 +267,12 @@ export default function InvoiceForm({
                       control={control}
                       render={({ field }) => (
                         <Select {...field} label="Payment Method">
-                          <MenuItem value="CASH">Cash</MenuItem>
-                          <MenuItem value="CREDIT">Credit Card</MenuItem>
-                          <MenuItem value="DEBIT">Debit Card</MenuItem>
-                          <MenuItem value="CHECK">Check</MenuItem>
+                          <MenuItem value="cash">Cash</MenuItem>
+                          <MenuItem value="credit_card">Credit Card</MenuItem>
+                          <MenuItem value="bank_transfer">
+                            Bank Transfer
+                          </MenuItem>
+                          <MenuItem value="check">Check</MenuItem>
                         </Select>
                       )}
                     />

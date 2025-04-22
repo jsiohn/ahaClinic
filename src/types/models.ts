@@ -81,8 +81,8 @@ export interface Invoice {
   subtotal: number;
   tax: number;
   total: number;
-  status: "PENDING" | "PAID" | "CANCELLED";
-  paymentMethod?: string;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
   paymentDate?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -98,6 +98,7 @@ export interface InvoiceItem {
   total: number;
 }
 
+/* To be implemented later:
 export interface Appointment {
   id: string;
   clientId: string;
@@ -110,3 +111,4 @@ export interface Appointment {
   createdAt: Date;
   updatedAt: Date;
 }
+*/

@@ -124,22 +124,38 @@ export default function ClientsPage() {
         ),
       };
 
+      let responseData: any;
       if (selectedClient) {
         // Update existing client
-        const { data } = await api.put<any>(
+        responseData = await api.put<any>(
           `/clients/${selectedClient.id}`,
           formattedData
         );
-        const transformedData = { ...data, id: data._id || data.id } as Client;
+      } else {
+        // Create new client
+        responseData = await api.post<any>("/clients", formattedData);
+      }
+
+      // Transform the response data to match Client type
+      const transformedData: Client = {
+        ...responseData,
+        id: responseData._id || responseData.id,
+        firstName: responseData.firstName,
+        lastName: responseData.lastName,
+        email: responseData.email,
+        phone: responseData.phone,
+        address: responseData.address || {},
+        createdAt: new Date(responseData.createdAt),
+        updatedAt: new Date(responseData.updatedAt),
+      };
+
+      if (selectedClient) {
         setClients((clients) =>
           clients.map((client) =>
             client.id === selectedClient.id ? transformedData : client
           )
         );
       } else {
-        // Create new client
-        const { data } = await api.post<any>("/clients", formattedData);
-        const transformedData = { ...data, id: data._id || data.id } as Client;
         setClients((clients) =>
           Array.isArray(clients)
             ? [...clients, transformedData]
@@ -148,13 +164,8 @@ export default function ClientsPage() {
       }
       handleCloseDialog();
     } catch (error: any) {
-      if (error?.response?.data?.message) {
-        setError(error.response.data.message);
-      } else {
-        setError(
-          error instanceof Error ? error.message : "Failed to save client"
-        );
-      }
+      const errorMessage = error?.message || "Failed to save client";
+      setError(errorMessage);
     }
   };
 

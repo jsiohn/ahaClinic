@@ -1,42 +1,41 @@
 import { body, validationResult } from "express-validator";
 
 export const validateOrganization = [
-  body("name")
+  body("name").trim().notEmpty().withMessage("Organization name is required"),
+
+  body("contactPerson")
     .trim()
     .notEmpty()
-    .withMessage("Organization name is required")
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Organization name must be between 2 and 100 characters"),
+    .withMessage("Contact person is required"),
 
-  body("address.street").optional().trim(),
-  body("address.city").optional().trim(),
-  body("address.state").optional().trim(),
-  body("address.zipCode")
-    .optional()
-    .matches(/^\d{5}(-\d{4})?$/)
-    .withMessage("Invalid ZIP code format"),
-  body("address.country").optional().trim(),
-
-  body("contactInfo.phone")
-    .optional()
-    .matches(/^\+?[\d\s-()]+$/)
-    .withMessage("Invalid phone number format"),
-  body("contactInfo.email")
-    .optional()
+  body("email")
+    .trim()
     .isEmail()
-    .withMessage("Invalid email format")
-    .normalizeEmail(),
-  body("contactInfo.website")
-    .optional()
-    .isURL()
-    .withMessage("Invalid website URL"),
+    .withMessage("Must be a valid email address")
+    .notEmpty()
+    .withMessage("Email is required"),
+
+  body("phone")
+    .trim()
+    .matches(/^[\d\s-()]+$/)
+    .withMessage("Invalid phone number format")
+    .notEmpty()
+    .withMessage("Phone number is required"),
+
+  body("address").trim().notEmpty().withMessage("Address is required"),
+
+  body("status")
+    .trim()
+    .isIn(["ACTIVE", "INACTIVE", "PENDING"])
+    .withMessage("Invalid status"),
 
   body("taxId")
     .optional()
+    .trim()
     .matches(/^[0-9-]+$/)
     .withMessage("Tax ID can only contain numbers and hyphens"),
 
-  // Business hours validation
+  /* Business hours validation to be implemented later:
   body("businessHours.monday.open")
     .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
@@ -93,6 +92,7 @@ export const validateOrganization = [
     .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .withMessage("Invalid time format (HH:MM)"),
+  */
 
   // Validation result middleware
   (req, res, next) => {

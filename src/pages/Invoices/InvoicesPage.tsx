@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -18,38 +18,48 @@ import {
 } from "@mui/icons-material";
 import { Invoice } from "../../types/models";
 import InvoiceForm from "./InvoiceForm";
+import api from "../../utils/api";
 
-// Temporary mock data - replace with actual API call later
-const mockInvoices: Invoice[] = [
-  {
-    id: "1",
-    clientId: "1",
-    animalId: "1",
-    date: new Date("2024-03-14"),
-    procedures: [
-      {
-        id: "1",
-        invoiceId: "1",
-        procedure: "Spay Surgery",
-        description: "Standard spay procedure",
-        quantity: 1,
-        unitPrice: 150.0,
-        total: 150.0,
-      },
-    ],
-    subtotal: 150.0,
-    tax: 12.0,
-    total: 162.0,
-    status: "PENDING",
-    createdAt: new Date("2024-03-14"),
-    updatedAt: new Date("2024-03-14"),
-  },
-];
+interface ApiInvoice extends Omit<Invoice, "id"> {
+  _id: string;
+}
 
 export default function InvoicesPage() {
-  const [invoices] = useState<Invoice[]>(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get<ApiInvoice[]>("/invoices");
+      // Handle both array and object response formats
+      const invoicesData = Array.isArray(response)
+        ? response
+        : response.data || [];
+      setInvoices(
+        invoicesData.map((invoice) => ({
+          ...invoice,
+          id: invoice._id,
+          date: new Date(invoice.date),
+          paymentDate: invoice.paymentDate
+            ? new Date(invoice.paymentDate)
+            : undefined,
+          createdAt: new Date(invoice.createdAt),
+          updatedAt: new Date(invoice.updatedAt),
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateClick = () => {
     setSelectedInvoice(null);
@@ -61,14 +71,21 @@ export default function InvoicesPage() {
     setOpenDialog(true);
   };
 
-  const handleDeleteClick = (invoice: Invoice) => {
-    // Implement delete functionality
-    console.log("Delete invoice:", invoice);
+  const handleDeleteClick = async (invoice: Invoice) => {
+    if (window.confirm("Are you sure you want to delete this invoice?")) {
+      try {
+        await api.delete(`/invoices/${invoice.id}`);
+        setInvoices(invoices.filter((i) => i.id !== invoice.id));
+      } catch (error) {
+        console.error("Error deleting invoice:", error);
+      }
+    }
   };
 
   const handlePrintClick = (invoice: Invoice) => {
-    // Implement print functionality
-    console.log("Print invoice:", invoice);
+    // Store the invoice data for printing
+    console.log("Preparing to print invoice:", invoice);
+    window.print();
   };
 
   const handleCloseDialog = () => {
@@ -76,10 +93,44 @@ export default function InvoicesPage() {
     setSelectedInvoice(null);
   };
 
-  const handleSaveInvoice = (invoiceData: Partial<Invoice>) => {
-    // Implement save functionality
-    console.log("Save invoice:", invoiceData);
-    handleCloseDialog();
+  const handleSaveInvoice = async (invoiceData: Partial<Invoice>) => {
+    try {
+      let savedInvoice: ApiInvoice;
+      if (selectedInvoice) {
+        const { data } = await api.put<ApiInvoice>(
+          `/invoices/${selectedInvoice.id}`,
+          invoiceData
+        );
+        savedInvoice = data;
+      } else {
+        const { data } = await api.post<ApiInvoice>("/invoices", invoiceData);
+        savedInvoice = data;
+      }
+
+      const transformedInvoice: Invoice = {
+        ...savedInvoice,
+        id: savedInvoice._id,
+        date: new Date(savedInvoice.date),
+        paymentDate: savedInvoice.paymentDate
+          ? new Date(savedInvoice.paymentDate)
+          : undefined,
+        createdAt: new Date(savedInvoice.createdAt),
+        updatedAt: new Date(savedInvoice.updatedAt),
+      } as Invoice;
+
+      if (selectedInvoice) {
+        setInvoices(
+          invoices.map((invoice) =>
+            invoice.id === selectedInvoice.id ? transformedInvoice : invoice
+          )
+        );
+      } else {
+        setInvoices([...invoices, transformedInvoice]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error saving invoice:", error);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -91,11 +142,14 @@ export default function InvoicesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "PAID":
+      case "paid":
         return "success";
-      case "PENDING":
+      case "draft":
+      case "sent":
+        return "info";
+      case "overdue":
         return "warning";
-      case "CANCELLED":
+      case "cancelled":
         return "error";
       default:
         return "default";
@@ -107,7 +161,12 @@ export default function InvoicesPage() {
       field: "date",
       headerName: "Date",
       width: 120,
-      valueFormatter: (value: string) => new Date(value).toLocaleDateString(),
+      valueFormatter: (params: { value: any }) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleDateString();
+        }
+        return "";
+      },
     },
     {
       field: "id",
@@ -127,7 +186,7 @@ export default function InvoicesPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Chip
           label={params.value}
-          color={getStatusColor(params.value) as any}
+          color={getStatusColor(params.value)}
           size="small"
         />
       ),
@@ -136,19 +195,22 @@ export default function InvoicesPage() {
       field: "subtotal",
       headerName: "Subtotal",
       width: 120,
-      valueFormatter: (value: number) => formatCurrency(value),
+      valueFormatter: (params: { value: any }) =>
+        formatCurrency(Number(params.value)),
     },
     {
       field: "tax",
       headerName: "Tax",
       width: 120,
-      valueFormatter: (value: number) => formatCurrency(value),
+      valueFormatter: (params: { value: any }) =>
+        formatCurrency(Number(params.value)),
     },
     {
       field: "total",
       headerName: "Total",
       width: 120,
-      valueFormatter: (value: number) => formatCurrency(value),
+      valueFormatter: (params: { value: any }) =>
+        formatCurrency(Number(params.value)),
     },
     {
       field: "actions",
@@ -217,6 +279,7 @@ export default function InvoicesPage() {
         checkboxSelection={false}
         disableRowSelectionOnClick
         autoHeight
+        loading={loading}
       />
 
       <Dialog

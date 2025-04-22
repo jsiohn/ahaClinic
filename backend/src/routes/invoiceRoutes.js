@@ -140,12 +140,11 @@ router.patch("/:id/status", async (req, res) => {
 // Delete invoice
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
-    if (!invoice) {
+    const deletedInvoice = await Invoice.findByIdAndDelete(req.params.id);
+    if (!deletedInvoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
-    await invoice.remove();
-    res.json({ message: "Invoice deleted" });
+    res.json({ message: "Invoice deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

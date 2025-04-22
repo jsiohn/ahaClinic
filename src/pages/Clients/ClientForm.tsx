@@ -37,7 +37,6 @@ const schema = yup.object().shape({
       city: yup.string().nullable(),
       state: yup.string().nullable(),
       zipCode: yup.string().nullable(),
-      country: yup.string().nullable(),
     })
     .nullable(),
 });
@@ -64,7 +63,6 @@ export default function ClientForm({
         city: "",
         state: "",
         zipCode: "",
-        country: "",
       },
     },
   });
@@ -81,7 +79,6 @@ export default function ClientForm({
           city: client.address?.city || "",
           state: client.address?.state || "",
           zipCode: client.address?.zipCode || "",
-          country: client.address?.country || "",
         },
       });
     }
@@ -89,6 +86,13 @@ export default function ClientForm({
 
   const onSubmit = (data: any) => {
     onSave(data);
+  };
+
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit(onSubmit)();
+    }
   };
 
   return (
@@ -99,6 +103,7 @@ export default function ClientForm({
           component="form"
           noValidate
           onSubmit={handleSubmit(onSubmit)}
+          onKeyPress={handleKeyPress}
           sx={{ mt: 2 }}
         >
           <Grid container spacing={2}>
@@ -207,7 +212,7 @@ export default function ClientForm({
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <Controller
                 name="address.zipCode"
                 control={control}
@@ -218,21 +223,6 @@ export default function ClientForm({
                     fullWidth
                     error={!!errors.address?.zipCode}
                     helperText={errors.address?.zipCode?.message}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Controller
-                name="address.country"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Country"
-                    fullWidth
-                    error={!!errors.address?.country}
-                    helperText={errors.address?.country?.message}
                   />
                 )}
               />

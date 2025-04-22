@@ -55,6 +55,7 @@ router.put("/:id", auth, validateOrganization, async (req, res) => {
   }
 });
 
+/* To be implemented later:
 // Update business hours
 router.patch("/:id/business-hours", async (req, res) => {
   try {
@@ -100,53 +101,6 @@ router.patch("/:id/business-hours", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-// Update contact information
-router.patch("/:id/contact-info", async (req, res) => {
-  try {
-    const organization = await Organization.findById(req.params.id);
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
-    }
-
-    if (req.body.phone) {
-      if (!/^\+?[\d\s-()]+$/.test(req.body.phone)) {
-        return res.status(400).json({ message: "Invalid phone number format" });
-      }
-    }
-
-    if (req.body.email) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
-        return res.status(400).json({ message: "Invalid email format" });
-      }
-    }
-
-    if (req.body.website) {
-      if (!/^https?:\/\/.+/.test(req.body.website)) {
-        return res.status(400).json({ message: "Invalid website URL" });
-      }
-    }
-
-    Object.assign(organization.contactInfo, req.body);
-    const updatedOrganization = await organization.save();
-    res.json(updatedOrganization);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Delete organization
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const organization = await Organization.findById(req.params.id);
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
-    }
-    await organization.remove();
-    res.json({ message: "Organization deleted" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+*/
 
 export default router;

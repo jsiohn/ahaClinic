@@ -29,7 +29,6 @@ import {
   People as PeopleIcon,
   Receipt as ReceiptIcon,
   Home as HomeIcon,
-  Schedule as ScheduleIcon,
   Apartment as ApartmentIcon,
   Block as BlockIcon,
   Logout as LogoutIcon,
@@ -84,7 +83,8 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 
 const menuItems = [
   { text: "Dashboard", icon: <HomeIcon />, path: "/" },
-  { text: "Appointments", icon: <ScheduleIcon />, path: "/appointments" },
+  // To be implemented later:
+  // { text: "Appointments", icon: <ScheduleIcon />, path: "/appointments" },
   { text: "Clients", icon: <PeopleIcon />, path: "/clients" },
   { text: "Animals", icon: <PetsIcon />, path: "/animals" },
   { text: "Invoices", icon: <ReceiptIcon />, path: "/invoices" },

@@ -10,6 +10,7 @@ import {
   Select,
   MenuItem,
   Autocomplete,
+  Box,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -104,6 +105,13 @@ export default function AnimalForm({
     });
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit(onSubmit)();
+    }
+  };
+
   const getClientOptionLabel = (option: Client | string) => {
     if (typeof option === "string") return "";
     return `${option.firstName} ${option.lastName}`;
@@ -115,135 +123,143 @@ export default function AnimalForm({
         {animal ? "Edit Animal" : "Add New Animal"}
       </DialogTitle>
       <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} sm={6}>
-            <Controller
-              name="name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Name"
-                  fullWidth
-                  error={!!errors.name}
-                  helperText={errors.name?.message}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth error={!!errors.species}>
-              <InputLabel>Species</InputLabel>
+        <Box
+          component="form"
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyPress={handleKeyPress}
+          sx={{ mt: 2 }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
               <Controller
-                name="species"
+                name="name"
                 control={control}
                 render={({ field }) => (
-                  <Select {...field} label="Species">
-                    <MenuItem value="DOG">Dog</MenuItem>
-                    <MenuItem value="CAT">Cat</MenuItem>
-                    <MenuItem value="OTHER">Other</MenuItem>
-                  </Select>
+                  <TextField
+                    {...field}
+                    label="Name"
+                    fullWidth
+                    error={!!errors.name}
+                    helperText={errors.name?.message}
+                  />
                 )}
               />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Controller
-              name="breed"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Breed"
-                  fullWidth
-                  error={!!errors.breed}
-                  helperText={errors.breed?.message}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Controller
-              name="age"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Age"
-                  type="number"
-                  fullWidth
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(e.target.value || "")}
-                  error={!!errors.age}
-                  helperText={errors.age?.message}
-                  inputProps={{ min: 0 }}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth error={!!errors.gender}>
-              <InputLabel>Gender</InputLabel>
-              <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} label="Gender">
-                    <MenuItem value="MALE">Male</MenuItem>
-                    <MenuItem value="FEMALE">Female</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Controller
-              name="weight"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Weight (lbs)"
-                  type="number"
-                  fullWidth
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                  error={!!errors.weight}
-                  helperText={errors.weight?.message}
-                  inputProps={{ min: 0, step: "0.1" }}
-                />
-              )}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <Controller
-              name="clientId"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Autocomplete
-                  options={clients}
-                  getOptionLabel={getClientOptionLabel}
-                  onChange={(_, newValue) => {
-                    onChange(newValue ? newValue.id : "");
-                  }}
-                  value={clients.find((c) => c.id === value) || null}
-                  isOptionEqualToValue={(option, value) =>
-                    option.id ===
-                    (typeof value === "string" ? value : value?.id)
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Client"
-                      error={!!errors.clientId}
-                      helperText={errors.clientId?.message}
-                    />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.species}>
+                <InputLabel>Species</InputLabel>
+                <Controller
+                  name="species"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} label="Species">
+                      <MenuItem value="DOG">Dog</MenuItem>
+                      <MenuItem value="CAT">Cat</MenuItem>
+                      <MenuItem value="OTHER">Other</MenuItem>
+                    </Select>
                   )}
                 />
-              )}
-            />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="breed"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Breed"
+                    fullWidth
+                    error={!!errors.breed}
+                    helperText={errors.breed?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="age"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Age"
+                    type="number"
+                    fullWidth
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value || "")}
+                    error={!!errors.age}
+                    helperText={errors.age?.message}
+                    inputProps={{ min: 0 }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.gender}>
+                <InputLabel>Gender</InputLabel>
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} label="Gender">
+                      <MenuItem value="MALE">Male</MenuItem>
+                      <MenuItem value="FEMALE">Female</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="weight"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Weight (lbs)"
+                    type="number"
+                    fullWidth
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value || null)}
+                    error={!!errors.weight}
+                    helperText={errors.weight?.message}
+                    inputProps={{ min: 0, step: "0.1" }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="clientId"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Autocomplete
+                    options={clients}
+                    getOptionLabel={getClientOptionLabel}
+                    onChange={(_, newValue) => {
+                      onChange(newValue ? newValue.id : "");
+                    }}
+                    value={clients.find((c) => c.id === value) || null}
+                    isOptionEqualToValue={(option, value) =>
+                      option.id ===
+                      (typeof value === "string" ? value : value?.id)
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select Client"
+                        error={!!errors.clientId}
+                        helperText={errors.clientId?.message}
+                      />
+                    )}
+                  />
+                )}
+              />
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} tabIndex={0}>

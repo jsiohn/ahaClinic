@@ -9,6 +9,8 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -51,6 +53,7 @@ export default function AnimalsPage() {
   const [openAnimalDialog, setOpenAnimalDialog] = useState(false);
   const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const fetchClients = async () => {
     try {
@@ -77,6 +80,7 @@ export default function AnimalsPage() {
         ? data.map((animal: any) => ({
             ...animal,
             id: animal._id,
+            client: animal.client._id, // Ensure we get the client's _id
             weight: animal.weight != null ? parseFloat(animal.weight) : null,
             clientName: animal.client
               ? `${animal.client.firstName} ${animal.client.lastName}`
@@ -96,6 +100,10 @@ export default function AnimalsPage() {
   useEffect(() => {
     Promise.all([fetchAnimals(), fetchClients()]);
   }, []);
+
+  const filteredAnimals = selectedClient
+    ? animals.filter((animal) => animal.client === selectedClient._id) // Use _id instead of id
+    : animals;
 
   const handleCreateClick = () => {
     setSelectedAnimal(null);
@@ -198,6 +206,10 @@ export default function AnimalsPage() {
     handleCloseMedicalDialog();
   };
 
+  const handleClientChange = (_: any, client: Client | null) => {
+    setSelectedClient(client);
+  };
+
   const columns: GridColDef[] = [
     { field: "name", headerName: "Name", flex: 1 },
     {
@@ -291,10 +303,31 @@ export default function AnimalsPage() {
         </Alert>
       </Snackbar>
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h4" component="h1">
           Animals
         </Typography>
+        <Box sx={{ width: 300, mx: 2 }}>
+          <Autocomplete
+            options={clients}
+            getOptionLabel={(client) =>
+              `${client.firstName} ${client.lastName}`
+            }
+            renderInput={(params) => (
+              <TextField {...params} label="Filter by Client" size="small" />
+            )}
+            value={selectedClient}
+            onChange={handleClientChange}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+          />
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -305,7 +338,7 @@ export default function AnimalsPage() {
       </Box>
 
       <DataGrid
-        rows={animals}
+        rows={filteredAnimals}
         columns={columns}
         initialState={{
           pagination: {
