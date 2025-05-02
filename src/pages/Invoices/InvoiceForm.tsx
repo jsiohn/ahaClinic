@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -20,12 +20,14 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Autocomplete,
 } from "@mui/material";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { Invoice, InvoiceItem } from "../../types/models";
+import { Invoice, InvoiceItem, Client, Animal } from "../../types/models";
+import api from "../../utils/api";
 
 interface InvoiceFormProps {
   invoice?: Invoice | null;
@@ -37,6 +39,8 @@ interface InvoiceFormData {
   clientId: string;
   animalId: string;
   date: string;
+  dueDate: string;
+  invoiceNumber: string;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
   paymentDate?: string | null;
@@ -46,6 +50,14 @@ const schema = yup.object().shape({
   clientId: yup.string().required("Client is required"),
   animalId: yup.string().required("Animal is required"),
   date: yup.string().required("Date is required"),
+  dueDate: yup.string().required("Due date is required"),
+  invoiceNumber: yup
+    .string()
+    .required("Invoice number is required")
+    .matches(
+      /^[A-Z0-9-]+$/,
+      "Invoice number can only contain uppercase letters, numbers, and hyphens"
+    ),
   status: yup
     .string()
     .oneOf(["draft", "sent", "paid", "overdue", "cancelled"] as const)
@@ -81,18 +93,40 @@ const defaultProcedures = [
   { id: "checkup", name: "Check-up", price: 50.0 },
 ];
 
+const generateInvoiceNumber = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const random = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `INV-${year}${month}-${random}`;
+};
+
 export default function InvoiceForm({
   invoice,
   onSave,
   onCancel,
 }: InvoiceFormProps) {
-  const [items, setItems] = useState<InvoiceItem[]>(invoice?.procedures || []);
+  const [items, setItems] = useState<InvoiceItem[]>(
+    invoice?.items?.map((item) => ({
+      ...item,
+      quantity: Math.max(1, parseInt(String(item.quantity)) || 1),
+      unitPrice: parseFloat(Number(item.unitPrice || 0).toFixed(2)),
+      total: parseFloat(Number(item.total || 0).toFixed(2)),
+    })) || []
+  );
+  const [clients, setClients] = useState<Client[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const taxRate = 0.08; // 8% tax rate
 
   const {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<InvoiceFormData>({
     resolver: yupResolver(schema),
@@ -102,19 +136,116 @@ export default function InvoiceForm({
       date:
         invoice?.date.toISOString().split("T")[0] ||
         new Date().toISOString().split("T")[0],
+      dueDate:
+        invoice?.dueDate?.toISOString().split("T")[0] ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0], // 30 days from now
+      invoiceNumber: invoice?.invoiceNumber || generateInvoiceNumber(),
       status: invoice?.status || "draft",
       paymentMethod: invoice?.paymentMethod || null,
       paymentDate: invoice?.paymentDate?.toISOString().split("T")[0],
     },
   });
 
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await api.get("/clients");
+        const transformedData = Array.isArray(response)
+          ? response.map((client: any) => ({
+              ...client,
+              id: client._id,
+            }))
+          : [];
+        setClients(transformedData);
+
+        // Set selected client if editing an invoice
+        if (invoice?.clientId) {
+          const client = transformedData.find((c) => c.id === invoice.clientId);
+          setSelectedClient(client || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch clients:", err);
+      }
+    };
+
+    const fetchAnimals = async () => {
+      try {
+        const response = await api.get("/animals");
+        const transformedData = Array.isArray(response)
+          ? response.map((animal: any) => ({
+              ...animal,
+              id: animal._id,
+              client: animal.client._id,
+            }))
+          : [];
+        setAnimals(transformedData);
+
+        // Set selected animal if editing an invoice
+        if (invoice?.animalId) {
+          const animal = transformedData.find((a) => a.id === invoice.animalId);
+          setSelectedAnimal(animal || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch animals:", err);
+      }
+    };
+
+    fetchClients();
+    fetchAnimals();
+  }, [invoice?.clientId, invoice?.animalId]);
+
+  // Filter animals based on selected client
+  const filteredAnimals = selectedClient
+    ? animals.filter((animal) => animal.client === selectedClient.id)
+    : animals;
+
+  const getClientOptionLabel = (option: Client | null) => {
+    if (!option) return "";
+    return `${option.firstName} ${option.lastName}`;
+  };
+
+  const getAnimalOptionLabel = (option: Animal | null) => {
+    if (!option) return "";
+    return `${option.name} (${option.species})`;
+  };
+
+  const handleClientChange = (client: Client | null) => {
+    setSelectedClient(client);
+    setValue("clientId", client?.id || "");
+    // Reset animal selection when client changes
+    setValue("animalId", "");
+    setSelectedAnimal(null);
+  };
+
+  const handleAnimalChange = (animal: Animal | null) => {
+    setSelectedAnimal(animal);
+    setValue("animalId", animal?.id || "");
+  };
+
   const status = watch("status");
 
   const calculateTotals = () => {
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    const subtotal = parseFloat(
+      items
+        .reduce((sum, item) => {
+          const itemTotal = parseFloat(
+            (Number(item.quantity) * Number(item.unitPrice)).toFixed(2)
+          );
+          return parseFloat((sum + itemTotal).toFixed(2));
+        }, 0)
+        .toFixed(2)
+    );
+
+    const tax = parseFloat((subtotal * taxRate).toFixed(2));
+    const total = parseFloat((subtotal + tax).toFixed(2));
+
+    return {
+      subtotal,
+      tax,
+      total,
+    };
   };
 
   const handleAddItem = () => {
@@ -137,40 +268,59 @@ export default function InvoiceForm({
   const handleItemChange = (
     index: number,
     field: keyof InvoiceItem,
-    value: any
+    value: string | number
   ) => {
     const newItems = [...items];
-    const item = { ...newItems[index], [field]: value };
-
-    // If changing procedure, update unit price and description
-    if (field === "procedure") {
-      const defaultProcedure = defaultProcedures.find((p) => p.name === value);
-      if (defaultProcedure) {
-        item.unitPrice = defaultProcedure.price;
-        item.description = `Standard ${value}`;
+    const item = newItems[index];
+    if (item) {
+      const updatedItem = { ...item, [field]: value };
+      
+      // If procedure changes, update the unit price
+      if (field === 'procedure') {
+        const selectedProcedure = defaultProcedures.find(p => p.name === value);
+        if (selectedProcedure) {
+          updatedItem.unitPrice = selectedProcedure.price;
+        }
       }
+      
+      // Recalculate total whenever quantity or unitPrice changes
+      if (field === 'quantity' || field === 'unitPrice' || field === 'procedure') {
+        updatedItem.total = parseFloat((Number(updatedItem.quantity) * Number(updatedItem.unitPrice)).toFixed(2));
+      }
+      
+      newItems[index] = updatedItem;
+      setItems(newItems);
     }
-
-    // Recalculate total
-    if (field === "quantity" || field === "unitPrice") {
-      item.total = item.quantity * item.unitPrice;
-    }
-
-    newItems[index] = item;
-    setItems(newItems);
   };
 
   const onSubmit = (data: InvoiceFormData) => {
     const { subtotal, tax, total } = calculateTotals();
-    onSave({
-      ...data,
-      procedures: items,
-      subtotal,
-      tax,
-      total,
+
+    // Create a base invoice object first
+    const invoiceBase = {
+      client: data.clientId,
+      animal: data.animalId,
+      invoiceNumber: data.invoiceNumber,
       date: new Date(data.date),
+      dueDate: new Date(data.dueDate),
+      status: data.status,
+      paymentMethod: data.paymentMethod,
       paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
-    });
+      items: items.map((item) => ({
+        description: item.description,
+        procedure: item.procedure,
+        quantity: Number(item.quantity),
+        unitPrice: parseFloat(Number(item.unitPrice).toFixed(2)),
+        total: parseFloat(
+          (Number(item.quantity) * Number(item.unitPrice)).toFixed(2)
+        ),
+      })),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      tax: parseFloat(tax.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
+    };
+
+    onSave(invoiceBase as unknown as Partial<Invoice>);
   };
 
   const formatCurrency = (amount: number) => {
@@ -184,23 +334,47 @@ export default function InvoiceForm({
 
   return (
     <>
-      <DialogTitle>
+      <DialogTitle id="invoice-dialog-title">
         {invoice ? "Edit Invoice" : "Create New Invoice"}
       </DialogTitle>
       <DialogContent>
-        <Box component="form" noValidate sx={{ mt: 2 }}>
+        <Box
+          component="form"
+          noValidate
+          sx={{ mt: 2 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(onSubmit)();
+          }}
+        >
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
               <Controller
                 name="clientId"
                 control={control}
-                render={({ field }) => (
-                  <TextField
+                render={({ field: { onChange, value, ...field } }) => (
+                  <Autocomplete
                     {...field}
-                    label="Client ID"
-                    fullWidth
-                    error={!!errors.clientId}
-                    helperText={errors.clientId?.message}
+                    options={clients}
+                    value={selectedClient}
+                    getOptionLabel={getClientOptionLabel}
+                    onChange={(_, value) => handleClientChange(value)}
+                    isOptionEqualToValue={(option, value) =>
+                      option.id === value?.id
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Client"
+                        fullWidth
+                        error={!!errors.clientId}
+                        helperText={errors.clientId?.message}
+                        inputProps={{
+                          ...params.inputProps,
+                          "aria-label": "Client selection",
+                        }}
+                      />
+                    )}
                   />
                 )}
               />
@@ -209,13 +383,34 @@ export default function InvoiceForm({
               <Controller
                 name="animalId"
                 control={control}
-                render={({ field }) => (
-                  <TextField
+                render={({ field: { onChange, value, ...field } }) => (
+                  <Autocomplete
                     {...field}
-                    label="Animal ID"
-                    fullWidth
-                    error={!!errors.animalId}
-                    helperText={errors.animalId?.message}
+                    options={filteredAnimals}
+                    value={selectedAnimal}
+                    getOptionLabel={getAnimalOptionLabel}
+                    onChange={(_, value) => handleAnimalChange(value)}
+                    isOptionEqualToValue={(option, value) =>
+                      option.id === value?.id
+                    }
+                    disabled={!selectedClient}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Animal"
+                        fullWidth
+                        error={!!errors.animalId}
+                        helperText={
+                          selectedClient
+                            ? errors.animalId?.message
+                            : "Please select a client first"
+                        }
+                        inputProps={{
+                          ...params.inputProps,
+                          "aria-label": "Animal selection",
+                        }}
+                      />
+                    )}
                   />
                 )}
               />
@@ -235,6 +430,49 @@ export default function InvoiceForm({
                     }}
                     error={!!errors.date}
                     helperText={errors.date?.message}
+                    inputProps={{
+                      "aria-label": "Invoice date",
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller
+                name="dueDate"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Due Date"
+                    type="date"
+                    fullWidth
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    error={!!errors.dueDate}
+                    helperText={errors.dueDate?.message}
+                    inputProps={{
+                      "aria-label": "Due date",
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Controller
+                name="invoiceNumber"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Invoice Number"
+                    fullWidth
+                    error={!!errors.invoiceNumber}
+                    helperText={errors.invoiceNumber?.message}
+                    inputProps={{
+                      "aria-label": "Invoice number",
+                    }}
                   />
                 )}
               />
@@ -246,7 +484,11 @@ export default function InvoiceForm({
                   name="status"
                   control={control}
                   render={({ field }) => (
-                    <Select {...field} label="Status">
+                    <Select
+                      {...field}
+                      label="Status"
+                      inputProps={{ "aria-label": "Invoice status" }}
+                    >
                       <MenuItem value="draft">Draft</MenuItem>
                       <MenuItem value="sent">Sent</MenuItem>
                       <MenuItem value="paid">Paid</MenuItem>
@@ -266,7 +508,11 @@ export default function InvoiceForm({
                       name="paymentMethod"
                       control={control}
                       render={({ field }) => (
-                        <Select {...field} label="Payment Method">
+                        <Select
+                          {...field}
+                          label="Payment Method"
+                          inputProps={{ "aria-label": "Payment method" }}
+                        >
                           <MenuItem value="cash">Cash</MenuItem>
                           <MenuItem value="credit_card">Credit Card</MenuItem>
                           <MenuItem value="bank_transfer">
@@ -293,6 +539,9 @@ export default function InvoiceForm({
                         }}
                         error={!!errors.paymentDate}
                         helperText={errors.paymentDate?.message}
+                        inputProps={{
+                          "aria-label": "Payment date",
+                        }}
                       />
                     )}
                   />
@@ -315,6 +564,7 @@ export default function InvoiceForm({
               startIcon={<AddIcon />}
               onClick={handleAddItem}
               variant="outlined"
+              aria-label="Add item"
             >
               Add Item
             </Button>
@@ -342,6 +592,7 @@ export default function InvoiceForm({
                           onChange={(e) =>
                             handleItemChange(index, "procedure", e.target.value)
                           }
+                          inputProps={{ "aria-label": "Procedure" }}
                         >
                           {defaultProcedures.map((proc) => (
                             <MenuItem key={proc.id} value={proc.name}>
@@ -358,6 +609,7 @@ export default function InvoiceForm({
                         onChange={(e) =>
                           handleItemChange(index, "description", e.target.value)
                         }
+                        inputProps={{ "aria-label": "Description" }}
                       />
                     </TableCell>
                     <TableCell align="right">
@@ -371,7 +623,11 @@ export default function InvoiceForm({
                             parseInt(e.target.value) || 0
                           )
                         }
-                        inputProps={{ min: 1, style: { textAlign: "right" } }}
+                        inputProps={{
+                          min: 1,
+                          style: { textAlign: "right" },
+                          "aria-label": "Quantity",
+                        }}
                       />
                     </TableCell>
                     <TableCell align="right">
@@ -389,6 +645,7 @@ export default function InvoiceForm({
                           min: 0,
                           step: 0.01,
                           style: { textAlign: "right" },
+                          "aria-label": "Unit price",
                         }}
                       />
                     </TableCell>
@@ -400,6 +657,7 @@ export default function InvoiceForm({
                         size="small"
                         onClick={() => handleRemoveItem(index)}
                         color="error"
+                        aria-label="Remove item"
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -444,8 +702,14 @@ export default function InvoiceForm({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained">
+        <Button onClick={onCancel} aria-label="Cancel">
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit(onSubmit)}
+          variant="contained"
+          aria-label={invoice ? "Save invoice changes" : "Create new invoice"}
+        >
           {invoice ? "Save Changes" : "Create Invoice"}
         </Button>
       </DialogActions>

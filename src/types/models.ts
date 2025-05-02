@@ -74,10 +74,12 @@ export interface Organization {
 
 export interface Invoice {
   id: string;
+  invoiceNumber: string;
   clientId: string;
   animalId: string;
   date: Date;
-  procedures: InvoiceItem[];
+  dueDate: Date;
+  items: InvoiceItem[];
   subtotal: number;
   tax: number;
   total: number;

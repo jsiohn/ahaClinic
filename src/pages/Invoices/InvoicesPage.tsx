@@ -7,6 +7,8 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -29,33 +31,58 @@ export default function InvoicesPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvoices();
   }, []);
 
+  const formatCurrency = (amount: number | null | undefined) => {
+    // Handle null, undefined, or NaN values
+    const validAmount =
+      typeof amount === "number" && !isNaN(amount) ? amount : 0;
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(validAmount);
+  };
+
+  const transformInvoiceData = (invoice: ApiInvoice): Invoice => ({
+    ...invoice,
+    id: invoice._id,
+    date: new Date(invoice.date),
+    dueDate: new Date(invoice.dueDate),
+    paymentDate: invoice.paymentDate ? new Date(invoice.paymentDate) : undefined,
+    createdAt: new Date(invoice.createdAt),
+    updatedAt: new Date(invoice.updatedAt),
+    subtotal: typeof invoice.subtotal === 'string' ? parseFloat(invoice.subtotal) : Number(invoice.subtotal || 0),
+    tax: typeof invoice.tax === 'string' ? parseFloat(invoice.tax) : Number(invoice.tax || 0),
+    total: typeof invoice.total === 'string' ? parseFloat(invoice.total) : Number(invoice.total || 0),
+    items: invoice.items.map((item) => ({
+      ...item,
+      quantity: Math.max(1, parseInt(String(item.quantity || 1))),
+      unitPrice: typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : Number(item.unitPrice || 0),
+      total: typeof item.total === 'string' ? parseFloat(item.total) : Number(item.total || 0)
+    }))
+  });
+
   const fetchInvoices = async () => {
     try {
       setLoading(true);
       const response = await api.get<ApiInvoice[]>("/invoices");
-      // Handle both array and object response formats
-      const invoicesData = Array.isArray(response)
-        ? response
-        : response.data || [];
-      setInvoices(
-        invoicesData.map((invoice) => ({
-          ...invoice,
-          id: invoice._id,
-          date: new Date(invoice.date),
-          paymentDate: invoice.paymentDate
-            ? new Date(invoice.paymentDate)
-            : undefined,
-          createdAt: new Date(invoice.createdAt),
-          updatedAt: new Date(invoice.updatedAt),
-        }))
+      console.log("Raw API response:", response);
+      // response is already the data because of the axios interceptor
+      const invoiceData = Array.isArray(response) ? response : [];
+      console.log(
+        "Transformed invoices:",
+        invoiceData.map(transformInvoiceData)
       );
+      setInvoices(invoiceData.map(transformInvoiceData));
     } catch (error) {
       console.error("Error fetching invoices:", error);
+      setError("Failed to fetch invoices");
     } finally {
       setLoading(false);
     }
@@ -95,49 +122,25 @@ export default function InvoicesPage() {
 
   const handleSaveInvoice = async (invoiceData: Partial<Invoice>) => {
     try {
-      let savedInvoice: ApiInvoice;
       if (selectedInvoice) {
-        const { data } = await api.put<ApiInvoice>(
-          `/invoices/${selectedInvoice.id}`,
-          invoiceData
-        );
-        savedInvoice = data;
+        await api.put(`/invoices/${selectedInvoice.id}`, invoiceData);
       } else {
-        const { data } = await api.post<ApiInvoice>("/invoices", invoiceData);
-        savedInvoice = data;
+        await api.post("/invoices", invoiceData);
       }
 
-      const transformedInvoice: Invoice = {
-        ...savedInvoice,
-        id: savedInvoice._id,
-        date: new Date(savedInvoice.date),
-        paymentDate: savedInvoice.paymentDate
-          ? new Date(savedInvoice.paymentDate)
-          : undefined,
-        createdAt: new Date(savedInvoice.createdAt),
-        updatedAt: new Date(savedInvoice.updatedAt),
-      } as Invoice;
-
-      if (selectedInvoice) {
-        setInvoices(
-          invoices.map((invoice) =>
-            invoice.id === selectedInvoice.id ? transformedInvoice : invoice
-          )
-        );
-      } else {
-        setInvoices([...invoices, transformedInvoice]);
-      }
+      // Refresh the invoice list to get the latest data
+      await fetchInvoices();
       handleCloseDialog();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving invoice:", error);
+      const message =
+        error.message || error.errors?.[0]?.msg || "Failed to save invoice";
+      setError(message);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+  const handleCloseSnackbar = () => {
+    setError(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -169,7 +172,7 @@ export default function InvoicesPage() {
       },
     },
     {
-      field: "id",
+      field: "invoiceNumber",
       headerName: "Invoice #",
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
@@ -195,22 +198,40 @@ export default function InvoicesPage() {
       field: "subtotal",
       headerName: "Subtotal",
       width: 120,
-      valueFormatter: (params: { value: any }) =>
-        formatCurrency(Number(params.value)),
+      type: "number",
+      valueFormatter: (params: { value: number | string }) => {
+        const value =
+          typeof params.value === "string"
+            ? parseFloat(params.value)
+            : params.value;
+        return formatCurrency(value);
+      },
     },
     {
       field: "tax",
       headerName: "Tax",
       width: 120,
-      valueFormatter: (params: { value: any }) =>
-        formatCurrency(Number(params.value)),
+      type: "number",
+      valueFormatter: (params: { value: number | string }) => {
+        const value =
+          typeof params.value === "string"
+            ? parseFloat(params.value)
+            : params.value;
+        return formatCurrency(value);
+      },
     },
     {
       field: "total",
       headerName: "Total",
       width: 120,
-      valueFormatter: (params: { value: any }) =>
-        formatCurrency(Number(params.value)),
+      type: "number",
+      valueFormatter: (params: { value: number | string }) => {
+        const value =
+          typeof params.value === "string"
+            ? parseFloat(params.value)
+            : params.value;
+        return formatCurrency(value);
+      },
     },
     {
       field: "actions",
@@ -264,8 +285,14 @@ export default function InvoicesPage() {
         </Button>
       </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <DataGrid
-        rows={invoices}
+        rows={Array.isArray(invoices) ? invoices : []}
         columns={columns}
         initialState={{
           pagination: {
@@ -278,7 +305,8 @@ export default function InvoicesPage() {
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
         disableRowSelectionOnClick
-        autoHeight
+        getRowId={(row) => row.id || row._id}
+        sx={{ minHeight: 400 }}
         loading={loading}
       />
 
@@ -287,6 +315,8 @@ export default function InvoicesPage() {
         onClose={handleCloseDialog}
         maxWidth="lg"
         fullWidth
+        aria-labelledby="invoice-dialog-title"
+        disableRestoreFocus
       >
         <InvoiceForm
           invoice={selectedInvoice}
@@ -294,6 +324,17 @@ export default function InvoicesPage() {
           onCancel={handleCloseDialog}
         />
       </Dialog>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

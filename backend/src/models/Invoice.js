@@ -9,15 +9,22 @@ const invoiceItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
+    default: 1,
   },
   unitPrice: {
     type: Number,
     required: true,
     min: 0,
+    default: 0,
+    get: (v) => parseFloat(v.toFixed(2)),
+    set: (v) => parseFloat(parseFloat(v).toFixed(2)),
   },
   total: {
     type: Number,
     required: true,
+    default: 0,
+    get: (v) => parseFloat(v.toFixed(2)),
+    set: (v) => parseFloat(parseFloat(v).toFixed(2)),
   },
 });
 
@@ -46,19 +53,42 @@ const invoiceSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  items: [invoiceItemSchema],
+  items: [
+    {
+      description: { type: String, required: true },
+      procedure: { type: String, required: true },
+      quantity: { type: Number, required: true },
+      unitPrice: {
+        type: Number,
+        required: true,
+        get: (v) => parseFloat(v.toFixed(2)),
+        set: (v) => parseFloat(v.toFixed(2)),
+      },
+      total: {
+        type: Number,
+        required: true,
+        get: (v) => parseFloat(v.toFixed(2)),
+        set: (v) => parseFloat(v.toFixed(2)),
+      },
+    },
+  ],
   subtotal: {
     type: Number,
     required: true,
+    get: (v) => parseFloat(v.toFixed(2)),
+    set: (v) => parseFloat(v.toFixed(2)),
   },
   tax: {
     type: Number,
     required: true,
-    default: 0,
+    get: (v) => parseFloat(v.toFixed(2)),
+    set: (v) => parseFloat(v.toFixed(2)),
   },
   total: {
     type: Number,
     required: true,
+    get: (v) => parseFloat(v.toFixed(2)),
+    set: (v) => parseFloat(v.toFixed(2)),
   },
   status: {
     type: String,
