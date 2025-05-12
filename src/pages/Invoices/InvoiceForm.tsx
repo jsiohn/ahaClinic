@@ -148,53 +148,76 @@ export default function InvoiceForm({
     },
   });
 
+  // Add a debug effect to track state changes
   useEffect(() => {
-    const fetchClients = async () => {
+    if (invoice) {
+      console.log("Debug - Current state:");
+      console.log("Invoice being edited:", invoice);
+      console.log("Selected client:", selectedClient);
+      console.log("Selected animal:", selectedAnimal);
+      console.log("Client ID:", invoice.clientId);
+      console.log("Animal ID:", invoice.animalId);
+    }
+  }, [invoice, selectedClient, selectedAnimal]);
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const response = await api.get("/clients");
-        const transformedData = Array.isArray(response)
-          ? response.map((client: any) => ({
+        // Fetch clients first
+        const clientResponse = await api.get("/clients");
+        const transformedClients = Array.isArray(clientResponse)
+          ? clientResponse.map((client: any) => ({
               ...client,
-              id: client._id,
+              id: client._id || client.id,
             }))
           : [];
-        setClients(transformedData);
+        setClients(transformedClients);
 
-        // Set selected client if editing an invoice
-        if (invoice?.clientId) {
-          const client = transformedData.find((c) => c.id === invoice.clientId);
-          setSelectedClient(client || null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch clients:", err);
-      }
-    };
-
-    const fetchAnimals = async () => {
-      try {
-        const response = await api.get("/animals");
-        const transformedData = Array.isArray(response)
-          ? response.map((animal: any) => ({
+        // Fetch animals
+        const animalResponse = await api.get("/animals");
+        const transformedAnimals = Array.isArray(animalResponse)
+          ? animalResponse.map((animal: any) => ({
               ...animal,
-              id: animal._id,
-              client: animal.client._id,
+              id: animal._id || animal.id,
+              client:
+                typeof animal.client === "object"
+                  ? animal.client._id || animal.client.id
+                  : animal.client,
             }))
           : [];
-        setAnimals(transformedData);
+        setAnimals(transformedAnimals);
 
-        // Set selected animal if editing an invoice
-        if (invoice?.animalId) {
-          const animal = transformedData.find((a) => a.id === invoice.animalId);
-          setSelectedAnimal(animal || null);
+        // If we have an invoice being edited, set the client and animal
+        if (invoice) {
+          // Find matching client
+          const matchingClient = transformedClients.find(
+            (c) => c.id === invoice.clientId || c._id === invoice.clientId
+          );
+
+          if (matchingClient) {
+            console.log("Found matching client:", matchingClient);
+            setSelectedClient(matchingClient);
+            setValue("clientId", matchingClient.id);
+          }
+
+          // Find matching animal
+          const matchingAnimal = transformedAnimals.find(
+            (a) => a.id === invoice.animalId || a._id === invoice.animalId
+          );
+
+          if (matchingAnimal) {
+            console.log("Found matching animal:", matchingAnimal);
+            setSelectedAnimal(matchingAnimal);
+            setValue("animalId", matchingAnimal.id);
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch animals:", err);
+        console.error("Failed to fetch data:", err);
       }
     };
 
-    fetchClients();
-    fetchAnimals();
-  }, [invoice?.clientId, invoice?.animalId]);
+    fetchData();
+  }, [invoice, setValue]);
 
   // Filter animals based on selected client
   const filteredAnimals = selectedClient
@@ -274,20 +297,30 @@ export default function InvoiceForm({
     const item = newItems[index];
     if (item) {
       const updatedItem = { ...item, [field]: value };
-      
+
       // If procedure changes, update the unit price
-      if (field === 'procedure') {
-        const selectedProcedure = defaultProcedures.find(p => p.name === value);
+      if (field === "procedure") {
+        const selectedProcedure = defaultProcedures.find(
+          (p) => p.name === value
+        );
         if (selectedProcedure) {
           updatedItem.unitPrice = selectedProcedure.price;
         }
       }
-      
+
       // Recalculate total whenever quantity or unitPrice changes
-      if (field === 'quantity' || field === 'unitPrice' || field === 'procedure') {
-        updatedItem.total = parseFloat((Number(updatedItem.quantity) * Number(updatedItem.unitPrice)).toFixed(2));
+      if (
+        field === "quantity" ||
+        field === "unitPrice" ||
+        field === "procedure"
+      ) {
+        updatedItem.total = parseFloat(
+          (
+            Number(updatedItem.quantity) * Number(updatedItem.unitPrice)
+          ).toFixed(2)
+        );
       }
-      
+
       newItems[index] = updatedItem;
       setItems(newItems);
     }
@@ -362,13 +395,20 @@ export default function InvoiceForm({
                     isOptionEqualToValue={(option, value) =>
                       option.id === value?.id
                     }
+                    // Disable if editing an existing invoice
+                    disabled={!!invoice}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Client"
                         fullWidth
                         error={!!errors.clientId}
-                        helperText={errors.clientId?.message}
+                        helperText={
+                          errors.clientId?.message ||
+                          (invoice
+                            ? "Client cannot be changed after invoice creation"
+                            : "")
+                        }
                         inputProps={{
                           ...params.inputProps,
                           "aria-label": "Client selection",
@@ -393,7 +433,8 @@ export default function InvoiceForm({
                     isOptionEqualToValue={(option, value) =>
                       option.id === value?.id
                     }
-                    disabled={!selectedClient}
+                    // Disable if editing an existing invoice or if no client is selected
+                    disabled={!!invoice || !selectedClient}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -401,7 +442,9 @@ export default function InvoiceForm({
                         fullWidth
                         error={!!errors.animalId}
                         helperText={
-                          selectedClient
+                          invoice
+                            ? "Animal cannot be changed after invoice creation"
+                            : selectedClient
                             ? errors.animalId?.message
                             : "Please select a client first"
                         }
@@ -588,12 +631,16 @@ export default function InvoiceForm({
                     <TableCell>
                       <FormControl fullWidth>
                         <Select
-                          value={item.procedure}
+                          value={item.procedure || ""}
                           onChange={(e) =>
                             handleItemChange(index, "procedure", e.target.value)
                           }
                           inputProps={{ "aria-label": "Procedure" }}
+                          displayEmpty
                         >
+                          <MenuItem value="" disabled>
+                            <em>Select a procedure</em>
+                          </MenuItem>
                           {defaultProcedures.map((proc) => (
                             <MenuItem key={proc.id} value={proc.name}>
                               {proc.name}

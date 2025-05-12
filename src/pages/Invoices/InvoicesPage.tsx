@@ -24,6 +24,22 @@ import api from "../../utils/api";
 
 interface ApiInvoice extends Omit<Invoice, "id"> {
   _id: string;
+  client?:
+    | {
+        _id: string;
+        id?: string;
+        firstName: string;
+        lastName: string;
+      }
+    | string;
+  animal?:
+    | {
+        _id: string;
+        id?: string;
+        name: string;
+        species: string;
+      }
+    | string;
 }
 
 export default function InvoicesPage() {
@@ -49,37 +65,91 @@ export default function InvoicesPage() {
     }).format(validAmount);
   };
 
-  const transformInvoiceData = (invoice: ApiInvoice): Invoice => ({
-    ...invoice,
-    id: invoice._id,
-    date: new Date(invoice.date),
-    dueDate: new Date(invoice.dueDate),
-    paymentDate: invoice.paymentDate ? new Date(invoice.paymentDate) : undefined,
-    createdAt: new Date(invoice.createdAt),
-    updatedAt: new Date(invoice.updatedAt),
-    subtotal: typeof invoice.subtotal === 'string' ? parseFloat(invoice.subtotal) : Number(invoice.subtotal || 0),
-    tax: typeof invoice.tax === 'string' ? parseFloat(invoice.tax) : Number(invoice.tax || 0),
-    total: typeof invoice.total === 'string' ? parseFloat(invoice.total) : Number(invoice.total || 0),
-    items: invoice.items.map((item) => ({
-      ...item,
-      quantity: Math.max(1, parseInt(String(item.quantity || 1))),
-      unitPrice: typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : Number(item.unitPrice || 0),
-      total: typeof item.total === 'string' ? parseFloat(item.total) : Number(item.total || 0)
-    }))
-  });
+  const transformInvoiceData = (invoice: ApiInvoice): Invoice => {
+    // Ensure monetary values are properly converted to numbers
+    const subtotal =
+      typeof invoice.subtotal === "string"
+        ? parseFloat(invoice.subtotal)
+        : typeof invoice.subtotal === "number"
+        ? invoice.subtotal
+        : 0;
+
+    const tax =
+      typeof invoice.tax === "string"
+        ? parseFloat(invoice.tax)
+        : typeof invoice.tax === "number"
+        ? invoice.tax
+        : 0;
+
+    const total =
+      typeof invoice.total === "string"
+        ? parseFloat(invoice.total)
+        : typeof invoice.total === "number"
+        ? invoice.total
+        : 0;
+
+    // Extract client and animal IDs properly with type checking
+    let clientId: string = "";
+    if (invoice.client) {
+      if (typeof invoice.client === "object" && invoice.client !== null) {
+        clientId = invoice.client._id || invoice.client.id || "";
+      } else if (typeof invoice.client === "string") {
+        clientId = invoice.client;
+      }
+    }
+
+    let animalId: string = "";
+    if (invoice.animal) {
+      if (typeof invoice.animal === "object" && invoice.animal !== null) {
+        animalId = invoice.animal._id || invoice.animal.id || "";
+      } else if (typeof invoice.animal === "string") {
+        animalId = invoice.animal;
+      }
+    }
+
+    return {
+      ...invoice,
+      id: invoice._id,
+      // Make sure we set the clientId and animalId correctly
+      clientId,
+      animalId,
+      date: new Date(invoice.date),
+      dueDate: new Date(invoice.dueDate),
+      paymentDate: invoice.paymentDate
+        ? new Date(invoice.paymentDate)
+        : undefined,
+      createdAt: new Date(invoice.createdAt),
+      updatedAt: new Date(invoice.updatedAt),
+      subtotal,
+      tax,
+      total,
+      items: invoice.items.map((item) => ({
+        ...item,
+        quantity: Math.max(1, parseInt(String(item.quantity || 1))),
+        unitPrice:
+          typeof item.unitPrice === "string"
+            ? parseFloat(item.unitPrice)
+            : typeof item.unitPrice === "number"
+            ? item.unitPrice
+            : 0,
+        total:
+          typeof item.total === "string"
+            ? parseFloat(item.total)
+            : typeof item.total === "number"
+            ? item.total
+            : 0,
+      })),
+    };
+  };
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
       const response = await api.get<ApiInvoice[]>("/invoices");
-      console.log("Raw API response:", response);
       // response is already the data because of the axios interceptor
       const invoiceData = Array.isArray(response) ? response : [];
-      console.log(
-        "Transformed invoices:",
-        invoiceData.map(transformInvoiceData)
-      );
-      setInvoices(invoiceData.map(transformInvoiceData));
+      const transformedInvoices = invoiceData.map(transformInvoiceData);
+      setInvoices(transformedInvoices);
     } catch (error) {
       console.error("Error fetching invoices:", error);
       setError("Failed to fetch invoices");
@@ -93,25 +163,42 @@ export default function InvoicesPage() {
     setOpenDialog(true);
   };
 
-  const handleEditClick = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setOpenDialog(true);
+  const handleEditClick = async (invoice: Invoice) => {
+    try {
+      // Fetch fresh invoice data to ensure we have complete information
+      const response = await api.get<ApiInvoice>(`/invoices/${invoice.id}`);
+      if (response) {
+        const freshInvoice = transformInvoiceData(
+          response as unknown as ApiInvoice
+        );
+        setSelectedInvoice(freshInvoice);
+        setOpenDialog(true);
+      }
+    } catch (error) {
+      console.error("Error fetching invoice details:", error);
+      // Fallback to using the row data if fetch fails
+      setSelectedInvoice(invoice);
+      setOpenDialog(true);
+    }
   };
 
   const handleDeleteClick = async (invoice: Invoice) => {
     if (window.confirm("Are you sure you want to delete this invoice?")) {
       try {
+        setLoading(true);
         await api.delete(`/invoices/${invoice.id}`);
         setInvoices(invoices.filter((i) => i.id !== invoice.id));
       } catch (error) {
         console.error("Error deleting invoice:", error);
+        setError("Failed to delete invoice");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handlePrintClick = (invoice: Invoice) => {
-    // Store the invoice data for printing
-    console.log("Preparing to print invoice:", invoice);
+  const handlePrintClick = (_invoice: Invoice) => {
+    // Implement print functionality
     window.print();
   };
 
@@ -164,11 +251,11 @@ export default function InvoicesPage() {
       field: "date",
       headerName: "Date",
       width: 120,
-      valueFormatter: (params: { value: any }) => {
-        if (params.value) {
-          return new Date(params.value).toLocaleDateString();
+      renderCell: (params: GridRenderCellParams) => {
+        if (params.row.date) {
+          return <span>{new Date(params.row.date).toLocaleDateString()}</span>;
         }
-        return "";
+        return <span></span>;
       },
     },
     {
@@ -181,6 +268,18 @@ export default function InvoicesPage() {
           {params.value}
         </Box>
       ),
+    },
+    {
+      field: "client",
+      headerName: "Client",
+      width: 180,
+      renderCell: (params: GridRenderCellParams) => {
+        const clientName =
+          params.row.client?.firstName && params.row.client?.lastName
+            ? `${params.row.client.firstName} ${params.row.client.lastName}`
+            : "Unknown Client";
+        return <span>{clientName}</span>;
+      },
     },
     {
       field: "status",
@@ -198,39 +297,27 @@ export default function InvoicesPage() {
       field: "subtotal",
       headerName: "Subtotal",
       width: 120,
-      type: "number",
-      valueFormatter: (params: { value: number | string }) => {
-        const value =
-          typeof params.value === "string"
-            ? parseFloat(params.value)
-            : params.value;
-        return formatCurrency(value);
+      renderCell: (params: GridRenderCellParams) => {
+        const value = Number(params.row.subtotal || 0);
+        return <span>{formatCurrency(value)}</span>;
       },
     },
     {
       field: "tax",
       headerName: "Tax",
       width: 120,
-      type: "number",
-      valueFormatter: (params: { value: number | string }) => {
-        const value =
-          typeof params.value === "string"
-            ? parseFloat(params.value)
-            : params.value;
-        return formatCurrency(value);
+      renderCell: (params: GridRenderCellParams) => {
+        const value = Number(params.row.tax || 0);
+        return <span>{formatCurrency(value)}</span>;
       },
     },
     {
       field: "total",
       headerName: "Total",
       width: 120,
-      type: "number",
-      valueFormatter: (params: { value: number | string }) => {
-        const value =
-          typeof params.value === "string"
-            ? parseFloat(params.value)
-            : params.value;
-        return formatCurrency(value);
+      renderCell: (params: GridRenderCellParams) => {
+        const value = Number(params.row.total || 0);
+        return <span>{formatCurrency(value)}</span>;
       },
     },
     {
@@ -292,7 +379,17 @@ export default function InvoicesPage() {
       )}
 
       <DataGrid
-        rows={Array.isArray(invoices) ? invoices : []}
+        rows={
+          Array.isArray(invoices)
+            ? invoices.map((invoice) => ({
+                ...invoice,
+                // Explicitly convert monetary values to numbers to ensure they're correctly displayed
+                subtotal: Number(invoice.subtotal || 0),
+                tax: Number(invoice.tax || 0),
+                total: Number(invoice.total || 0),
+              }))
+            : []
+        }
         columns={columns}
         initialState={{
           pagination: {
