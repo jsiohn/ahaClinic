@@ -180,10 +180,11 @@ export default function OrganizationsPage() {
       }
     }
   }, []);
-
   const handleCreateClick = () => {
     setSelectedOrganization(null);
     setOpenDialog(true);
+    // Clear any saved form draft data
+    localStorage.removeItem("organizationDraftFormData");
     // Store dialog state in localStorage
     localStorage.setItem(
       "organizationDialogState",
@@ -193,10 +194,11 @@ export default function OrganizationsPage() {
       })
     );
   };
-
   const handleEditClick = (organization: Organization) => {
     setSelectedOrganization(organization);
     setOpenDialog(true);
+    // Clear any saved form draft data to prevent it from overriding the organization data
+    localStorage.removeItem("organizationDraftFormData");
     // Store dialog state and organization data in localStorage
     localStorage.setItem(
       "organizationDialogState",
@@ -241,12 +243,13 @@ export default function OrganizationsPage() {
   const handleEmailClick = (organization: Organization) => {
     window.location.href = `mailto:${organization.email}`;
   };
-
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedOrganization(null);
     // Clear the localStorage when dialog is closed
     localStorage.removeItem("organizationDialogState");
+    // Also clear any saved form draft data
+    localStorage.removeItem("organizationDraftFormData");
   };
 
   const handleSaveOrganization = async (
