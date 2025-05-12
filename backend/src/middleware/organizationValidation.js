@@ -8,21 +8,46 @@ export const validateOrganization = [
     .notEmpty()
     .withMessage("Contact person is required"),
 
-  body("email")
+  // Check email in both locations (nested and flat)
+  body(["email", "contactInfo.email"])
+    .optional({ checkFalsy: true })
     .trim()
     .isEmail()
-    .withMessage("Must be a valid email address")
-    .notEmpty()
-    .withMessage("Email is required"),
+    .withMessage("Must be a valid email address"),
 
-  body("phone")
+  // Require at least one of the email fields
+  body().custom((value) => {
+    if (!value.email && (!value.contactInfo || !value.contactInfo.email)) {
+      throw new Error("Email is required");
+    }
+    return true;
+  }),
+
+  // Check phone in both locations (nested and flat)
+  body(["phone", "contactInfo.phone"])
+    .optional({ checkFalsy: true })
     .trim()
     .matches(/^[\d\s-()]+$/)
-    .withMessage("Invalid phone number format")
-    .notEmpty()
-    .withMessage("Phone number is required"),
+    .withMessage("Invalid phone number format"),
 
-  body("address").trim().notEmpty().withMessage("Address is required"),
+  // Require at least one of the phone fields
+  body().custom((value) => {
+    if (!value.phone && (!value.contactInfo || !value.contactInfo.phone)) {
+      throw new Error("Phone number is required");
+    }
+    return true;
+  }),
+  // Check address in both formats (string and object)
+  body().custom((value) => {
+    // Address can be a string or an object with at least street property
+    if (
+      !value.address ||
+      (typeof value.address === "object" && !value.address.street)
+    ) {
+      throw new Error("Address is required");
+    }
+    return true;
+  }),
 
   body("status")
     .trim()

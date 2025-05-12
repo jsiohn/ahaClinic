@@ -6,6 +6,10 @@ const organizationSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  contactPerson: {
+    type: String,
+    trim: true,
+  },
   address: {
     street: String,
     city: String,

@@ -11,6 +11,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
+import { useEffect } from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Organization } from "../../types/models";
@@ -28,9 +29,10 @@ const schema = yup.object().shape({
   phone: yup
     .string()
     .matches(
-      /^\(\d{3}\) \d{3}-\d{4}$/,
-      "Phone number must be in format (XXX) XXX-XXXX"
+      /^[\d\s()\-+.]+$/,
+      "Phone number can only contain digits, spaces, and characters like (, ), -, +"
     )
+    .min(7, "Phone number is too short")
     .required("Phone number is required"),
   address: yup.string().required("Address is required"),
   status: yup
@@ -45,30 +47,69 @@ export default function OrganizationForm({
   onSave,
   onCancel,
 }: OrganizationFormProps) {
+  // Check if there's any draft form data in localStorage
+  const loadDraftFormData = () => {
+    const storedFormData = localStorage.getItem("organizationDraftFormData");
+    if (storedFormData) {
+      try {
+        return JSON.parse(storedFormData);
+      } catch (error) {
+        console.error("Error parsing draft form data:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // Get draft data or use provided organization data
+  const draftData = loadDraftFormData();
+
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: organization?.name || "",
-      contactPerson: organization?.contactPerson || "",
-      email: organization?.email || "",
-      phone: organization?.phone || "",
-      address: organization?.address || "",
-      status: organization?.status || "PENDING",
-      notes: organization?.notes || "",
+      name: draftData?.name || organization?.name || "",
+      contactPerson:
+        draftData?.contactPerson || organization?.contactPerson || "",
+      email: draftData?.email || organization?.email || "",
+      phone: draftData?.phone || organization?.phone || "",
+      address: draftData?.address || organization?.address || "",
+      status: draftData?.status || organization?.status || "PENDING",
+      notes: draftData?.notes || organization?.notes || "",
     },
   });
 
+  // Watch form values and save to localStorage as draft
+  const formValues = watch();
+  useEffect(() => {
+    // Save form values to localStorage as they change
+    const dialogState = localStorage.getItem("organizationDialogState");
+    if (dialogState) {
+      // Only save if dialog is supposed to be open
+      localStorage.setItem(
+        "organizationDraftFormData",
+        JSON.stringify(formValues)
+      );
+    }
+  }, [formValues]);
   const onSubmit = (data: any) => {
-    onSave({
-      ...data,
-      id: organization?.id,
-      createdAt: organization?.createdAt || new Date(),
-      updatedAt: new Date(),
-    });
+    try {
+      // Clear draft data when submitting
+      localStorage.removeItem("organizationDraftFormData");
+
+      onSave({
+        ...data,
+        id: organization?.id,
+        createdAt: organization?.createdAt || new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   };
 
   return (
@@ -134,7 +175,12 @@ export default function OrganizationForm({
                   fullWidth
                   placeholder="(XXX) XXX-XXXX"
                   error={!!errors.phone}
-                  helperText={errors.phone?.message}
+                  helperText={
+                    errors.phone?.message || "Enter a valid phone number"
+                  }
+                  inputProps={{
+                    inputMode: "tel",
+                  }}
                 />
               )}
             />
@@ -190,9 +236,17 @@ export default function OrganizationForm({
             />
           </Grid>
         </Grid>
-      </DialogContent>
+      </DialogContent>{" "}
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
+        <Button
+          onClick={() => {
+            // Clear draft data when canceling
+            localStorage.removeItem("organizationDraftFormData");
+            onCancel();
+          }}
+        >
+          Cancel
+        </Button>
         <Button onClick={handleSubmit(onSubmit)} variant="contained">
           {organization ? "Save Changes" : "Add Organization"}
         </Button>
