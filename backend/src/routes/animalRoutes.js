@@ -8,10 +8,30 @@ const router = express.Router();
 // Get all animals
 router.get("/", auth, async (req, res) => {
   try {
-    const animals = await Animal.find().populate(
-      "client",
-      "firstName lastName"
-    );
+    const filter = {};
+
+    // Filter by organization if provided
+    if (req.query.organization) {
+      filter.organization = req.query.organization;
+    }
+
+    // Filter by client if provided
+    if (req.query.client) {
+      filter.client = req.query.client;
+    }
+
+    const animals = await Animal.find(filter);
+
+    // Since we've added optional clients, we need to be careful with populate
+    for (let animal of animals) {
+      if (animal.client) {
+        await animal.populate("client", "firstName lastName");
+      }
+      if (animal.organization) {
+        await animal.populate("organization", "name");
+      }
+    }
+
     res.json(animals);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -30,16 +50,48 @@ router.get("/client/:clientId", async (req, res) => {
   }
 });
 
+// Get animals by organization
+router.get("/organization/:organizationId", auth, async (req, res) => {
+  try {
+    const animals = await Animal.find({
+      organization: req.params.organizationId,
+    });
+
+    // Since we've added optional clients, we need to be careful with populate
+    for (let animal of animals) {
+      if (animal.client) {
+        await animal.populate("client", "firstName lastName");
+      }
+      if (animal.organization) {
+        await animal.populate("organization", "name");
+      }
+    }
+
+    res.json(animals);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get a single animal
 router.get("/:id", auth, async (req, res) => {
   try {
-    const animal = await Animal.findById(req.params.id).populate(
-      "client",
-      "firstName lastName"
-    );
+    const animal = await Animal.findById(req.params.id);
+
     if (!animal) {
       return res.status(404).json({ message: "Animal not found" });
     }
+
+    // Only populate client if it exists
+    if (animal.client) {
+      await animal.populate("client", "firstName lastName");
+    }
+
+    // Only populate organization if it exists
+    if (animal.organization) {
+      await animal.populate("organization", "name");
+    }
+
     res.json(animal);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -51,7 +103,13 @@ router.post("/", auth, validateAnimal, async (req, res) => {
   try {
     const animal = new Animal(req.body);
     const newAnimal = await animal.save();
-    await newAnimal.populate("client", "firstName lastName");
+
+    // Only populate client if it exists
+    if (newAnimal.client) {
+      await newAnimal.populate("client", "firstName lastName");
+    }
+
+    await newAnimal.populate("organization", "name");
     res.status(201).json(newAnimal);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -65,10 +123,15 @@ router.put("/:id", auth, validateAnimal, async (req, res) => {
     if (!animal) {
       return res.status(404).json({ message: "Animal not found" });
     }
-
     Object.assign(animal, req.body);
     const updatedAnimal = await animal.save();
-    await updatedAnimal.populate("client", "firstName lastName");
+
+    // Only populate client if it exists
+    if (updatedAnimal.client) {
+      await updatedAnimal.populate("client", "firstName lastName");
+    }
+
+    await updatedAnimal.populate("organization", "name");
     res.json(updatedAnimal);
   } catch (error) {
     res.status(400).json({ message: error.message });

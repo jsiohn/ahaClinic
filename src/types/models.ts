@@ -27,8 +27,10 @@ export interface Animal {
   age?: number;
   gender?: "male" | "female" | "unknown";
   weight: number | null;
-  client: string; // Change from clientId to match backend
-  clientName?: string; // Add this field for UI display
+  client?: string; // Optional reference to a client
+  clientName?: string; // For UI display
+  organization?: string; // Optional reference to an organization
+  organizationName?: string; // For UI display
   medicalHistory: MedicalRecord[];
   notes?: string;
   isActive?: boolean;

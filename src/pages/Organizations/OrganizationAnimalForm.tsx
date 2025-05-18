@@ -9,27 +9,26 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Autocomplete,
   Box,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { Animal, Client } from "../../types/models";
+import { Animal, Organization } from "../../types/models";
 
-interface AnimalFormData {
+interface OrganizationAnimalFormData {
   name: string;
   species: "DOG" | "CAT" | "OTHER";
   breed: string;
   age?: string;
   gender: "MALE" | "FEMALE";
   weight: string | null;
-  clientId?: string;
+  organizationId?: string;
 }
 
-interface AnimalFormProps {
+interface OrganizationAnimalFormProps {
   animal?: Animal | null;
-  clients: Client[];
+  organization: Organization;
   onSave: (data: Partial<Animal>) => void;
   onCancel: () => void;
 }
@@ -63,20 +62,20 @@ const schema = yup.object().shape({
     })
     .required("Weight is required")
     .nullable(),
-  clientId: yup.string().optional(),
-}) satisfies yup.ObjectSchema<AnimalFormData>;
+  organizationId: yup.string(),
+});
 
-export default function AnimalForm({
+export default function OrganizationAnimalForm({
   animal,
-  clients,
+  organization,
   onSave,
   onCancel,
-}: AnimalFormProps) {
+}: OrganizationAnimalFormProps) {
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<AnimalFormData>({
+  } = useForm<OrganizationAnimalFormData>({
     resolver: yupResolver(schema),
     defaultValues: {
       name: animal?.name || "",
@@ -85,10 +84,11 @@ export default function AnimalForm({
       age: animal?.age?.toString() || "",
       gender: (animal?.gender?.toUpperCase() as "MALE" | "FEMALE") || "MALE",
       weight: animal?.weight?.toString() || "",
-      clientId: animal?.client || "", // Use client instead of clientId
+      organizationId: organization.id,
     },
   });
-  const onSubmit = (data: AnimalFormData) => {
+
+  const onSubmit = (data: OrganizationAnimalFormData) => {
     onSave({
       name: data.name,
       species: data.species,
@@ -96,14 +96,14 @@ export default function AnimalForm({
       age: data.age ? parseInt(data.age) : undefined,
       gender: data.gender.toLowerCase() as "male" | "female" | "unknown",
       weight: data.weight ? Number(data.weight) : null,
-      client: data.clientId || undefined,
+      organization: organization.id,
+      organizationName: organization.name,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
       updatedAt: new Date(),
     });
   };
-
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -111,15 +111,10 @@ export default function AnimalForm({
     }
   };
 
-  const getClientOptionLabel = (option: Client | string) => {
-    if (typeof option === "string") return "";
-    return `${option.firstName} ${option.lastName}`;
-  };
-
   return (
     <>
       <DialogTitle id="animal-dialog-title">
-        {animal ? "Edit Animal" : "Add New Animal"}
+        {animal ? "Edit Animal" : `Add New Animal to ${organization.name}`}
       </DialogTitle>
       <DialogContent>
         <Box
@@ -209,7 +204,7 @@ export default function AnimalForm({
                   )}
                 />
               </FormControl>
-            </Grid>
+            </Grid>{" "}
             <Grid item xs={12} sm={6}>
               <Controller
                 name="weight"
@@ -225,34 +220,6 @@ export default function AnimalForm({
                     error={!!errors.weight}
                     helperText={errors.weight?.message}
                     inputProps={{ min: 0, step: "0.1" }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="clientId"
-                control={control}
-                render={({ field: { onChange, value } }) => (
-                  <Autocomplete
-                    options={clients}
-                    getOptionLabel={getClientOptionLabel}
-                    onChange={(_, newValue) => {
-                      onChange(newValue ? newValue.id : "");
-                    }}
-                    value={clients.find((c) => c.id === value) || null}
-                    isOptionEqualToValue={(option, value) =>
-                      option.id ===
-                      (typeof value === "string" ? value : value?.id)
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Select Client (Optional)"
-                        error={!!errors.clientId}
-                        helperText={errors.clientId?.message}
-                      />
-                    )}
                   />
                 )}
               />
@@ -277,4 +244,4 @@ export default function AnimalForm({
   );
 }
 
-export type { AnimalFormProps };
+export type { OrganizationAnimalFormProps };

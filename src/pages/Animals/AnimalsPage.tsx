@@ -33,7 +33,7 @@ interface MongoAnimalResponse {
   age?: number;
   gender?: "male" | "female" | "unknown";
   weight: number;
-  client: {
+  client?: {
     _id: string;
     firstName: string;
     lastName: string;
@@ -80,11 +80,11 @@ export default function AnimalsPage() {
         ? data.map((animal: any) => ({
             ...animal,
             id: animal._id,
-            client: animal.client._id, // Ensure we get the client's _id
+            client: animal.client?._id, // Make client reference optional
             weight: animal.weight != null ? parseFloat(animal.weight) : null,
             clientName: animal.client
               ? `${animal.client.firstName} ${animal.client.lastName}`
-              : "",
+              : "No Client",
           }))
         : [];
       setAnimals(transformedData);
@@ -100,9 +100,8 @@ export default function AnimalsPage() {
   useEffect(() => {
     Promise.all([fetchAnimals(), fetchClients()]);
   }, []);
-
   const filteredAnimals = selectedClient
-    ? animals.filter((animal) => animal.client === selectedClient._id) // Use _id instead of id
+    ? animals.filter((animal) => animal.client === selectedClient._id)
     : animals;
 
   const handleCreateClick = () => {
@@ -162,8 +161,10 @@ export default function AnimalsPage() {
           age: mongoResponse.age,
           gender: mongoResponse.gender,
           weight: mongoResponse.weight != null ? mongoResponse.weight : null,
-          client: mongoResponse.client._id,
-          clientName: `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`,
+          client: mongoResponse.client?._id,
+          clientName: mongoResponse.client
+            ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
+            : "No Client",
           medicalHistory: mongoResponse.medicalHistory || [],
           createdAt: new Date(mongoResponse.createdAt),
           updatedAt: new Date(mongoResponse.updatedAt),
@@ -186,8 +187,10 @@ export default function AnimalsPage() {
           age: mongoResponse.age,
           gender: mongoResponse.gender,
           weight: mongoResponse.weight != null ? mongoResponse.weight : null,
-          client: mongoResponse.client._id,
-          clientName: `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`,
+          client: mongoResponse.client?._id,
+          clientName: mongoResponse.client
+            ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
+            : "No Client",
           medicalHistory: mongoResponse.medicalHistory || [],
           createdAt: new Date(mongoResponse.createdAt),
           updatedAt: new Date(mongoResponse.updatedAt),

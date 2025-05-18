@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 import { Organization } from "../../types/models";
 import OrganizationForm from "./OrganizationForm";
+import OrganizationAnimals from "./OrganizationAnimals";
 import api from "../../utils/api";
 
 // Backend organization data structure might be different from frontend
@@ -65,6 +66,7 @@ interface ApiOrganization {
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAnimalsDialog, setOpenAnimalsDialog] = useState(false);
   const [selectedOrganization, setSelectedOrganization] =
     useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,6 @@ export default function OrganizationsPage() {
       if (org.address.country) parts.push(org.address.country);
       address = parts.join(", ");
     }
-
     const transformed = {
       id: org._id,
       name: org.name,
@@ -106,7 +107,7 @@ export default function OrganizationsPage() {
       email: email,
       phone: phone,
       address,
-      status: org.status || "PENDING",
+      status: org.status || "PENDING", // Get status from org object
       notes: org.notes || "",
       createdAt: new Date(org.createdAt),
       updatedAt: new Date(org.updatedAt),
@@ -239,10 +240,20 @@ export default function OrganizationsPage() {
       }
     }
   };
-
   const handleEmailClick = (organization: Organization) => {
     window.location.href = `mailto:${organization.email}`;
   };
+
+  const handleViewAnimalsClick = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setOpenAnimalsDialog(true);
+  };
+
+  const handleCloseAnimalsDialog = () => {
+    setOpenAnimalsDialog(false);
+    setSelectedOrganization(null);
+  };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedOrganization(null);
@@ -260,7 +271,6 @@ export default function OrganizationsPage() {
 
       // Log the raw input data
       console.log("Raw input data:", JSON.stringify(organizationData, null, 2));
-
       const formattedData = {
         name: organizationData.name || "",
         contactPerson: organizationData.contactPerson || "", // Explicitly include contactPerson at the root level
@@ -273,7 +283,7 @@ export default function OrganizationsPage() {
           typeof organizationData.address === "string"
             ? { street: organizationData.address } // Put the whole address in the street field
             : organizationData.address || {},
-        // Fields not in the schema but still useful on the frontend
+        // Include status in the root level of the document
         status: organizationData.status || "PENDING",
         notes: organizationData.notes || "",
       };
@@ -295,7 +305,6 @@ export default function OrganizationsPage() {
         // Create new organization
         responseData = await api.post("/organizations", formattedData);
       }
-
       console.log("API response:", responseData);
 
       // For newly created organizations, the API response might not include
@@ -304,6 +313,8 @@ export default function OrganizationsPage() {
         ...responseData,
         // Store contact info in both nested and flat structure for flexibility
         contactPerson: formattedData.contactPerson,
+        status: formattedData.status,
+        notes: formattedData.notes,
         contactInfo: {
           ...responseData.contactInfo,
           email: formattedData.contactInfo.email,
@@ -362,7 +373,6 @@ export default function OrganizationsPage() {
         return "default";
     }
   };
-
   const columns: GridColDef[] = [
     {
       field: "name",
@@ -405,7 +415,7 @@ export default function OrganizationsPage() {
     {
       field: "actions",
       headerName: "Actions",
-      width: 180,
+      width: 220,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
           <Tooltip title="Edit">
@@ -423,6 +433,15 @@ export default function OrganizationsPage() {
               color="primary"
             >
               <EmailIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="View Animals">
+            <IconButton
+              size="small"
+              onClick={() => handleViewAnimalsClick(params.row)}
+              color="success"
+            >
+              <PetsIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
@@ -451,7 +470,6 @@ export default function OrganizationsPage() {
           {error}
         </Alert>
       </Snackbar>
-
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h4" component="h1">
           Rescue Organizations
@@ -464,7 +482,6 @@ export default function OrganizationsPage() {
           Add Organization
         </Button>
       </Box>
-
       <DataGrid
         rows={organizations}
         columns={columns}
@@ -481,8 +498,7 @@ export default function OrganizationsPage() {
         disableRowSelectionOnClick
         autoHeight
         loading={loading}
-      />
-
+      />{" "}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -495,6 +511,14 @@ export default function OrganizationsPage() {
           onCancel={handleCloseDialog}
         />
       </Dialog>
+      {/* Animals Dialog */}
+      {selectedOrganization && (
+        <OrganizationAnimals
+          organization={selectedOrganization}
+          open={openAnimalsDialog}
+          onClose={handleCloseAnimalsDialog}
+        />
+      )}
     </Box>
   );
 }

@@ -33,12 +33,12 @@ export const validateAnimal = [
   body("color").optional().trim(),
 
   body("microchipNumber").optional().trim(),
+  body("client").optional().isMongoId().withMessage("Invalid client ID"),
 
-  body("client")
-    .notEmpty()
-    .withMessage("Client ID is required")
+  body("organization")
+    .optional()
     .isMongoId()
-    .withMessage("Invalid client ID"),
+    .withMessage("Invalid organization ID"),
 
   body("medicalHistory.*.date")
     .optional()

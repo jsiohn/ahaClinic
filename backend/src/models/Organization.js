@@ -22,6 +22,15 @@ const organizationSchema = new mongoose.Schema({
     email: String,
     website: String,
   },
+  status: {
+    type: String,
+    enum: ["ACTIVE", "INACTIVE", "PENDING"],
+    default: "PENDING",
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
   taxId: String,
   businessHours: {
     monday: { open: String, close: String },
