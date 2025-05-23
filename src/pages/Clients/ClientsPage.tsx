@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 import { Client } from "../../types/models";
 import ClientForm from "./ClientForm";
+import BlacklistForm from "../Blacklist/BlacklistForm";
 import api from "../../utils/api";
 
 export default function ClientsPage() {
@@ -25,6 +26,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [openBlacklistDialog, setOpenBlacklistDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const fetchClients = async () => {
@@ -87,14 +89,25 @@ export default function ClientsPage() {
       }
     }
   };
-
   const handleToggleBlacklist = async (client: Client) => {
     try {
-      await api.post(`/blacklist`, {
-        client: client.id,
-        reason: "Added to blacklist",
-        addedBy: JSON.parse(localStorage.getItem("user") || "{}").username,
-      });
+      // If already blacklisted, remove from blacklist
+      if (client.isBlacklisted) {
+        const updatedClient = {
+          ...client,
+          isBlacklisted: false,
+          blacklistReason: "",
+        };
+
+        await api.put(`/clients/${client.id}`, updatedClient);
+      } else {
+        // If not blacklisted, show dialog to add to blacklist
+        setSelectedClient(client);
+        // Open blacklist dialog instead of form dialog
+        setOpenBlacklistDialog(true);
+        return; // Skip the fetch for now
+      }
+
       await fetchClients(); // Refresh the list
     } catch (err) {
       setError(
@@ -102,10 +115,30 @@ export default function ClientsPage() {
       );
     }
   };
-
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedClient(null);
+  };
+
+  const handleCloseBlacklistDialog = () => {
+    setOpenBlacklistDialog(false);
+    setSelectedClient(null);
+  };
+
+  const handleSaveBlacklist = async (clientData: Partial<Client>) => {
+    try {
+      // Update client with blacklist info
+      await api.put(`/clients/${clientData.id}`, {
+        ...clientData,
+        isBlacklisted: true,
+      });
+
+      await fetchClients(); // Refresh the client list
+      setOpenBlacklistDialog(false);
+    } catch (err: any) {
+      const errorMessage = err?.message || "Failed to blacklist client";
+      setError(errorMessage);
+    }
   };
 
   const handleSaveClient = async (clientData: Partial<Client>) => {
@@ -252,7 +285,6 @@ export default function ClientsPage() {
           {error}
         </Alert>
       </Snackbar>
-
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h4" component="h1">
           Clients
@@ -265,7 +297,6 @@ export default function ClientsPage() {
           Add Client
         </Button>
       </Box>
-
       <DataGrid
         rows={clients}
         columns={columns}
@@ -279,8 +310,7 @@ export default function ClientsPage() {
         disableRowSelectionOnClick
         autoHeight
         loading={loading}
-      />
-
+      />{" "}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -291,6 +321,19 @@ export default function ClientsPage() {
           client={selectedClient}
           onSave={handleSaveClient}
           onCancel={handleCloseDialog}
+        />
+      </Dialog>
+      {/* Blacklist Dialog */}
+      <Dialog
+        open={openBlacklistDialog}
+        onClose={handleCloseBlacklistDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <BlacklistForm
+          client={selectedClient}
+          onSave={handleSaveBlacklist}
+          onCancel={handleCloseBlacklistDialog}
         />
       </Dialog>
     </Box>

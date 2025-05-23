@@ -34,6 +34,11 @@ const clientSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  isBlacklisted: {
+    type: Boolean,
+    default: false,
+  },
+  blacklistReason: String,
   createdAt: {
     type: Date,
     default: Date.now,

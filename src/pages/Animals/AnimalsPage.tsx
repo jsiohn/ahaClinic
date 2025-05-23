@@ -77,15 +77,17 @@ export default function AnimalsPage() {
       setLoading(true);
       const data = await api.get("/animals");
       const transformedData = Array.isArray(data)
-        ? data.map((animal: any) => ({
-            ...animal,
-            id: animal._id,
-            client: animal.client?._id, // Make client reference optional
-            weight: animal.weight != null ? parseFloat(animal.weight) : null,
-            clientName: animal.client
-              ? `${animal.client.firstName} ${animal.client.lastName}`
-              : "No Client",
-          }))
+        ? data
+            .filter((animal: any) => !animal.organization) // Filter out animals that belong to organizations
+            .map((animal: any) => ({
+              ...animal,
+              id: animal._id,
+              client: animal.client?._id, // Make client reference optional
+              weight: animal.weight != null ? parseFloat(animal.weight) : null,
+              clientName: animal.client
+                ? `${animal.client.firstName} ${animal.client.lastName}`
+                : "No Client",
+            }))
         : [];
       setAnimals(transformedData);
     } catch (err: any) {

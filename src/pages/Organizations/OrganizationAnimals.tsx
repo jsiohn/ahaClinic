@@ -9,15 +9,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Chip,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  MedicalServices as MedicalIcon,
+  Pets as PetsIcon,
 } from "@mui/icons-material";
-import { Animal, Organization } from "../../types/models";
+import { Animal, Organization, MedicalRecord } from "../../types/models";
 import OrganizationAnimalForm from "./OrganizationAnimalForm";
+import MedicalRecordForm from "../Animals/MedicalRecordForm";
 import api from "../../utils/api";
 
 interface OrganizationAnimalsProps {
@@ -35,6 +39,7 @@ export default function OrganizationAnimals({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openAnimalDialog, setOpenAnimalDialog] = useState(false);
+  const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
   const fetchOrganizationAnimals = async () => {
@@ -112,6 +117,23 @@ export default function OrganizationAnimals({
     setOpenAnimalDialog(false);
     setSelectedAnimal(null);
   };
+
+  const handleAddMedicalRecord = (animal: Animal) => {
+    setSelectedAnimal(animal);
+    setOpenMedicalDialog(true);
+  };
+
+  const handleCloseMedicalDialog = () => {
+    setOpenMedicalDialog(false);
+    setSelectedAnimal(null);
+  };
+
+  const handleSaveMedicalRecord = (data: Partial<MedicalRecord>) => {
+    // Implement medical record save functionality
+    console.log("Save medical record:", data);
+    handleCloseMedicalDialog();
+  };
+
   const handleSaveAnimal = async (animalData: Partial<Animal>) => {
     try {
       if (selectedAnimal) {
@@ -188,16 +210,26 @@ export default function OrganizationAnimals({
       field: "name",
       headerName: "Name",
       width: 150,
+      flex: 1,
     },
     {
       field: "species",
       headerName: "Species",
       width: 120,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip
+          icon={<PetsIcon />}
+          label={params.value}
+          color={params.value === "DOG" ? "primary" : "secondary"}
+          size="small"
+        />
+      ),
     },
     {
       field: "breed",
       headerName: "Breed",
       width: 150,
+      flex: 1,
     },
     {
       field: "age",
@@ -208,9 +240,30 @@ export default function OrganizationAnimals({
       },
     },
     {
+      field: "gender",
+      headerName: "Gender",
+      width: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip
+          label={params.value.charAt(0).toUpperCase() + params.value.slice(1)}
+          size="small"
+          color={params.value === "male" ? "info" : "error"}
+        />
+      ),
+    },
+    {
+      field: "weight",
+      headerName: "Weight (lbs)",
+      width: 130,
+      renderCell: (params: GridRenderCellParams<Animal>) => {
+        const weight = params.value;
+        return weight != null ? `${weight} lbs` : "-";
+      },
+    },
+    {
       field: "actions",
       headerName: "Actions",
-      width: 150,
+      width: 180,
       renderCell: (params: GridRenderCellParams<any, Animal>) => (
         <Box>
           <Tooltip title="Edit">
@@ -219,6 +272,15 @@ export default function OrganizationAnimals({
               onClick={() => handleEditClick(params.row)}
             >
               <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Add Medical Record">
+            <IconButton
+              size="small"
+              onClick={() => handleAddMedicalRecord(params.row)}
+              color="primary"
+            >
+              <MedicalIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
@@ -257,6 +319,9 @@ export default function OrganizationAnimals({
             pagination: {
               paginationModel: { page: 0, pageSize: 10 },
             },
+            sorting: {
+              sortModel: [{ field: "name", sort: "asc" }],
+            },
           }}
           loading={loading}
           disableRowSelectionOnClick
@@ -284,6 +349,22 @@ export default function OrganizationAnimals({
           organization={organization}
           onSave={handleSaveAnimal}
           onCancel={handleCloseAnimalDialog}
+        />
+      </Dialog>
+
+      {/* Medical Record Dialog */}
+      <Dialog
+        open={openMedicalDialog}
+        onClose={handleCloseMedicalDialog}
+        maxWidth="md"
+        fullWidth
+        disableEnforceFocus
+        aria-labelledby="medical-dialog-title"
+      >
+        <MedicalRecordForm
+          animal={selectedAnimal}
+          onSave={handleSaveMedicalRecord}
+          onCancel={handleCloseMedicalDialog}
         />
       </Dialog>
     </Dialog>

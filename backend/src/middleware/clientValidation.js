@@ -35,12 +35,16 @@ export const validateClient = [
   body("address.state").optional().trim(),
   body("address.zipCode").optional().trim(),
   body("address.country").optional().trim(),
-
   body("notes").optional().trim(),
   body("isActive")
     .optional()
     .isBoolean()
     .withMessage("isActive must be a boolean"),
+  body("isBlacklisted")
+    .optional()
+    .isBoolean()
+    .withMessage("isBlacklisted must be a boolean"),
+  body("blacklistReason").optional().trim(),
 
   // Validation result middleware
   (req, res, next) => {

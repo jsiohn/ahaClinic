@@ -7,32 +7,20 @@ import {
   Grid,
   Typography,
   Autocomplete,
+  CircularProgress,
 } from "@mui/material";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Client } from "../../types/models";
+import api from "../../utils/api";
 
 interface BlacklistFormProps {
   client?: Client | null;
   onSave: (data: Partial<Client>) => void;
   onCancel: () => void;
 }
-
-// Temporary mock data for client selection - replace with API call
-const mockClients: Client[] = [
-  {
-    id: "2",
-    firstName: "Jane",
-    lastName: "Smith",
-    email: "jane.smith@example.com",
-    phone: "(555) 987-6543",
-    address: "456 Normal St, City, State 12345",
-    isBlacklisted: false,
-    createdAt: new Date("2024-01-01"),
-    updatedAt: new Date("2024-03-14"),
-  },
-];
 
 const schema = yup.object().shape({
   clientId: yup.string().required("Client selection is required"),
@@ -52,6 +40,9 @@ export default function BlacklistForm({
   onSave,
   onCancel,
 }: BlacklistFormProps) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -64,9 +55,47 @@ export default function BlacklistForm({
     },
   });
 
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/clients");
+
+        // Transform and filter out already blacklisted clients
+        const transformedData = Array.isArray(response)
+          ? response
+              .filter((c: any) => !c.isBlacklisted)
+              .map((client: any) => ({
+                ...client,
+                id: client._id || client.id,
+                address: client.address || {
+                  street: "",
+                  city: "",
+                  state: "",
+                  zipCode: "",
+                  country: "",
+                },
+                createdAt: new Date(client.createdAt),
+                updatedAt: new Date(client.updatedAt),
+              }))
+          : [];
+
+        setClients(transformedData);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!client) {
+      fetchClients();
+    }
+  }, [client]);
+
   const onSubmit = (data: BlacklistFormData) => {
     const selectedClient =
-      client || mockClients.find((c) => c.id === data.clientId);
+      client || clients.find((c) => c.id === data.clientId);
     if (selectedClient) {
       onSave({
         ...selectedClient,
@@ -96,18 +125,28 @@ export default function BlacklistForm({
                 control={control}
                 render={({ field: { onChange, value } }) => (
                   <Autocomplete
-                    options={mockClients}
+                    options={clients}
                     getOptionLabel={getClientOptionLabel}
                     onChange={(_, newValue) => {
                       onChange(newValue ? newValue.id : "");
                     }}
-                    value={mockClients.find((c) => c.id === value) || null}
+                    value={clients.find((c) => c.id === value) || null}
+                    loading={loading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Select Client"
                         error={!!errors.clientId}
                         helperText={errors.clientId?.message}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loading ? <CircularProgress size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
@@ -115,6 +154,7 @@ export default function BlacklistForm({
               />
             </Grid>
           )}
+
           {client && (
             <Grid item xs={12}>
               <Typography variant="subtitle1" gutterBottom>

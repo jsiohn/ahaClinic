@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -6,6 +6,8 @@ import {
   Dialog,
   IconButton,
   Tooltip,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -16,27 +18,57 @@ import {
 } from "@mui/icons-material";
 import { Client } from "../../types/models";
 import BlacklistForm from "./BlacklistForm";
-
-// Temporary mock data - replace with actual API call later
-const mockBlacklistedClients: Client[] = [
-  {
-    id: "1",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "(555) 123-4567",
-    address: "123 Problem St, City, State 12345",
-    isBlacklisted: true,
-    blacklistReason: "Multiple missed appointments and aggressive behavior",
-    createdAt: new Date("2024-01-01"),
-    updatedAt: new Date("2024-03-14"),
-  },
-];
+import api from "../../utils/api";
 
 export default function BlacklistPage() {
-  const [blacklistedClients] = useState<Client[]>(mockBlacklistedClients);
+  const [blacklistedClients, setBlacklistedClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+
+  const fetchBlacklistedClients = async () => {
+    try {
+      setLoading(true);
+      // Fetch only blacklisted clients
+      const response = await api.get("/clients");
+
+      // Filter by isBlacklisted flag and transform data
+      const transformedData = Array.isArray(response)
+        ? response
+            .filter((client: any) => client.isBlacklisted)
+            .map((client: any) => ({
+              ...client,
+              id: client._id || client.id,
+              address: client.address || {
+                street: "",
+                city: "",
+                state: "",
+                zipCode: "",
+                country: "",
+              },
+              createdAt: new Date(client.createdAt),
+              updatedAt: new Date(client.updatedAt),
+            }))
+        : [];
+
+      setBlacklistedClients(transformedData);
+      setError("");
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch blacklisted clients";
+      setError(message);
+      setBlacklistedClients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlacklistedClients();
+  }, []);
 
   const handleCreateClick = () => {
     setSelectedClient(null);
@@ -48,9 +80,23 @@ export default function BlacklistPage() {
     setOpenDialog(true);
   };
 
-  const handleRemoveFromBlacklist = (client: Client) => {
-    // Implement remove from blacklist functionality
-    console.log("Remove from blacklist:", client);
+  const handleRemoveFromBlacklist = async (client: Client) => {
+    try {
+      // Update client to remove blacklist status
+      await api.put(`/clients/${client.id}`, {
+        ...client,
+        isBlacklisted: false,
+        blacklistReason: "",
+      });
+
+      await fetchBlacklistedClients(); // Refresh the list
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Failed to remove client from blacklist"
+      );
+    }
   };
 
   const handleCloseDialog = () => {
@@ -58,10 +104,23 @@ export default function BlacklistPage() {
     setSelectedClient(null);
   };
 
-  const handleSaveBlacklist = (clientData: Partial<Client>) => {
-    // Implement save functionality
-    console.log("Save blacklisted client:", clientData);
-    handleCloseDialog();
+  const handleSaveBlacklist = async (clientData: Partial<Client>) => {
+    try {
+      // Update client with blacklist info
+      await api.put(`/clients/${clientData.id}`, {
+        ...clientData,
+        isBlacklisted: true,
+      });
+
+      await fetchBlacklistedClients(); // Refresh the list
+      handleCloseDialog();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Failed to save blacklist entry"
+      );
+    }
   };
 
   const columns: GridColDef[] = [
@@ -127,6 +186,17 @@ export default function BlacklistPage() {
 
   return (
     <Box sx={{ height: "100%", width: "100%" }}>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError("")}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      </Snackbar>
+
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Box>
           <Typography variant="h4" component="h1">
@@ -161,6 +231,7 @@ export default function BlacklistPage() {
         checkboxSelection={false}
         disableRowSelectionOnClick
         autoHeight
+        loading={loading}
       />
 
       <Dialog
