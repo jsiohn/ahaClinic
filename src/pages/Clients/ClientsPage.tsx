@@ -224,6 +224,11 @@ export default function ClientsPage() {
           sx={{
             color: params.row.isBlacklisted ? "error.main" : "success.main",
             typography: "body2",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-start",
           }}
         >
           {params.row.isBlacklisted ? "Blacklisted" : "Active"}
