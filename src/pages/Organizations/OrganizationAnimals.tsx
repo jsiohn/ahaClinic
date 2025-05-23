@@ -69,7 +69,6 @@ export default function OrganizationAnimals({
         : [];
 
       setAnimals(transformedData);
-      console.log("Retrieved organization animals:", transformedData);
     } catch (err: any) {
       console.error("Error fetching organization animals:", err);
       setError(
@@ -127,11 +126,24 @@ export default function OrganizationAnimals({
     setOpenMedicalDialog(false);
     setSelectedAnimal(null);
   };
+  const handleSaveMedicalRecord = async (data: Partial<MedicalRecord>) => {
+    try {
+      if (!selectedAnimal) return;
 
-  const handleSaveMedicalRecord = (data: Partial<MedicalRecord>) => {
-    // Implement medical record save functionality
-    console.log("Save medical record:", data);
-    handleCloseMedicalDialog();
+      // Save medical record to API
+      await api.post(`/animals/${selectedAnimal.id}/medical-records`, data);
+
+      // Refresh animal data
+      await fetchOrganizationAnimals();
+
+      handleCloseMedicalDialog();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Failed to save medical record"
+      );
+    }
   };
 
   const handleSaveAnimal = async (animalData: Partial<Animal>) => {

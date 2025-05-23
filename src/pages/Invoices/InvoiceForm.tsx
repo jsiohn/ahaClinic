@@ -150,14 +150,7 @@ export default function InvoiceForm({
 
   // Add a debug effect to track state changes
   useEffect(() => {
-    if (invoice) {
-      console.log("Debug - Current state:");
-      console.log("Invoice being edited:", invoice);
-      console.log("Selected client:", selectedClient);
-      console.log("Selected animal:", selectedAnimal);
-      console.log("Client ID:", invoice.clientId);
-      console.log("Animal ID:", invoice.animalId);
-    }
+    // State is being tracked but no longer logging
   }, [invoice, selectedClient, selectedAnimal]);
 
   useEffect(() => {
@@ -193,9 +186,7 @@ export default function InvoiceForm({
           const matchingClient = transformedClients.find(
             (c) => c.id === invoice.clientId || c._id === invoice.clientId
           );
-
           if (matchingClient) {
-            console.log("Found matching client:", matchingClient);
             setSelectedClient(matchingClient);
             setValue("clientId", matchingClient.id);
           }
@@ -204,9 +195,7 @@ export default function InvoiceForm({
           const matchingAnimal = transformedAnimals.find(
             (a) => a.id === invoice.animalId || a._id === invoice.animalId
           );
-
           if (matchingAnimal) {
-            console.log("Found matching animal:", matchingAnimal);
             setSelectedAnimal(matchingAnimal);
             setValue("animalId", matchingAnimal.id);
           }

@@ -31,11 +31,8 @@ router.get("/:id", auth, async (req, res) => {
 // Create a new organization
 router.post("/", auth, validateOrganization, async (req, res) => {
   try {
-    console.log("CREATE ORGANIZATION - Request body:", req.body);
     const organization = new Organization(req.body);
-    console.log("Organization to save:", organization);
     const newOrganization = await organization.save();
-    console.log("Organization saved:", newOrganization);
     res.status(201).json(newOrganization);
   } catch (error) {
     console.error("Error creating organization:", error);
@@ -46,19 +43,13 @@ router.post("/", auth, validateOrganization, async (req, res) => {
 // Update an organization
 router.put("/:id", auth, validateOrganization, async (req, res) => {
   try {
-    console.log(
-      `UPDATE ORGANIZATION ${req.params.id} - Request body:`,
-      req.body
-    );
     const organization = await Organization.findById(req.params.id);
     if (!organization) {
       return res.status(404).json({ message: "Organization not found" });
     }
 
     Object.assign(organization, req.body);
-    console.log("Organization to update:", organization);
     const updatedOrganization = await organization.save();
-    console.log("Organization updated:", updatedOrganization);
     res.json(updatedOrganization);
   } catch (error) {
     console.error("Error updating organization:", error);

@@ -13,10 +13,6 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    console.log(
-      `API Request: ${config.method?.toUpperCase()} ${config.url}`,
-      config.data
-    );
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -77,7 +73,6 @@ const ensureNumeric = (data: any): any => {
 // Add response interceptor to handle errors and transform data
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response from ${response.config.url}:`, response.data);
     // Transform numeric values in the response data
     if (response.data) {
       response.data = ensureNumeric(response.data);

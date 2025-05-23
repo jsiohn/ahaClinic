@@ -71,18 +71,10 @@ export default function OrganizationsPage() {
     useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   // Convert from API format to frontend Organization
   const transformApiToFrontend = (org: ApiOrganization): Organization => {
-    // Add debug logging
-    console.log(
-      "Raw organization data from API:",
-      JSON.stringify(org, null, 2)
-    );
-
     // Extract contact information from nested structure or flat properties
     const contactPerson = org.contactPerson || "";
-    console.log(`Processing org: ${org.name}, contactPerson: ${contactPerson}`);
 
     const email = org.contactInfo?.email || org.email || "";
     const phone = org.contactInfo?.phone || org.phone || "";
@@ -113,13 +105,8 @@ export default function OrganizationsPage() {
       updatedAt: new Date(org.updatedAt),
     };
 
-    console.log(
-      "Transformed organization:",
-      JSON.stringify(transformed, null, 2)
-    );
     return transformed;
   };
-
   // Fetch organizations from API
   const fetchOrganizations = async () => {
     try {
@@ -127,12 +114,10 @@ export default function OrganizationsPage() {
       const response = await api.get<ApiOrganization[]>("/organizations");
 
       // Transform response data to match frontend model
-      console.log("API response for organizations:", response);
       const transformedData = Array.isArray(response)
         ? response.map((org) => {
             // Make sure we don't use default values for existing data
             const transformed = transformApiToFrontend(org);
-            console.log(`Organization ${org.name} - ID: ${transformed.id}`);
             return transformed;
           })
         : [];
@@ -209,15 +194,12 @@ export default function OrganizationsPage() {
       })
     );
   };
-
   const handleDeleteClick = async (organization: Organization) => {
     if (
       window.confirm(`Are you sure you want to delete ${organization.name}?`)
     ) {
       try {
-        console.log(`Deleting organization with ID: ${organization.id}`);
-        const response = await api.delete(`/organizations/${organization.id}`);
-        console.log("Delete response:", response);
+        await api.delete(`/organizations/${organization.id}`);
 
         // Only update the UI if deletion was successful
         setOrganizations((prevOrganizations) =>
@@ -262,15 +244,10 @@ export default function OrganizationsPage() {
     // Also clear any saved form draft data
     localStorage.removeItem("organizationDraftFormData");
   };
-
   const handleSaveOrganization = async (
     organizationData: Partial<Organization>
   ) => {
     try {
-      console.log("Saving organization data:", organizationData);
-
-      // Log the raw input data
-      console.log("Raw input data:", JSON.stringify(organizationData, null, 2));
       const formattedData = {
         name: organizationData.name || "",
         contactPerson: organizationData.contactPerson || "", // Explicitly include contactPerson at the root level
@@ -286,14 +263,7 @@ export default function OrganizationsPage() {
         // Include status in the root level of the document
         status: organizationData.status || "PENDING",
         notes: organizationData.notes || "",
-      };
-
-      // Log the formatted data being sent to API
-      console.log(
-        "Formatted data for API:",
-        JSON.stringify(formattedData, null, 2)
-      );
-
+      }; // Log the formatted data being sent to API
       let responseData: ApiOrganization;
       if (selectedOrganization) {
         // Update existing organization
@@ -305,7 +275,6 @@ export default function OrganizationsPage() {
         // Create new organization
         responseData = await api.post("/organizations", formattedData);
       }
-      console.log("API response:", responseData);
 
       // For newly created organizations, the API response might not include
       // all the fields we sent, so we need to merge the data
@@ -320,12 +289,8 @@ export default function OrganizationsPage() {
           email: formattedData.contactInfo.email,
           phone: formattedData.contactInfo.phone,
         },
-      };
-
-      // Transform the response data to match Organization type
+      }; // Transform the response data to match Organization type
       const transformedData = transformApiToFrontend(mergedData);
-      console.log("Transformed data:", transformedData);
-      console.log("Organization ID:", transformedData.id);
 
       if (selectedOrganization) {
         setOrganizations((organizations) =>

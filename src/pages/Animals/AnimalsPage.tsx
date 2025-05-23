@@ -204,11 +204,24 @@ export default function AnimalsPage() {
       setError(err?.message || "Failed to save animal");
     }
   };
+  const handleSaveMedicalRecord = async (data: Partial<MedicalRecord>) => {
+    try {
+      if (!selectedAnimal) return;
 
-  const handleSaveMedicalRecord = (data: Partial<MedicalRecord>) => {
-    // Implement medical record save functionality
-    console.log("Save medical record:", data);
-    handleCloseMedicalDialog();
+      // Save medical record to API
+      await api.post(`/animals/${selectedAnimal.id}/medical-records`, data);
+
+      // Refresh animal data to include the new medical record
+      await fetchAnimals();
+
+      handleCloseMedicalDialog();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Failed to save medical record"
+      );
+    }
   };
 
   const handleClientChange = (_: any, client: Client | null) => {
