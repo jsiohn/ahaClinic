@@ -83,7 +83,12 @@ api.interceptors.response.use(
     console.error("API Response Error:", error);
     if (error.response) {
       // Server responded with error status
-      if (error.response.status === 401) {
+      if (
+        error.response.status === 401 &&
+        !window.location.pathname.includes("/auth")
+      ) {
+        // Only clear token and redirect if we're not on the auth page
+        // This prevents login errors from causing a redirect/refresh
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         window.location.href = "/auth";

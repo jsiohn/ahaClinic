@@ -30,7 +30,7 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
   });
   const [error, setError] = useState("");
@@ -42,7 +42,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
       [e.target.name]: e.target.value,
     });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -62,12 +61,18 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
       const storedToken = localStorage.getItem("token");
       if (!storedToken) {
         throw new Error("Failed to store authentication token");
-      }
-
+      } // Only call onSuccess and navigate if login is successful
       onSuccess();
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      // Set error message but don't close modal or navigate away
+      setError(err.message || "Invalid username or password");
+      // Clear the password field but keep the username
+      setFormData({
+        ...formData,
+        password: "",
+      });
+      // Keep the modal open by not calling onSuccess
     } finally {
       setLoading(false);
     }
@@ -79,6 +84,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      {" "}
       <Box sx={{ textAlign: "center", mb: 4 }}>
         <Typography
           variant="h4"
@@ -92,21 +98,19 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
           Sign in to your account
         </Typography>
       </Box>
-
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3, fontWeight: "medium" }}>
           {error}
         </Alert>
       )}
-
       <form onSubmit={handleSubmit}>
         <Stack spacing={3}>
           <TextField
             fullWidth
-            label="Email"
-            type="email"
-            name="email"
-            value={formData.email}
+            label="Username"
+            type="text"
+            name="username"
+            value={formData.username}
             onChange={handleChange}
             required
           />
@@ -136,7 +140,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
           </Button>
         </Stack>
       </form>
-
       <Box sx={{ mt: 3, textAlign: "center" }}>
         <Typography variant="body2" color="text.secondary">
           Don't have an account?{" "}

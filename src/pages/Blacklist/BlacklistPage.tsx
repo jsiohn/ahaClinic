@@ -8,6 +8,10 @@ import {
   Tooltip,
   Alert,
   Snackbar,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -15,6 +19,7 @@ import {
   Edit as EditIcon,
   Block as BlockIcon,
   Person as PersonIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Client } from "../../types/models";
 import BlacklistForm from "./BlacklistForm";
@@ -25,6 +30,7 @@ export default function BlacklistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const fetchBlacklistedClients = async () => {
@@ -103,6 +109,21 @@ export default function BlacklistPage() {
     setOpenDialog(false);
     setSelectedClient(null);
   };
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    if (!isActionButton) {
+      setSelectedClient(params.row);
+      setOpenDetailDialog(true);
+    }
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedClient(null);
+  };
 
   const handleSaveBlacklist = async (clientData: Partial<Client>) => {
     try {
@@ -165,7 +186,10 @@ export default function BlacklistPage() {
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon />
             </IconButton>
@@ -173,7 +197,10 @@ export default function BlacklistPage() {
           <Tooltip title="Remove from Blacklist">
             <IconButton
               size="small"
-              onClick={() => handleRemoveFromBlacklist(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleRemoveFromBlacklist(params.row);
+              }}
               color="error"
             >
               <BlockIcon />
@@ -196,7 +223,6 @@ export default function BlacklistPage() {
           {error}
         </Alert>
       </Snackbar>
-
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Box>
           <Typography variant="h4" component="h1">
@@ -215,7 +241,6 @@ export default function BlacklistPage() {
           Add to Blacklist
         </Button>
       </Box>
-
       <DataGrid
         rows={blacklistedClients}
         columns={columns}
@@ -229,11 +254,16 @@ export default function BlacklistPage() {
         }}
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
-        disableRowSelectionOnClick
+        disableRowSelectionOnClick={false}
         autoHeight
         loading={loading}
+        onRowClick={handleRowClick}
+        sx={{
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+          },
+        }}
       />
-
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -245,6 +275,81 @@ export default function BlacklistPage() {
           onSave={handleSaveBlacklist}
           onCancel={handleCloseDialog}
         />
+      </Dialog>{" "}
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <Card>
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6">Client Details</Typography>
+              <IconButton onClick={handleCloseDetailDialog} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Divider sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Name:
+                </Typography>
+                <Typography variant="body2">
+                  {selectedClient?.firstName} {selectedClient?.lastName}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Email:
+                </Typography>
+                <Typography variant="body2">{selectedClient?.email}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Phone:
+                </Typography>
+                <Typography variant="body2">{selectedClient?.phone}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Address:
+                </Typography>
+                <Typography variant="body2">
+                  {selectedClient?.address?.street},{" "}
+                  {selectedClient?.address?.city},{" "}
+                  {selectedClient?.address?.state}{" "}
+                  {selectedClient?.address?.zipCode},{" "}
+                  {selectedClient?.address?.country}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Blacklist Reason:
+                </Typography>
+                <Typography variant="body2">
+                  {selectedClient?.blacklistReason}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  Date Added:
+                </Typography>
+                <Typography variant="body2">
+                  {selectedClient?.createdAt?.toLocaleString()}
+                </Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       </Dialog>
     </Box>
   );

@@ -10,6 +10,10 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -18,6 +22,7 @@ import {
   Delete as DeleteIcon,
   MedicalServices as MedicalIcon,
   Pets as PetsIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Animal, Organization, MedicalRecord } from "../../types/models";
 import OrganizationAnimalForm from "./OrganizationAnimalForm";
@@ -40,6 +45,7 @@ export default function OrganizationAnimals({
   const [error, setError] = useState("");
   const [openAnimalDialog, setOpenAnimalDialog] = useState(false);
   const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
 
   const fetchOrganizationAnimals = async () => {
@@ -126,6 +132,28 @@ export default function OrganizationAnimals({
     setOpenMedicalDialog(false);
     setSelectedAnimal(null);
   };
+
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    // Also check if the click target is within the actions cell to handle any other elements in the actions column
+    const isActionsCell = (params.event?.target as HTMLElement)?.closest(
+      '[role="cell"][data-field="actions"]'
+    );
+
+    if (!isActionButton && !isActionsCell) {
+      setSelectedAnimal(params.row);
+      setOpenDetailDialog(true);
+    }
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedAnimal(null);
+  };
+
   const handleSaveMedicalRecord = async (data: Partial<MedicalRecord>) => {
     try {
       if (!selectedAnimal) return;
@@ -336,7 +364,13 @@ export default function OrganizationAnimals({
             },
           }}
           loading={loading}
-          disableRowSelectionOnClick
+          disableRowSelectionOnClick={false}
+          onRowClick={handleRowClick}
+          sx={{
+            "& .MuiDataGrid-row": {
+              cursor: "pointer",
+            },
+          }}
         />
 
         {error && (
@@ -378,6 +412,123 @@ export default function OrganizationAnimals({
           onSave={handleSaveMedicalRecord}
           onCancel={handleCloseMedicalDialog}
         />
+      </Dialog>
+
+      {/* Animal Detail Dialog */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedAnimal?.name} - Details
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseDetailDialog}
+            aria-label="close"
+            size="small"
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">Basic Information</Typography>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="body2">
+                    <strong>Name:</strong> {selectedAnimal?.name}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Species:</strong> {selectedAnimal?.species}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Breed:</strong> {selectedAnimal?.breed}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Age:</strong> {selectedAnimal?.age} yrs
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Gender:</strong> {selectedAnimal?.gender}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Weight:</strong>{" "}
+                    {selectedAnimal?.weight != null
+                      ? `${selectedAnimal.weight} lbs`
+                      : "-"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">Organization Details</Typography>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="body2">
+                    <strong>Organization:</strong>{" "}
+                    {selectedAnimal?.organizationName}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Contact:</strong> {organization.contactPerson}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Email:</strong> {organization.email}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Phone:</strong> {organization.phone}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 2 }} />{" "}
+          <Typography variant="subtitle1">Medical History</Typography>
+          {selectedAnimal &&
+          selectedAnimal.medicalHistory &&
+          selectedAnimal.medicalHistory.length > 0 ? (
+            <Card variant="outlined">
+              <CardContent>
+                {selectedAnimal?.medicalHistory.map((record) => (
+                  <Box
+                    key={record.id}
+                    sx={{
+                      mb: 1,
+                      p: 2,
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                    }}
+                  >
+                    {" "}
+                    <Typography variant="body2">
+                      <strong>Date:</strong>{" "}
+                      {new Date(record.date).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Procedure:</strong> {record.procedure}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Veterinarian:</strong> {record.veterinarian}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Notes:</strong> {record.notes}
+                    </Typography>
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No medical records found for this animal.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetailDialog}>Close</Button>
+        </DialogActions>
       </Dialog>
     </Dialog>
   );

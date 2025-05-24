@@ -11,6 +11,13 @@ import {
   Snackbar,
   Autocomplete,
   TextField,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -19,6 +26,7 @@ import {
   Delete as DeleteIcon,
   Pets as PetsIcon,
   MedicalServices as MedicalIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Animal, MedicalRecord, Client } from "../../types/models";
 import AnimalForm from "./AnimalForm";
@@ -52,6 +60,7 @@ export default function AnimalsPage() {
   const [error, setError] = useState("");
   const [openAnimalDialog, setOpenAnimalDialog] = useState(false);
   const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
@@ -146,6 +155,21 @@ export default function AnimalsPage() {
   const handleCloseMedicalDialog = () => {
     setOpenMedicalDialog(false);
     setSelectedAnimal(null);
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedAnimal(null);
+  };
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    if (!isActionButton) {
+      setSelectedAnimal(params.row);
+      setOpenDetailDialog(true);
+    }
   };
 
   const handleSaveAnimal = async (animalData: Partial<Animal>) => {
@@ -280,7 +304,10 @@ export default function AnimalsPage() {
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon />
             </IconButton>
@@ -288,7 +315,10 @@ export default function AnimalsPage() {
           <Tooltip title="Add Medical Record">
             <IconButton
               size="small"
-              onClick={() => handleAddMedicalRecord(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleAddMedicalRecord(params.row);
+              }}
               color="primary"
             >
               <MedicalIcon />
@@ -297,7 +327,10 @@ export default function AnimalsPage() {
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => handleDeleteClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleDeleteClick(params.row);
+              }}
               color="error"
             >
               <DeleteIcon />
@@ -365,9 +398,15 @@ export default function AnimalsPage() {
         }}
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
-        disableRowSelectionOnClick
+        disableRowSelectionOnClick={false}
         autoHeight
         loading={loading}
+        onRowClick={handleRowClick}
+        sx={{
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+          },
+        }}
       />
 
       <Dialog
@@ -399,6 +438,195 @@ export default function AnimalsPage() {
           onSave={handleSaveMedicalRecord}
           onCancel={handleCloseMedicalDialog}
         />
+      </Dialog>
+
+      {/* Animal Detail Dialog */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <Box sx={{ p: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h5" component="h2">
+              Animal Details
+            </Typography>
+            <IconButton onClick={handleCloseDetailDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <Divider sx={{ mb: 3 }} />
+
+          {selectedAnimal && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Basic Information
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Name:</strong> {selectedAnimal.name}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Species:</strong>{" "}
+                      <Chip
+                        icon={<PetsIcon />}
+                        label={selectedAnimal.species}
+                        color={
+                          selectedAnimal.species === "DOG"
+                            ? "primary"
+                            : "secondary"
+                        }
+                        size="small"
+                      />
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Breed:</strong>{" "}
+                      {selectedAnimal.breed || "Not specified"}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Age:</strong> {selectedAnimal.age || "Unknown"}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Gender:</strong>{" "}
+                      <Chip
+                        label={
+                          selectedAnimal.gender
+                            ? selectedAnimal.gender.charAt(0).toUpperCase() +
+                              selectedAnimal.gender.slice(1)
+                            : "Unknown"
+                        }
+                        size="small"
+                        color={
+                          selectedAnimal.gender === "male" ? "info" : "error"
+                        }
+                      />
+                    </Typography>
+                    <Typography variant="body1">
+                      <strong>Weight:</strong>{" "}
+                      {selectedAnimal.weight != null
+                        ? `${selectedAnimal.weight} lbs`
+                        : "Unknown"}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Owner Information
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1">
+                      <strong>Owner:</strong> {selectedAnimal.clientName}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Medical History
+                </Typography>
+                <Card variant="outlined">
+                  <CardContent>
+                    {selectedAnimal.medicalHistory &&
+                    selectedAnimal.medicalHistory.length > 0 ? (
+                      <List>
+                        {selectedAnimal.medicalHistory.map((record, index) => (
+                          <ListItem
+                            key={index}
+                            divider={
+                              index < selectedAnimal.medicalHistory.length - 1
+                            }
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="subtitle2">
+                                  {`${new Date(
+                                    record.date
+                                  ).toLocaleDateString()} - ${
+                                    record.procedure
+                                  }`}
+                                </Typography>
+                              }
+                              secondary={
+                                <>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    <strong>Veterinarian:</strong>{" "}
+                                    {record.veterinarian}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    <strong>Notes:</strong> {record.notes}
+                                  </Typography>
+                                </>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    ) : (
+                      <Typography variant="body1">
+                        No medical history available
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          <Box
+            sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}
+          >
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                handleCloseDetailDialog();
+                handleEditClick(selectedAnimal!);
+              }}
+              startIcon={<EditIcon />}
+            >
+              Edit Animal
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                handleCloseDetailDialog();
+                handleAddMedicalRecord(selectedAnimal!);
+              }}
+              startIcon={<MedicalIcon />}
+            >
+              Add Medical Record
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCloseDetailDialog}
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
     </Box>
   );

@@ -8,6 +8,10 @@ import {
   Tooltip,
   Alert,
   Snackbar,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -15,6 +19,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Block as BlockIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Client } from "../../types/models";
 import ClientForm from "./ClientForm";
@@ -28,6 +33,7 @@ export default function ClientsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [openBlacklistDialog, setOpenBlacklistDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
 
   const fetchClients = async () => {
     try {
@@ -201,6 +207,20 @@ export default function ClientsPage() {
       setError(errorMessage);
     }
   };
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedClient(null);
+  };
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    if (!isActionButton) {
+      setSelectedClient(params.row);
+      setOpenDetailDialog(true);
+    }
+  };
 
   const columns: GridColDef[] = [
     {
@@ -244,7 +264,10 @@ export default function ClientsPage() {
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon />
             </IconButton>
@@ -258,7 +281,10 @@ export default function ClientsPage() {
           >
             <IconButton
               size="small"
-              onClick={() => handleToggleBlacklist(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleToggleBlacklist(params.row);
+              }}
               color={params.row.isBlacklisted ? "error" : "default"}
             >
               <BlockIcon />
@@ -267,7 +293,10 @@ export default function ClientsPage() {
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => handleDeleteClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleDeleteClick(params.row);
+              }}
               color="error"
             >
               <DeleteIcon />
@@ -312,10 +341,17 @@ export default function ClientsPage() {
         }}
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
-        disableRowSelectionOnClick
+        disableRowSelectionOnClick={false}
         autoHeight
         loading={loading}
-      />{" "}
+        onRowClick={handleRowClick}
+        sx={{
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+          },
+        }}
+      />
+
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -328,6 +364,7 @@ export default function ClientsPage() {
           onCancel={handleCloseDialog}
         />
       </Dialog>
+
       {/* Blacklist Dialog */}
       <Dialog
         open={openBlacklistDialog}
@@ -340,6 +377,147 @@ export default function ClientsPage() {
           onSave={handleSaveBlacklist}
           onCancel={handleCloseBlacklistDialog}
         />
+      </Dialog>
+
+      {/* Client Detail Dialog */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <Box sx={{ p: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h5" component="h2">
+              Client Details
+            </Typography>
+            <IconButton onClick={handleCloseDetailDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <Divider sx={{ mb: 3 }} />
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Personal Information
+              </Typography>
+              <Card variant="outlined" sx={{ mb: 2 }}>
+                <CardContent>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Name:</strong> {selectedClient?.firstName}{" "}
+                    {selectedClient?.lastName}
+                  </Typography>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Email:</strong> {selectedClient?.email}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Phone:</strong> {selectedClient?.phone}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Address
+              </Typography>
+              <Card variant="outlined" sx={{ mb: 2 }}>
+                <CardContent>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Street:</strong>{" "}
+                    {selectedClient?.address?.street || "N/A"}
+                  </Typography>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>City:</strong>{" "}
+                    {selectedClient?.address?.city || "N/A"}
+                  </Typography>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>State:</strong>{" "}
+                    {selectedClient?.address?.state || "N/A"}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Zip Code:</strong>{" "}
+                    {selectedClient?.address?.zipCode || "N/A"}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Country:</strong>{" "}
+                    {selectedClient?.address?.country || "N/A"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Status Information
+              </Typography>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Status:</strong>{" "}
+                    <Box
+                      component="span"
+                      sx={{
+                        color: selectedClient?.isBlacklisted
+                          ? "error.main"
+                          : "success.main",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {selectedClient?.isBlacklisted ? "Blacklisted" : "Active"}
+                    </Box>
+                  </Typography>
+                  {selectedClient?.isBlacklisted && (
+                    <Typography variant="body1">
+                      <strong>Blacklist Reason:</strong>{" "}
+                      {selectedClient?.blacklistReason || "Not specified"}
+                    </Typography>
+                  )}
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Created:</strong>{" "}
+                    {selectedClient?.createdAt.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Last Updated:</strong>{" "}
+                    {selectedClient?.updatedAt.toLocaleString()}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Box
+            sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}
+          >
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                handleCloseDetailDialog();
+                handleEditClick(selectedClient!);
+              }}
+              startIcon={<EditIcon />}
+            >
+              Edit Client
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCloseDetailDialog}
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
     </Box>
   );

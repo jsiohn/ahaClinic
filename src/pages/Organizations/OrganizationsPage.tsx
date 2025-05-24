@@ -10,6 +10,7 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Divider,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -18,6 +19,7 @@ import {
   Delete as DeleteIcon,
   Pets as PetsIcon,
   Email as EmailIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Organization } from "../../types/models";
 import OrganizationForm from "./OrganizationForm";
@@ -67,6 +69,7 @@ export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [openAnimalsDialog, setOpenAnimalsDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedOrganization, setSelectedOrganization] =
     useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -235,6 +238,26 @@ export default function OrganizationsPage() {
     setOpenAnimalsDialog(false);
     setSelectedOrganization(null);
   };
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    // Also check if the click target is within the actions cell to handle any other elements in the actions column
+    const isActionsCell = (params.event?.target as HTMLElement)?.closest(
+      '[role="cell"][data-field="actions"]'
+    );
+
+    if (!isActionButton && !isActionsCell) {
+      setSelectedOrganization(params.row);
+      setOpenDetailDialog(true);
+    }
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedOrganization(null);
+  };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
@@ -383,10 +406,14 @@ export default function OrganizationsPage() {
       width: 220,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
+          {" "}
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon />
             </IconButton>
@@ -394,7 +421,10 @@ export default function OrganizationsPage() {
           <Tooltip title="Email">
             <IconButton
               size="small"
-              onClick={() => handleEmailClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEmailClick(params.row);
+              }}
               color="primary"
             >
               <EmailIcon />
@@ -403,7 +433,10 @@ export default function OrganizationsPage() {
           <Tooltip title="View Animals">
             <IconButton
               size="small"
-              onClick={() => handleViewAnimalsClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewAnimalsClick(params.row);
+              }}
               color="success"
             >
               <PetsIcon />
@@ -412,7 +445,10 @@ export default function OrganizationsPage() {
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => handleDeleteClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(params.row);
+              }}
               color="error"
             >
               <DeleteIcon />
@@ -460,9 +496,15 @@ export default function OrganizationsPage() {
         }}
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
-        disableRowSelectionOnClick
+        disableRowSelectionOnClick={false}
         autoHeight
         loading={loading}
+        onRowClick={handleRowClick}
+        sx={{
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+          },
+        }}
       />{" "}
       <Dialog
         open={openDialog}
@@ -484,6 +526,99 @@ export default function OrganizationsPage() {
           onClose={handleCloseAnimalsDialog}
         />
       )}
+      {/* Detail Dialog - New addition */}
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        {" "}
+        <Box p={2}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6">Organization Details</Typography>
+            <IconButton onClick={handleCloseDetailDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Divider />
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Name:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.name}
+            </Typography>
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Contact Person:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.contactPerson}
+            </Typography>
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Email:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.email}
+            </Typography>
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Phone:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.phone}
+            </Typography>
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Address:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.address}
+            </Typography>
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Status:
+            </Typography>
+            <Chip
+              label={selectedOrganization?.status}
+              color={getStatusColor(selectedOrganization?.status || "") as any}
+              size="small"
+            />
+          </Box>
+          <Box mt={2}>
+            <Typography variant="body1" fontWeight="medium">
+              Notes:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedOrganization?.notes}
+            </Typography>
+          </Box>
+          <Divider sx={{ my: 2 }} />
+          <Box display="flex" justifyContent="flex-end" gap={1} mt={2} pb={2}>
+            <Button
+              variant="outlined"
+              onClick={handleCloseDetailDialog}
+              startIcon={<CloseIcon />}
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
     </Box>
   );
 }

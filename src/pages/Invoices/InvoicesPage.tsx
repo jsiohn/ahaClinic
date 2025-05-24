@@ -9,6 +9,10 @@ import {
   Chip,
   Alert,
   Snackbar,
+  Divider,
+  Card,
+  CardContent,
+  Grid,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -17,6 +21,7 @@ import {
   Delete as DeleteIcon,
   Receipt as ReceiptIcon,
   LocalPrintshop as PrintIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Invoice } from "../../types/models";
 import InvoiceForm from "./InvoiceForm";
@@ -45,6 +50,7 @@ interface ApiInvoice extends Omit<Invoice, "id"> {
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +212,21 @@ export default function InvoicesPage() {
     setOpenDialog(false);
     setSelectedInvoice(null);
   };
+  const handleRowClick = (params: any) => {
+    // Check if the click target is a button or icon
+    const isActionButton = (params.event?.target as HTMLElement)?.closest(
+      ".MuiIconButton-root"
+    );
+    if (!isActionButton) {
+      setSelectedInvoice(params.row);
+      setOpenDetailDialog(true);
+    }
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedInvoice(null);
+  };
 
   const handleSaveInvoice = async (invoiceData: Partial<Invoice>) => {
     try {
@@ -326,10 +347,14 @@ export default function InvoicesPage() {
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
+          {" "}
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon />
             </IconButton>
@@ -337,7 +362,10 @@ export default function InvoicesPage() {
           <Tooltip title="Print">
             <IconButton
               size="small"
-              onClick={() => handlePrintClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrintClick(params.row);
+              }}
               color="primary"
             >
               <PrintIcon />
@@ -346,7 +374,10 @@ export default function InvoicesPage() {
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => handleDeleteClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(params.row);
+              }}
               color="error"
             >
               <DeleteIcon />
@@ -401,9 +432,15 @@ export default function InvoicesPage() {
         }}
         pageSizeOptions={[10, 20, 50]}
         checkboxSelection={false}
-        disableRowSelectionOnClick
+        disableRowSelectionOnClick={false}
         getRowId={(row) => row.id || row._id}
-        sx={{ minHeight: 400 }}
+        onRowClick={handleRowClick}
+        sx={{
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+          },
+          minHeight: 400,
+        }}
         loading={loading}
       />
 
@@ -420,6 +457,196 @@ export default function InvoicesPage() {
           onSave={handleSaveInvoice}
           onCancel={handleCloseDialog}
         />
+      </Dialog>
+
+      <Dialog
+        open={openDetailDialog}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <Box sx={{ p: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h5" component="h2">
+              Invoice Details
+            </Typography>
+            <IconButton onClick={handleCloseDetailDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <Divider sx={{ mb: 3 }} />
+
+          {selectedInvoice && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Invoice Information
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Invoice #:</strong>{" "}
+                      {selectedInvoice.invoiceNumber}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Date:</strong>{" "}
+                      {new Date(selectedInvoice.date).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Due Date:</strong>{" "}
+                      {new Date(selectedInvoice.dueDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Status:</strong>{" "}
+                      <Chip
+                        label={selectedInvoice.status}
+                        color={getStatusColor(selectedInvoice.status)}
+                        size="small"
+                      />
+                    </Typography>
+                    {selectedInvoice.paymentDate && (
+                      <Typography variant="body1">
+                        <strong>Payment Date:</strong>{" "}
+                        {new Date(
+                          selectedInvoice.paymentDate
+                        ).toLocaleDateString()}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Financial Details
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Subtotal:</strong>{" "}
+                      {formatCurrency(selectedInvoice.subtotal)}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Tax:</strong>{" "}
+                      {formatCurrency(selectedInvoice.tax)}
+                    </Typography>
+                    <Typography variant="body1">
+                      <strong>Total:</strong>{" "}
+                      {formatCurrency(selectedInvoice.total)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Invoice Items
+                </Typography>
+                <Card variant="outlined">
+                  <CardContent>
+                    {selectedInvoice.items &&
+                    selectedInvoice.items.length > 0 ? (
+                      <Box>
+                        {selectedInvoice.items.map((item, index) => (
+                          <Box
+                            key={item.id || index}
+                            sx={{
+                              mb: 2,
+                              p: 2,
+                              border: "1px solid #e0e0e0",
+                              borderRadius: 1,
+                            }}
+                          >
+                            <Typography variant="subtitle2" gutterBottom>
+                              {item.procedure}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              {item.description}
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                mt: 1,
+                              }}
+                            >
+                              <Typography variant="body2">
+                                <strong>Quantity:</strong> {item.quantity}
+                              </Typography>
+                              <Typography variant="body2">
+                                <strong>Unit Price:</strong>{" "}
+                                {formatCurrency(item.unitPrice)}
+                              </Typography>
+                              <Typography variant="body2">
+                                <strong>Total:</strong>{" "}
+                                {formatCurrency(item.quantity * item.unitPrice)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body1">
+                        No items in this invoice
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              mt: 3,
+              gap: 2,
+            }}
+          >
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                handleCloseDetailDialog();
+                handleEditClick(selectedInvoice!);
+              }}
+              startIcon={<EditIcon />}
+            >
+              Edit Invoice
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => {
+                handleCloseDetailDialog();
+                handlePrintClick(selectedInvoice!);
+              }}
+              startIcon={<PrintIcon />}
+            >
+              Print Invoice
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCloseDetailDialog}
+            >
+              Close
+            </Button>
+          </Box>
+        </Box>
       </Dialog>
 
       <Snackbar

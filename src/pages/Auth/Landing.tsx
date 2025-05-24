@@ -1,10 +1,14 @@
 import React from "react";
-import { Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { motion } from "framer-motion";
 import { useTheme } from "@mui/material/styles";
-import PetsIcon from "@mui/icons-material/Pets";
-import HandshakeIcon from "@mui/icons-material/Handshake";
-import SupportIcon from "@mui/icons-material/Support";
 
 interface LandingProps {
   onLogin: () => void;
@@ -53,98 +57,16 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                 >
                   Welcome to AhaClinic
                 </Typography>
-                <Typography variant="h6" color="text.secondary">
-                  Modern veterinary practice management system
-                </Typography>
               </Box>
-
-              {/* Features */}
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={4}
-                sx={{ mb: 4 }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
-                    p: 2,
-                  }}
-                >
-                  <PetsIcon
-                    sx={{
-                      fontSize: 48,
-                      color: theme.palette.primary.main,
-                      mb: 2,
-                    }}
-                  />
-                  <Typography variant="h6" gutterBottom>
-                    Pet Care
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Comprehensive pet health management
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
-                    p: 2,
-                  }}
-                >
-                  <SupportIcon
-                    sx={{
-                      fontSize: 48,
-                      color: theme.palette.primary.main,
-                      mb: 2,
-                    }}
-                  />
-                  <Typography variant="h6" gutterBottom>
-                    24/7 Support
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Round-the-clock veterinary assistance
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
-                    p: 2,
-                  }}
-                >
-                  <HandshakeIcon
-                    sx={{
-                      fontSize: 48,
-                      color: theme.palette.primary.main,
-                      mb: 2,
-                    }}
-                  />
-                  <Typography variant="h6" gutterBottom>
-                    Community Focus
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Dedicated to serving our local community
-                  </Typography>
-                </Box>
-              </Stack>
 
               {/* Action Buttons */}
               <Stack
                 direction={{ xs: "column", sm: "row" }}
                 spacing={2}
-                sx={{ 
+                sx={{
                   mt: 2,
                   justifyContent: "center",
-                  width: "100%"
+                  width: "100%",
                 }}
               >
                 <Button
@@ -156,7 +78,7 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                     py: 1.5,
                     borderRadius: 2,
                     textTransform: "none",
-                    fontSize: "1.1rem"
+                    fontSize: "1.1rem",
                   }}
                 >
                   Sign In
@@ -170,7 +92,7 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                     py: 1.5,
                     borderRadius: 2,
                     textTransform: "none",
-                    fontSize: "1.1rem"
+                    fontSize: "1.1rem",
                   }}
                 >
                   Create Account
@@ -183,7 +105,8 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                 color="text.secondary"
                 sx={{ mt: 4, textAlign: "center" }}
               >
-                By continuing, you agree to our Terms of Service and Privacy Policy
+                By continuing, you agree to our Terms of Service and Privacy
+                Policy
               </Typography>
             </Stack>
           </Paper>
