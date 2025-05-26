@@ -63,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
         throw new Error("Failed to store authentication token");
       } // Only call onSuccess and navigate if login is successful
       onSuccess();
-      navigate("/dashboard");
+      navigate("/clients");
     } catch (err: any) {
       // Set error message but don't close modal or navigate away
       setError(err.message || "Invalid username or password");

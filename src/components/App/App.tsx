@@ -42,9 +42,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
 
-  const handleOpenAuthModal = (mode: 'login' | 'register') => {
+  const handleOpenAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);
     setAuthModalOpen(true);
   };
@@ -54,7 +54,7 @@ function App() {
   };
 
   const handleSwitchAuthMode = () => {
-    setAuthMode(authMode === 'login' ? 'register' : 'login');
+    setAuthMode(authMode === "login" ? "register" : "login");
   };
 
   return (
@@ -63,14 +63,14 @@ function App() {
       <Router>
         <Routes>
           {/* Auth landing page */}
-          <Route 
-            path="/auth" 
+          <Route
+            path="/auth"
             element={
-              <Landing 
-                onLogin={() => handleOpenAuthModal('login')}
-                onRegister={() => handleOpenAuthModal('register')}
+              <Landing
+                onLogin={() => handleOpenAuthModal("login")}
+                onRegister={() => handleOpenAuthModal("register")}
               />
-            } 
+            }
           />
 
           {/* Protected routes */}
@@ -82,11 +82,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route
-              path="dashboard"
-              element={<div>Dashboard (Coming Soon)</div>}
-            />
+            {/* Dashboard temporarily removed */}
+            <Route index element={<Navigate to="/clients" replace />} />
             <Route
               path="appointments"
               element={<div>Appointments (Coming Soon)</div>}

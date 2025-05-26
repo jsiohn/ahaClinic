@@ -65,9 +65,8 @@ const Register: React.FC<RegisterProps> = ({ onSwitchMode, onSuccess }) => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-
       onSuccess();
-      navigate("/dashboard");
+      navigate("/clients");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
