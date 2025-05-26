@@ -12,6 +12,8 @@ import {
   CardContent,
   Grid,
   Divider,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -20,6 +22,7 @@ import {
   Delete as DeleteIcon,
   Block as BlockIcon,
   Close as CloseIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { Client } from "../../types/models";
 import ClientForm from "./ClientForm";
@@ -34,6 +37,7 @@ export default function ClientsPage() {
   const [openBlacklistDialog, setOpenBlacklistDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchClients = async () => {
     try {
@@ -221,6 +225,25 @@ export default function ClientsPage() {
       setOpenDetailDialog(true);
     }
   };
+  // Filter clients based on search term
+  const filteredClients = clients.filter((client) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchStr = searchTerm.toLowerCase().trim();
+    const firstName = (client.firstName || "").toLowerCase();
+    const lastName = (client.lastName || "").toLowerCase();
+    const email = (client.email || "").toLowerCase();
+    const phone = (client.phone || "").toLowerCase();
+    const fullName = `${firstName} ${lastName}`;
+
+    return (
+      firstName.includes(searchStr) ||
+      lastName.includes(searchStr) ||
+      fullName.includes(searchStr) ||
+      email.includes(searchStr) ||
+      phone.includes(searchStr)
+    );
+  });
 
   const columns: GridColDef[] = [
     {
@@ -318,21 +341,47 @@ export default function ClientsPage() {
         <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
-      </Snackbar>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+      </Snackbar>{" "}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: 2,
+          mb: 2,
+        }}
+      >
         <Typography variant="h4" component="h1">
           Clients
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-        >
-          Add Client
-        </Button>
+        <TextField
+          placeholder="Search clients..."
+          size="small"
+          value={searchTerm}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setSearchTerm(e.target.value)
+          }
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 300 }}
+        />
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+          >
+            Add Client
+          </Button>
+        </Box>
       </Box>
       <DataGrid
-        rows={clients}
+        rows={filteredClients}
         columns={columns}
         initialState={{
           pagination: {
@@ -351,7 +400,6 @@ export default function ClientsPage() {
           },
         }}
       />
-
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -364,7 +412,6 @@ export default function ClientsPage() {
           onCancel={handleCloseDialog}
         />
       </Dialog>
-
       {/* Blacklist Dialog */}
       <Dialog
         open={openBlacklistDialog}
@@ -378,7 +425,6 @@ export default function ClientsPage() {
           onCancel={handleCloseBlacklistDialog}
         />
       </Dialog>
-
       {/* Client Detail Dialog */}
       <Dialog
         open={openDetailDialog}
