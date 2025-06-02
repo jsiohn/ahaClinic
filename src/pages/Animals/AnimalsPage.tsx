@@ -476,6 +476,7 @@ export default function AnimalsPage() {
 
           {selectedAnimal && (
             <Grid container spacing={3}>
+              {" "}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Basic Information
@@ -520,16 +521,44 @@ export default function AnimalsPage() {
                         }
                       />
                     </Typography>
-                    <Typography variant="body1">
+                    <Typography variant="body1" gutterBottom>
                       <strong>Weight:</strong>{" "}
                       {selectedAnimal.weight != null
                         ? `${selectedAnimal.weight} lbs`
                         : "Unknown"}
                     </Typography>
+                    <Typography variant="body1">
+                      <strong>Microchip Number:</strong>{" "}
+                      {selectedAnimal.microchipNumber || "Not microchipped"}
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
-
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Medical Details
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Date of Birth:</strong>{" "}
+                      {selectedAnimal.dateOfBirth
+                        ? new Date(
+                            selectedAnimal.dateOfBirth
+                          ).toLocaleDateString()
+                        : "Unknown"}
+                    </Typography>
+                    <Typography variant="body1">
+                      <strong>Spayed/Neutered:</strong>{" "}
+                      {selectedAnimal.isSpayedNeutered ? (
+                        <Chip label="Yes" color="success" size="small" />
+                      ) : (
+                        <Chip label="No" color="error" size="small" />
+                      )}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Owner Information
@@ -542,7 +571,6 @@ export default function AnimalsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-
               <Grid item xs={12}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Medical History

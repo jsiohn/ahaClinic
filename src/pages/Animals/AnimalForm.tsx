@@ -28,6 +28,7 @@ interface AnimalFormData {
   microchipNumber?: string;
   dateOfBirth: string;
   isSpayedNeutered?: string;
+  spayNeuterDate?: string;
 }
 
 interface AnimalFormProps {
@@ -68,8 +69,21 @@ const schema = yup.object().shape({
     .nullable(),
   clientId: yup.string().optional(),
   microchipNumber: yup.string().optional(),
-  dateOfBirth: yup.string().required("Date of birth is required"),
+  dateOfBirth: yup
+    .string()
+    .required("Date of birth is required")
+    .test("is-date-valid", "Invalid date format. Use YYYY-MM-DD", (value) => {
+      if (!value) return false;
+      return !isNaN(Date.parse(value));
+    }),
   isSpayedNeutered: yup.string().optional(),
+  spayNeuterDate: yup
+    .string()
+    .optional()
+    .test("valid-date", "Invalid date format", (value) => {
+      if (!value) return true; // Optional field can be empty
+      return !isNaN(Date.parse(value));
+    }),
 }) satisfies yup.ObjectSchema<AnimalFormData>;
 
 export default function AnimalForm({
@@ -97,9 +111,15 @@ export default function AnimalForm({
         ? new Date(animal.dateOfBirth).toISOString().split("T")[0]
         : "",
       isSpayedNeutered: animal?.isSpayedNeutered ? "true" : "false",
+      spayNeuterDate: animal?.isSpayedNeutered
+        ? new Date().toISOString().split("T")[0]
+        : "",
     },
   });
   const onSubmit = (data: AnimalFormData) => {
+    // Set isSpayedNeutered based on whether spayNeuterDate has a value
+    const isSpayedNeutered = !!data.spayNeuterDate;
+
     onSave({
       name: data.name,
       species: data.species,
@@ -110,7 +130,7 @@ export default function AnimalForm({
       client: data.clientId || undefined,
       microchipNumber: data.microchipNumber,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date(),
-      isSpayedNeutered: data.isSpayedNeutered === "true",
+      isSpayedNeutered: isSpayedNeutered,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
@@ -293,11 +313,13 @@ export default function AnimalForm({
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Date of Birth (Month/Year)"
-                    type="month"
+                    label="Date of Birth"
+                    type="date"
                     fullWidth
                     error={!!errors.dateOfBirth}
-                    helperText={errors.dateOfBirth?.message}
+                    helperText={
+                      errors.dateOfBirth?.message || "Use format YYYY-MM-DD"
+                    }
                     InputLabelProps={{
                       shrink: true,
                     }}
@@ -307,7 +329,7 @@ export default function AnimalForm({
             </Grid>{" "}
             <Grid item xs={12} sm={6}>
               <Controller
-                name="isSpayedNeutered"
+                name="spayNeuterDate"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -315,14 +337,17 @@ export default function AnimalForm({
                     label="Spay/Neuter Date"
                     type="date"
                     fullWidth
-                    error={!!errors.isSpayedNeutered}
-                    helperText={errors.isSpayedNeutered?.message}
+                    error={!!errors.spayNeuterDate}
+                    helperText={
+                      errors.spayNeuterDate?.message ||
+                      "Leave empty if not spayed/neutered"
+                    }
                     InputLabelProps={{
                       shrink: true,
                     }}
                   />
                 )}
-              />{" "}
+              />
             </Grid>
           </Grid>
         </Box>
