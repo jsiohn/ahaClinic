@@ -49,6 +49,9 @@ interface MongoAnimalResponse {
   medicalHistory: MedicalRecord[];
   notes?: string;
   isActive?: boolean;
+  microchipNumber?: string;
+  dateOfBirth: string;
+  isSpayedNeutered?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -171,7 +174,6 @@ export default function AnimalsPage() {
       setOpenDetailDialog(true);
     }
   };
-
   const handleSaveAnimal = async (animalData: Partial<Animal>) => {
     try {
       if (selectedAnimal) {
@@ -191,6 +193,9 @@ export default function AnimalsPage() {
           clientName: mongoResponse.client
             ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
             : "No Client",
+          microchipNumber: mongoResponse.microchipNumber,
+          dateOfBirth: new Date(mongoResponse.dateOfBirth || new Date()),
+          isSpayedNeutered: mongoResponse.isSpayedNeutered,
           medicalHistory: mongoResponse.medicalHistory || [],
           createdAt: new Date(mongoResponse.createdAt),
           updatedAt: new Date(mongoResponse.updatedAt),
@@ -217,6 +222,9 @@ export default function AnimalsPage() {
           clientName: mongoResponse.client
             ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
             : "No Client",
+          microchipNumber: mongoResponse.microchipNumber,
+          dateOfBirth: new Date(mongoResponse.dateOfBirth || new Date()),
+          isSpayedNeutered: mongoResponse.isSpayedNeutered,
           medicalHistory: mongoResponse.medicalHistory || [],
           createdAt: new Date(mongoResponse.createdAt),
           updatedAt: new Date(mongoResponse.updatedAt),

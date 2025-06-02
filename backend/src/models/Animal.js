@@ -20,6 +20,15 @@ const animalSchema = new mongoose.Schema({
     default: "unknown",
   },
   weight: Number,
+  microchipNumber: String,
+  dateOfBirth: {
+    type: Date,
+    required: true,
+  },
+  isSpayedNeutered: {
+    type: Boolean,
+    default: false,
+  },
   client: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Client",

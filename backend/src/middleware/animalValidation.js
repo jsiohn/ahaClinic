@@ -14,10 +14,13 @@ export const validateAnimal = [
     .withMessage("Species is required")
     .isIn(["DOG", "CAT", "OTHER"])
     .withMessage("Species must be DOG, CAT, or OTHER"),
-
   body("breed").optional().trim(),
 
-  body("dateOfBirth").optional().isISO8601().withMessage("Invalid date format"),
+  body("dateOfBirth")
+    .notEmpty()
+    .withMessage("Date of Birth is required")
+    .isISO8601()
+    .withMessage("Invalid date format"),
 
   body("gender")
     .optional()
@@ -31,8 +34,13 @@ export const validateAnimal = [
     .withMessage("Weight must be a positive number"),
 
   body("color").optional().trim(),
-
   body("microchipNumber").optional().trim(),
+
+  body("isSpayedNeutered")
+    .optional()
+    .isBoolean()
+    .withMessage("isSpayedNeutered must be a boolean"),
+
   body("client").optional().isMongoId().withMessage("Invalid client ID"),
 
   body("organization")

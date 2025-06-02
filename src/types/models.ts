@@ -34,6 +34,9 @@ export interface Animal {
   medicalHistory: MedicalRecord[];
   notes?: string;
   isActive?: boolean;
+  microchipNumber?: string;
+  dateOfBirth: Date;
+  isSpayedNeutered?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

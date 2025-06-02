@@ -25,6 +25,9 @@ interface AnimalFormData {
   gender: "MALE" | "FEMALE";
   weight: string | null;
   clientId?: string;
+  microchipNumber?: string;
+  dateOfBirth: string;
+  isSpayedNeutered?: string;
 }
 
 interface AnimalFormProps {
@@ -64,6 +67,9 @@ const schema = yup.object().shape({
     .required("Weight is required")
     .nullable(),
   clientId: yup.string().optional(),
+  microchipNumber: yup.string().optional(),
+  dateOfBirth: yup.string().required("Date of birth is required"),
+  isSpayedNeutered: yup.string().optional(),
 }) satisfies yup.ObjectSchema<AnimalFormData>;
 
 export default function AnimalForm({
@@ -86,6 +92,11 @@ export default function AnimalForm({
       gender: (animal?.gender?.toUpperCase() as "MALE" | "FEMALE") || "MALE",
       weight: animal?.weight?.toString() || "",
       clientId: animal?.client || "", // Use client instead of clientId
+      microchipNumber: animal?.microchipNumber || "",
+      dateOfBirth: animal?.dateOfBirth
+        ? new Date(animal.dateOfBirth).toISOString().split("T")[0]
+        : "",
+      isSpayedNeutered: animal?.isSpayedNeutered ? "true" : "false",
     },
   });
   const onSubmit = (data: AnimalFormData) => {
@@ -97,6 +108,9 @@ export default function AnimalForm({
       gender: data.gender.toLowerCase() as "male" | "female" | "unknown",
       weight: data.weight ? Number(data.weight) : null,
       client: data.clientId || undefined,
+      microchipNumber: data.microchipNumber,
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date(),
+      isSpayedNeutered: data.isSpayedNeutered === "true",
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
@@ -256,6 +270,59 @@ export default function AnimalForm({
                   />
                 )}
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="microchipNumber"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Microchip Number"
+                    fullWidth
+                    error={!!errors.microchipNumber}
+                    helperText={errors.microchipNumber?.message}
+                  />
+                )}
+              />
+            </Grid>{" "}
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="dateOfBirth"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Date of Birth (Month/Year)"
+                    type="month"
+                    fullWidth
+                    error={!!errors.dateOfBirth}
+                    helperText={errors.dateOfBirth?.message}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />
+            </Grid>{" "}
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="isSpayedNeutered"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Spay/Neuter Date"
+                    type="date"
+                    fullWidth
+                    error={!!errors.isSpayedNeutered}
+                    helperText={errors.isSpayedNeutered?.message}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />{" "}
             </Grid>
           </Grid>
         </Box>
