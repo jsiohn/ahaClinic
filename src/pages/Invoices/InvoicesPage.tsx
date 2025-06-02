@@ -13,6 +13,8 @@ import {
   Card,
   CardContent,
   Grid,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -22,10 +24,27 @@ import {
   Receipt as ReceiptIcon,
   LocalPrintshop as PrintIcon,
   Close as CloseIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { Invoice } from "../../types/models";
 import InvoiceForm from "./InvoiceForm";
 import api from "../../utils/api";
+
+// Extended invoice interface for use in this component
+interface ExtendedInvoice extends Invoice {
+  client?: {
+    _id?: string;
+    id?: string;
+    firstName: string;
+    lastName: string;
+  };
+  animal?: {
+    _id?: string;
+    id?: string;
+    name: string;
+    species: string;
+  };
+}
 
 interface ApiInvoice extends Omit<Invoice, "id"> {
   _id: string;
@@ -48,12 +67,14 @@ interface ApiInvoice extends Omit<Invoice, "id"> {
 }
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<ExtendedInvoice[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<ExtendedInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     fetchInvoices();
@@ -70,8 +91,7 @@ export default function InvoicesPage() {
       maximumFractionDigits: 2,
     }).format(validAmount);
   };
-
-  const transformInvoiceData = (invoice: ApiInvoice): Invoice => {
+  const transformInvoiceData = (invoice: ApiInvoice): ExtendedInvoice => {
     // Ensure monetary values are properly converted to numbers
     const subtotal =
       typeof invoice.subtotal === "string"
@@ -112,13 +132,15 @@ export default function InvoicesPage() {
         animalId = invoice.animal;
       }
     }
-
     return {
       ...invoice,
       id: invoice._id,
       // Make sure we set the clientId and animalId correctly
       clientId,
       animalId,
+      // Preserve the client and animal objects for UI display
+      client: typeof invoice.client === "object" ? invoice.client : undefined,
+      animal: typeof invoice.animal === "object" ? invoice.animal : undefined,
       date: new Date(invoice.date),
       dueDate: new Date(invoice.dueDate),
       paymentDate: invoice.paymentDate
@@ -168,8 +190,7 @@ export default function InvoicesPage() {
     setSelectedInvoice(null);
     setOpenDialog(true);
   };
-
-  const handleEditClick = async (invoice: Invoice) => {
+  const handleEditClick = async (invoice: ExtendedInvoice) => {
     try {
       // Fetch fresh invoice data to ensure we have complete information
       const response = await api.get<ApiInvoice>(`/invoices/${invoice.id}`);
@@ -188,7 +209,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDeleteClick = async (invoice: Invoice) => {
+  const handleDeleteClick = async (invoice: ExtendedInvoice) => {
     if (window.confirm("Are you sure you want to delete this invoice?")) {
       try {
         setLoading(true);
@@ -203,7 +224,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const handlePrintClick = (_invoice: Invoice) => {
+  const handlePrintClick = (_invoice: ExtendedInvoice) => {
     // Implement print functionality
     window.print();
   };
@@ -227,8 +248,7 @@ export default function InvoicesPage() {
     setOpenDetailDialog(false);
     setSelectedInvoice(null);
   };
-
-  const handleSaveInvoice = async (invoiceData: Partial<Invoice>) => {
+  const handleSaveInvoice = async (invoiceData: Partial<ExtendedInvoice>) => {
     try {
       if (selectedInvoice) {
         await api.put(`/invoices/${selectedInvoice.id}`, invoiceData);
@@ -250,6 +270,36 @@ export default function InvoicesPage() {
   const handleCloseSnackbar = () => {
     setError(null);
   };
+
+  // Filter invoices based on search term
+  const filteredInvoices = invoices.filter((invoice) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchStr = searchTerm.toLowerCase().trim();
+    const invoiceNumber = (invoice.invoiceNumber || "").toLowerCase();
+
+    // Get client name from the row data that has been transformed
+    const clientName =
+      invoice.client?.firstName && invoice.client?.lastName
+        ? `${invoice.client.firstName} ${invoice.client.lastName}`.toLowerCase()
+        : "";
+
+    // Get animal name from the row data that has been transformed
+    const animalName = invoice.animal?.name
+      ? invoice.animal.name.toLowerCase()
+      : "";
+
+    const status = (invoice.status || "").toLowerCase();
+    const total = invoice.total?.toString() || "";
+
+    return (
+      invoiceNumber.includes(searchStr) ||
+      clientName.includes(searchStr) ||
+      animalName.includes(searchStr) ||
+      status.includes(searchStr) ||
+      total.includes(searchStr)
+    );
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -390,29 +440,53 @@ export default function InvoicesPage() {
 
   return (
     <Box sx={{ height: "100%", width: "100%" }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+      {" "}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: 2,
+          mb: 2,
+        }}
+      >
         <Typography variant="h4" component="h1">
           Invoices
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-        >
-          Create Invoice
-        </Button>
+        <TextField
+          variant="outlined"
+          placeholder="Search Invoices..."
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+          >
+            Create Invoice
+          </Button>
+        </Box>
       </Box>
-
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
-
       <DataGrid
         rows={
-          Array.isArray(invoices)
-            ? invoices.map((invoice) => ({
+          Array.isArray(filteredInvoices)
+            ? filteredInvoices.map((invoice) => ({
                 ...invoice,
                 // Explicitly convert monetary values to numbers to ensure they're correctly displayed
                 subtotal: Number(invoice.subtotal || 0),
@@ -443,7 +517,6 @@ export default function InvoicesPage() {
         }}
         loading={loading}
       />
-
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
@@ -458,7 +531,6 @@ export default function InvoicesPage() {
           onCancel={handleCloseDialog}
         />
       </Dialog>
-
       <Dialog
         open={openDetailDialog}
         onClose={handleCloseDetailDialog}
@@ -648,7 +720,6 @@ export default function InvoicesPage() {
           </Box>
         </Box>
       </Dialog>
-
       <Snackbar
         open={!!error}
         autoHideDuration={6000}

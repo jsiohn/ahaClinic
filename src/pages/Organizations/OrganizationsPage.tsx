@@ -11,6 +11,8 @@ import {
   Alert,
   Snackbar,
   Divider,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -20,6 +22,7 @@ import {
   Pets as PetsIcon,
   Email as EmailIcon,
   Close as CloseIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { Organization } from "../../types/models";
 import OrganizationForm from "./OrganizationForm";
@@ -74,6 +77,7 @@ export default function OrganizationsPage() {
     useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   // Convert from API format to frontend Organization
   const transformApiToFrontend = (org: ApiOrganization): Organization => {
     // Extract contact information from nested structure or flat properties
@@ -361,6 +365,27 @@ export default function OrganizationsPage() {
         return "default";
     }
   };
+
+  // Filter organizations based on search term
+  const filteredOrganizations = organizations.filter((org) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchStr = searchTerm.toLowerCase().trim();
+    const name = (org.name || "").toLowerCase();
+    const contactPerson = (org.contactPerson || "").toLowerCase();
+    const email = (org.email || "").toLowerCase();
+    const phone = (org.phone || "").toLowerCase();
+    const status = (org.status || "").toLowerCase();
+
+    return (
+      name.includes(searchStr) ||
+      contactPerson.includes(searchStr) ||
+      email.includes(searchStr) ||
+      phone.includes(searchStr) ||
+      status.includes(searchStr)
+    );
+  });
+
   const columns: GridColDef[] = [
     {
       field: "name",
@@ -470,21 +495,46 @@ export default function OrganizationsPage() {
         <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
-      </Snackbar>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+      </Snackbar>{" "}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: 2,
+          mb: 2,
+        }}
+      >
         <Typography variant="h4" component="h1">
           Rescue Organizations
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-        >
-          Add Organization
-        </Button>
+        <TextField
+          placeholder="Search organizations..."
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 300 }}
+        />
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+          >
+            Add Organization
+          </Button>
+        </Box>
       </Box>
       <DataGrid
-        rows={organizations}
+        rows={filteredOrganizations}
         columns={columns}
         initialState={{
           pagination: {
