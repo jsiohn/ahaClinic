@@ -105,6 +105,45 @@ export interface InvoiceItem {
   total: number;
 }
 
+export interface DocumentVersion {
+  _id?: string;
+  fileData?: Uint8Array; // Not typically used in the frontend
+  createdAt: Date;
+  createdBy?: string;
+  notes?: string;
+}
+
+export interface Document {
+  id: string;
+  _id?: string;
+  name: string;
+  description?: string;
+  fileType: "PDF" | "IMAGE" | "OTHER";
+  animal?: {
+    _id: string;
+    name: string;
+    species?: string;
+  };
+  client?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  organization?: {
+    _id: string;
+    name: string;
+  };
+  isEditable: boolean;
+  isPrintable: boolean;
+  versions?: DocumentVersion[];
+  currentVersion: number;
+  isShared: boolean;
+  shareLink?: string;
+  shareLinkExpiry?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /* To be implemented later:
 export interface Appointment {
   id: string;

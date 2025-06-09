@@ -8,6 +8,7 @@ import invoiceRoutes from "./routes/invoiceRoutes.js";
 import organizationRoutes from "./routes/organizationRoutes.js";
 import blacklistRoutes from "./routes/blacklistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import documentRoutes from "./routes/documentRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,7 @@ app.use("/api/animals", animalRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/organizations", organizationRoutes);
 app.use("/api/blacklist", blacklistRoutes);
+app.use("/api/documents", documentRoutes);
 
 // Basic route
 app.get("/", (req, res) => {

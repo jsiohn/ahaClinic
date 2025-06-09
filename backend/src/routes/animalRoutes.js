@@ -151,4 +151,39 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// Add a medical record to an animal
+router.post("/:id/medical-records", auth, async (req, res) => {
+  try {
+    const animal = await Animal.findById(req.params.id);
+    if (!animal) {
+      return res.status(404).json({ message: "Animal not found" });
+    }
+
+    const newMedicalRecord = {
+      date: req.body.date || new Date(),
+      description: req.body.procedure,
+      diagnosis: req.body.notes,
+      treatment: req.body.treatment || "",
+      veterinarian: req.body.veterinarian,
+    };
+
+    animal.medicalHistory.push(newMedicalRecord);
+    const updatedAnimal = await animal.save();
+
+    // Only populate client if it exists
+    if (updatedAnimal.client) {
+      await updatedAnimal.populate("client", "firstName lastName");
+    }
+
+    // Only populate organization if it exists
+    if (updatedAnimal.organization) {
+      await updatedAnimal.populate("organization", "name");
+    }
+
+    res.status(201).json(updatedAnimal);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 export default router;

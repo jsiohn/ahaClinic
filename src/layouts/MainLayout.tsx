@@ -26,11 +26,10 @@ import {
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
   Pets as PetsIcon,
-  People as PeopleIcon,
   Receipt as ReceiptIcon,
-  Apartment as ApartmentIcon,
-  Block as BlockIcon,
+  Apartment as ApartmentIcon,  Block as BlockIcon,
   Logout as LogoutIcon,
+  People as PeopleIcon,
 } from "@mui/icons-material";
 import { useNavigate, Outlet } from "react-router-dom";
 
@@ -83,8 +82,7 @@ const DrawerHeader = styled("div")(({ theme }) => ({
 const menuItems = [
   // Dashboard temporarily removed
   // { text: "Dashboard", icon: <HomeIcon />, path: "/" },
-  // To be implemented later:
-  // { text: "Appointments", icon: <ScheduleIcon />, path: "/appointments" },
+  // To be implemented later:  // { text: "Appointments", icon: <ScheduleIcon />, path: "/appointments" },
   { text: "Clients", icon: <PeopleIcon />, path: "/clients" },
   { text: "Animals", icon: <PetsIcon />, path: "/animals" },
   { text: "Invoices", icon: <ReceiptIcon />, path: "/invoices" },

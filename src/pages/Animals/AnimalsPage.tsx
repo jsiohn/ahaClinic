@@ -1,3 +1,4 @@
+// @ts-ignore - Suppress false positive unused variable warnings for React components
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -18,8 +19,14 @@ import {
   List,
   ListItem,
   ListItemText,
+  CircularProgress,
 } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridRenderCellParams,
+  GridRowParams,
+} from "@mui/x-data-grid";
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -27,36 +34,16 @@ import {
   Pets as PetsIcon,
   MedicalServices as MedicalIcon,
   Close as CloseIcon,
+  PictureAsPdf as PdfIcon,
 } from "@mui/icons-material";
 import { Animal, MedicalRecord, Client } from "../../types/models";
 import AnimalForm from "./AnimalForm";
 import MedicalRecordForm from "./MedicalRecordForm";
 import api from "../../utils/api";
-
-interface MongoAnimalResponse {
-  _id: string;
-  name: string;
-  species: "DOG" | "CAT" | "OTHER";
-  breed?: string;
-  age?: number;
-  gender?: "male" | "female" | "unknown";
-  weight: number;
-  client?: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-  };
-  medicalHistory: MedicalRecord[];
-  notes?: string;
-  isActive?: boolean;
-  microchipNumber?: string;
-  dateOfBirth: string;
-  isSpayedNeutered?: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import * as pdfUtils from "../../utils/pdfUtils";
 
 export default function AnimalsPage() {
+  // State declarations
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +53,9 @@ export default function AnimalsPage() {
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [openPdfDialog, setOpenPdfDialog] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchClients = async () => {
     try {
@@ -160,104 +150,63 @@ export default function AnimalsPage() {
     setSelectedAnimal(null);
   };
 
-  const handleCloseDetailDialog = () => {
-    setOpenDetailDialog(false);
-    setSelectedAnimal(null);
-  };
-  const handleRowClick = (params: any) => {
-    // Check if the click target is a button or icon
-    const isActionButton = (params.event?.target as HTMLElement)?.closest(
-      ".MuiIconButton-root"
-    );
-    if (!isActionButton) {
-      setSelectedAnimal(params.row);
-      setOpenDetailDialog(true);
-    }
-  };
-  const handleSaveAnimal = async (animalData: Partial<Animal>) => {
+  const handleViewIntakeForm = async (animal: Animal) => {
     try {
-      if (selectedAnimal) {
-        const mongoResponse: MongoAnimalResponse = await api.put(
-          `/animals/${selectedAnimal.id}`,
-          animalData
-        );
-        const transformedData: Animal = {
-          id: mongoResponse._id,
-          name: mongoResponse.name,
-          species: mongoResponse.species,
-          breed: mongoResponse.breed,
-          age: mongoResponse.age,
-          gender: mongoResponse.gender,
-          weight: mongoResponse.weight != null ? mongoResponse.weight : null,
-          client: mongoResponse.client?._id,
-          clientName: mongoResponse.client
-            ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
-            : "No Client",
-          microchipNumber: mongoResponse.microchipNumber,
-          dateOfBirth: new Date(mongoResponse.dateOfBirth || new Date()),
-          isSpayedNeutered: mongoResponse.isSpayedNeutered,
-          medicalHistory: mongoResponse.medicalHistory || [],
-          createdAt: new Date(mongoResponse.createdAt),
-          updatedAt: new Date(mongoResponse.updatedAt),
-        };
-        setAnimals((prevAnimals) =>
-          prevAnimals.map((animal) =>
-            animal.id === selectedAnimal.id ? transformedData : animal
-          )
-        );
-      } else {
-        const mongoResponse: MongoAnimalResponse = await api.post(
-          "/animals",
-          animalData
-        );
-        const transformedData: Animal = {
-          id: mongoResponse._id,
-          name: mongoResponse.name,
-          species: mongoResponse.species,
-          breed: mongoResponse.breed,
-          age: mongoResponse.age,
-          gender: mongoResponse.gender,
-          weight: mongoResponse.weight != null ? mongoResponse.weight : null,
-          client: mongoResponse.client?._id,
-          clientName: mongoResponse.client
-            ? `${mongoResponse.client.firstName} ${mongoResponse.client.lastName}`
-            : "No Client",
-          microchipNumber: mongoResponse.microchipNumber,
-          dateOfBirth: new Date(mongoResponse.dateOfBirth || new Date()),
-          isSpayedNeutered: mongoResponse.isSpayedNeutered,
-          medicalHistory: mongoResponse.medicalHistory || [],
-          createdAt: new Date(mongoResponse.createdAt),
-          updatedAt: new Date(mongoResponse.updatedAt),
-        };
-        setAnimals((prevAnimals) => [...prevAnimals, transformedData]);
+      setPdfLoading(true);
+
+      // Fetch the blank clinic intake form
+      const formResponse = await fetch("/src/assets/clinicIntakeForm.pdf");
+      const formArrayBuffer = await formResponse.arrayBuffer();
+      const formBytes = new Uint8Array(formArrayBuffer);
+
+      // Prepare form data with correct field names
+      const formData = {
+        "Animal Name": animal.name,
+        "Animal Age": animal.age?.toString() || "",
+        Weight: animal.weight?.toString() || "",
+        Dog: animal.species === "DOG",
+        "Domes. Cat":
+          animal.species === "CAT" &&
+          !(animal.breed || "").toLowerCase().includes("feral"),
+        "Feral Cat":
+          animal.species === "CAT" &&
+          (animal.breed || "").toLowerCase().includes("feral"),
+        Male: animal.gender?.toUpperCase() === "MALE",
+        Female: animal.gender?.toUpperCase() === "FEMALE",
+        "Don't Know": !animal.gender,
+        "Description/Coloring": animal.breed || "",
+        Date: new Date().toLocaleDateString(),
+      };
+
+      if (animal.client) {
+        const clientResponse = await api.get(`/clients/${animal.client}`);
+        const client = clientResponse.data || clientResponse;
+        if (client) {
+          Object.assign(formData, {
+            "Client Name": `${client.firstName} ${client.lastName}`,
+            "Client Phone": client.phone || "",
+            "Client Email": client.email || "",
+            "Client Address": client.address
+              ? `${client.address.street}, ${client.address.city}`
+              : "",
+            "Client Address 2": client.address
+              ? `${client.address.state} ${client.address.zipCode}`
+              : "",
+            County: "",
+          });
+        }
       }
-      handleCloseAnimalDialog();
-    } catch (err: any) {
-      setError(err?.message || "Failed to save animal");
+
+      const filledPdfBytes = await pdfUtils.fillFormFields(formBytes, formData);
+      const url = pdfUtils.createPdfUrl(filledPdfBytes);
+      setPdfUrl(url);
+      setOpenPdfDialog(true);
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to generate intake form";
+      setError(errorMessage);
+    } finally {
+      setPdfLoading(false);
     }
-  };
-  const handleSaveMedicalRecord = async (data: Partial<MedicalRecord>) => {
-    try {
-      if (!selectedAnimal) return;
-
-      // Save medical record to API
-      await api.post(`/animals/${selectedAnimal.id}/medical-records`, data);
-
-      // Refresh animal data to include the new medical record
-      await fetchAnimals();
-
-      handleCloseMedicalDialog();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          err.message ||
-          "Failed to save medical record"
-      );
-    }
-  };
-
-  const handleClientChange = (_: any, client: Client | null) => {
-    setSelectedClient(client);
   };
 
   const columns: GridColDef[] = [
@@ -343,11 +292,126 @@ export default function AnimalsPage() {
             >
               <DeleteIcon />
             </IconButton>
+          </Tooltip>{" "}
+          <Tooltip title="View Intake Form">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleViewIntakeForm(params.row);
+              }}
+              color="default"
+            >
+              <PdfIcon />
+            </IconButton>
           </Tooltip>
         </Box>
       ),
     },
   ];
+  const handleRowClick = (params: GridRowParams<Animal>) => {
+    setSelectedAnimal(params.row);
+    setOpenDetailDialog(true);
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+    setSelectedAnimal(null);
+  };
+  const handleClientChange = (_: unknown, newValue: Client | null) => {
+    setSelectedClient(newValue);
+  };
+
+  const handleSaveAnimal = async (animalData: Partial<Animal>) => {
+    try {
+      if (selectedAnimal) {
+        // Update existing animal
+        const response = await api.put(
+          `/animals/${selectedAnimal.id}`,
+          animalData
+        );
+        const updatedAnimal = response.data || response;
+        setAnimals((prevAnimals: Animal[]) =>
+          prevAnimals.map((animal: Animal) =>
+            animal.id === updatedAnimal._id
+              ? {
+                  ...updatedAnimal,
+                  id: updatedAnimal._id,
+                  client: updatedAnimal.client?._id,
+                  clientName: updatedAnimal.client
+                    ? `${updatedAnimal.client.firstName} ${updatedAnimal.client.lastName}`
+                    : "No Client",
+                }
+              : animal
+          )
+        );
+      } else {
+        // Create new animal
+        const response = await api.post("/animals", animalData);
+        const newAnimal = response.data || response;
+        setAnimals((prevAnimals: Animal[]) => [
+          ...prevAnimals,
+          {
+            ...newAnimal,
+            id: newAnimal._id,
+            client: newAnimal.client?._id,
+            clientName: newAnimal.client
+              ? `${newAnimal.client.firstName} ${newAnimal.client.lastName}`
+              : "No Client",
+          },
+        ]);
+      }
+      handleCloseAnimalDialog();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || err.message || "Failed to save animal"
+      );
+    }
+  };
+
+  const handleSaveMedicalRecord = async (
+    recordData: Partial<MedicalRecord>
+  ) => {
+    try {
+      if (!selectedAnimal) return;
+
+      const response = await api.post(
+        `/animals/${selectedAnimal.id}/medical-records`,
+        recordData
+      );
+      const updatedAnimal = response.data || response;
+
+      setAnimals((prevAnimals: Animal[]) =>
+        prevAnimals.map((animal: Animal) =>
+          animal.id === updatedAnimal._id
+            ? {
+                ...updatedAnimal,
+                id: updatedAnimal._id,
+                client: updatedAnimal.client?._id,
+                clientName: updatedAnimal.client
+                  ? `${updatedAnimal.client.firstName} ${updatedAnimal.client.lastName}`
+                  : "No Client",
+              }
+            : animal
+        )
+      );
+
+      handleCloseMedicalDialog();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Failed to save medical record"
+      );
+    }
+  };
+  const handleClosePdfDialog = () => {
+    setOpenPdfDialog(false);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+  };
 
   return (
     <Box sx={{ height: "100%", width: "100%" }}>
@@ -361,7 +425,6 @@ export default function AnimalsPage() {
           {error}
         </Alert>
       </Snackbar>
-
       <Box
         sx={{
           display: "flex",
@@ -395,7 +458,6 @@ export default function AnimalsPage() {
           Add Animal
         </Button>
       </Box>
-
       <DataGrid
         rows={filteredAnimals}
         columns={columns}
@@ -416,7 +478,6 @@ export default function AnimalsPage() {
           },
         }}
       />
-
       <Dialog
         open={openAnimalDialog}
         onClose={handleCloseAnimalDialog}
@@ -432,7 +493,6 @@ export default function AnimalsPage() {
           onCancel={handleCloseAnimalDialog}
         />
       </Dialog>
-
       <Dialog
         open={openMedicalDialog}
         onClose={handleCloseMedicalDialog}
@@ -447,7 +507,6 @@ export default function AnimalsPage() {
           onCancel={handleCloseMedicalDialog}
         />
       </Dialog>
-
       {/* Animal Detail Dialog */}
       <Dialog
         open={openDetailDialog}
@@ -629,6 +688,7 @@ export default function AnimalsPage() {
             </Grid>
           )}
 
+          {/* Action buttons */}
           <Box
             sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}
           >
@@ -653,6 +713,16 @@ export default function AnimalsPage() {
               startIcon={<MedicalIcon />}
             >
               Add Medical Record
+            </Button>{" "}
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PdfIcon />}
+              onClick={() =>
+                selectedAnimal && handleViewIntakeForm(selectedAnimal)
+              }
+            >
+              View Intake Form
             </Button>
             <Button
               variant="contained"
@@ -662,6 +732,49 @@ export default function AnimalsPage() {
               Close
             </Button>
           </Box>
+        </Box>
+      </Dialog>{" "}
+      {/* PDF Viewer Dialog */}
+      <Dialog
+        open={openPdfDialog}
+        onClose={handleClosePdfDialog}
+        maxWidth="xl"
+        fullWidth
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography variant="h6">Clinic Intake Form</Typography>
+          <IconButton onClick={handleClosePdfDialog}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Box sx={{ height: "80vh", p: 2 }}>
+          {pdfLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : pdfUrl ? (
+            <iframe
+              src={pdfUrl}
+              style={{ width: "100%", height: "100%", border: "none" }}
+              title="Clinic Intake Form"
+            />
+          ) : (
+            <Typography color="error">Failed to load PDF</Typography>
+          )}
         </Box>
       </Dialog>
     </Box>

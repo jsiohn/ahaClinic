@@ -13,6 +13,7 @@ import AnimalsPage from "../../pages/Animals/AnimalsPage";
 import InvoicesPage from "../../pages/Invoices/InvoicesPage";
 import OrganizationsPage from "../../pages/Organizations/OrganizationsPage";
 import BlacklistPage from "../../pages/Blacklist/BlacklistPage";
+import DocumentsPage from "../../pages/Documents/DocumentsPage";
 import Landing from "../../pages/Auth/Landing";
 import AuthModal from "./AuthModal";
 import "./App.css";
@@ -91,8 +92,10 @@ function App() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="animals" element={<AnimalsPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
             <Route path="organizations" element={<OrganizationsPage />} />
             <Route path="blacklist" element={<BlacklistPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
           </Route>
         </Routes>
 

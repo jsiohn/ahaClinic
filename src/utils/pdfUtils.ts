@@ -1,0 +1,669 @@
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import { Invoice } from "../types/models";
+
+/**
+ * Generates a PDF from invoice data using pdf-lib
+ */
+interface PopulatedInvoice extends Invoice {
+  client?: {
+    firstName: string;
+    lastName: string;
+  };
+  animal?: {
+    name: string;
+    species: string;
+  };
+}
+
+export const generateInvoicePdf = async (
+  invoice: Invoice | PopulatedInvoice
+): Promise<Uint8Array> => {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+  const { width, height } = page.getSize();
+
+  // Add standard font
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Company info
+  page.drawText("AHA Clinic", {
+    x: 50,
+    y: height - 50,
+    size: 24,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Veterinary Services", {
+    x: 50,
+    y: height - 80,
+    size: 12,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+
+  // Draw a line separator
+  page.drawLine({
+    start: { x: 50, y: height - 100 },
+    end: { x: width - 50, y: height - 100 },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+
+  // Invoice details
+  page.drawText(`INVOICE #${invoice.invoiceNumber}`, {
+    x: 50,
+    y: height - 140,
+    size: 16,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  const invoiceDate = new Date(invoice.date).toLocaleDateString();
+  const dueDate = new Date(invoice.dueDate).toLocaleDateString();
+
+  page.drawText(`Date: ${invoiceDate}`, {
+    x: 50,
+    y: height - 170,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+
+  page.drawText(`Due Date: ${dueDate}`, {
+    x: 50,
+    y: height - 190,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+
+  page.drawText(`Status: ${invoice.status}`, {
+    x: 50,
+    y: height - 210,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+
+  // Client information
+  const clientName =
+    "client" in invoice && invoice.client
+      ? `${invoice.client.firstName} ${invoice.client.lastName}`
+      : ""; // You might want to fetch client details if needed
+
+  // Animal information
+  const animalName =
+    "animal" in invoice && invoice.animal ? invoice.animal.name : ""; // You might want to fetch animal details if needed
+
+  const animalSpecies =
+    "animal" in invoice && invoice.animal ? invoice.animal.species : "";
+
+  // Client and Animal details
+  let yPos = height - 250;
+  page.drawText("Client Information:", { size: 12, x: 50, y: yPos });
+  yPos -= 20;
+  page.drawText(clientName || "Client information not available", {
+    size: 12,
+    x: 70,
+    y: yPos,
+  });
+
+  yPos -= 40;
+  page.drawText("Animal Information:", { size: 12, x: 50, y: yPos });
+  yPos -= 20;
+  if (animalName || animalSpecies) {
+    page.drawText(
+      `${animalName}${animalSpecies ? ` (${animalSpecies})` : ""}`,
+      { size: 12, x: 70, y: yPos }
+    );
+  } else {
+    page.drawText("Animal information not available", {
+      size: 12,
+      x: 70,
+      y: yPos,
+    });
+  }
+
+  // Draw items header
+  const itemsY = height - 350;
+  page.drawRectangle({
+    x: 50,
+    y: itemsY - 20,
+    width: width - 100,
+    height: 20,
+    color: rgb(0.95, 0.95, 0.95),
+  });
+
+  page.drawText("Item", {
+    x: 60,
+    y: itemsY - 5,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Description", {
+    x: 180,
+    y: itemsY - 5,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Qty", {
+    x: 350,
+    y: itemsY - 5,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Unit Price", {
+    x: 400,
+    y: itemsY - 5,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Total", {
+    x: 500,
+    y: itemsY - 5,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  // Draw items
+  let currentY = itemsY - 40;
+  const itemHeight = 40;
+
+  if (invoice.items && invoice.items.length > 0) {
+    invoice.items.forEach((item) => {
+      // Draw item details
+      page.drawText(item.procedure || "", {
+        x: 60,
+        y: currentY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      // Description with word wrap
+      const description = item.description || "";
+      const descriptionLines = wrapText(description, 25);
+      descriptionLines.forEach((line, i) => {
+        page.drawText(line, {
+          x: 180,
+          y: currentY - i * 12,
+          size: 9,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+      });
+
+      page.drawText(item.quantity?.toString() || "1", {
+        x: 350,
+        y: currentY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      page.drawText(`$${item.unitPrice?.toFixed(2)}`, {
+        x: 400,
+        y: currentY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      page.drawText(`$${(item.quantity * item.unitPrice).toFixed(2)}`, {
+        x: 500,
+        y: currentY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      // Adjust y position for next item
+      currentY -= itemHeight;
+
+      // Add a page if we're running out of space
+      if (currentY < 100) {
+        page.drawText("Continued on next page...", {
+          x: width / 2 - 60,
+          y: 50,
+          size: 10,
+          font: boldFont,
+          color: rgb(0.3, 0.3, 0.3),
+        }); // Add a new page
+        const newPage = pdfDoc.addPage([595.28, 841.89]);
+        currentY = height - 50;
+
+        // Add header to new page
+        newPage.drawText(`INVOICE #${invoice.invoiceNumber} (continued)`, {
+          x: 50,
+          y: height - 50,
+          size: 16,
+          font: boldFont,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+      }
+    });
+  } else {
+    page.drawText("No items in this invoice", {
+      x: 60,
+      y: currentY,
+      size: 10,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    currentY -= 20;
+  }
+
+  // Draw totals
+  const totalsY = Math.max(100, currentY - 60);
+
+  page.drawLine({
+    start: { x: 350, y: totalsY + 20 },
+    end: { x: width - 50, y: totalsY + 20 },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+
+  page.drawText("Subtotal:", {
+    x: 400,
+    y: totalsY,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText(`$${invoice.subtotal?.toFixed(2)}`, {
+    x: 500,
+    y: totalsY,
+    size: 10,
+    font,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText("Tax:", {
+    x: 400,
+    y: totalsY - 20,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText(`$${invoice.tax?.toFixed(2)}`, {
+    x: 500,
+    y: totalsY - 20,
+    size: 10,
+    font,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawLine({
+    start: { x: 350, y: totalsY - 30 },
+    end: { x: width - 50, y: totalsY - 30 },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+
+  page.drawText("Total:", {
+    x: 400,
+    y: totalsY - 50,
+    size: 12,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  page.drawText(`$${invoice.total?.toFixed(2)}`, {
+    x: 500,
+    y: totalsY - 50,
+    size: 12,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  // Footer
+  if (invoice.status === "paid") {
+    yPos -= 40;
+    page.drawText("PAID", { size: 24, x: 250, y: yPos, color: rgb(0, 0.5, 0) });
+    if (invoice.paymentDate) {
+      yPos -= 20;
+      page.drawText(
+        `Payment Date: ${invoice.paymentDate.toLocaleDateString()}`,
+        { size: 12, x: 230, y: yPos }
+      );
+    }
+  }
+
+  // Add footer
+  page.drawText("Thank you for choosing AHA Clinic for your pet care needs!", {
+    x: width / 2 - 150,
+    y: 50,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+
+  // Serialize the PDF document to bytes
+  const pdfBytes = await pdfDoc.save();
+  return pdfBytes;
+};
+
+/**
+ * Helper function to wrap text
+ */
+function wrapText(text: string, maxChars: number): string[] {
+  const lines: string[] = [];
+  let currentLine = "";
+
+  const words = text.split(" ");
+  for (const word of words) {
+    if (currentLine.length + word.length + 1 <= maxChars) {
+      currentLine += (currentLine ? " " : "") + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.length ? lines : [""];
+}
+
+/**
+ * Generates a PDF from an HTML element using html2canvas and jsPDF
+ */
+export const generatePdfFromElement = async (
+  elementId: string,
+  fileName: string
+): Promise<void> => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    throw new Error(`Element with ID ${elementId} not found`);
+  }
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const imgWidth = 210; // A4 width in mm
+  const pageHeight = 295; // A4 height in mm
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  // Add new pages if the content exceeds a single page
+  while (heightLeft >= 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
+  pdf.save(fileName);
+};
+
+/**
+ * Loads and modifies an existing PDF file
+ */
+export const editPdfFile = async (file: File): Promise<Uint8Array> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+  // Register fontkit to support custom fonts
+  pdfDoc.registerFontkit(fontkit);
+
+  // Example: Add a "MODIFIED" watermark to the first page
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const { width, height } = firstPage.getSize();
+
+  const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  firstPage.drawText("MODIFIED", {
+    x: width / 2 - 50,
+    y: height / 2,
+    size: 50,
+    font,
+    color: rgb(0.95, 0.1, 0.1),
+    opacity: 0.3,
+  });
+
+  // Return the modified PDF
+  return await pdfDoc.save();
+};
+
+/**
+ * Extract all form fields from a PDF document with their types and values
+ */
+export const extractFormFields = async (
+  bytes: Uint8Array
+): Promise<
+  Record<string, { type: string; value: string | boolean | string[] }>
+> => {
+  const pdfDoc = await PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+  const fields = form.getFields();
+
+  const result: Record<
+    string,
+    { type: string; value: string | boolean | string[] }
+  > = {};
+
+  for (const field of fields) {
+    const fieldName = field.getName();
+    let fieldType = "unknown";
+    let fieldValue: string | boolean | string[] = "";
+
+    // Check field type and extract value
+    try {
+      // Check if field is a text field
+      try {
+        const textField = form.getTextField(fieldName);
+        fieldType = "text";
+        fieldValue = textField.getText() || "";
+        result[fieldName] = { type: fieldType, value: fieldValue };
+        continue;
+      } catch (e) {
+        // Not a text field, continue checking other types
+      }
+
+      // Check if field is a checkbox
+      try {
+        const checkBox = form.getCheckBox(fieldName);
+        fieldType = "checkbox";
+        fieldValue = checkBox.isChecked();
+        result[fieldName] = { type: fieldType, value: fieldValue };
+        continue;
+      } catch (e) {
+        // Not a checkbox, continue checking other types
+      }
+
+      // Check if field is a radio group
+      try {
+        const radioGroup = form.getRadioGroup(fieldName);
+        fieldType = "radio";
+        fieldValue = radioGroup.getSelected() || "";
+        result[fieldName] = { type: fieldType, value: fieldValue };
+        continue;
+      } catch (e) {
+        // Not a radio group, continue checking other types
+      }
+
+      // Check if field is a dropdown
+      try {
+        const dropdown = form.getDropdown(fieldName);
+        fieldType = "dropdown";
+        fieldValue = dropdown.getSelected();
+        result[fieldName] = { type: fieldType, value: fieldValue };
+        continue;
+      } catch (e) {
+        // Not a dropdown, continue checking other types
+      }
+
+      // If we couldn't determine the type, add as unknown
+      result[fieldName] = { type: "unknown", value: "" };
+    } catch (error) {
+      console.warn(`Error extracting field ${fieldName}:`, error);
+      result[fieldName] = { type: "error", value: "" };
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Fill a PDF form with provided data and return the updated PDF bytes
+ */
+export const fillFormFields = async (
+  bytes: Uint8Array,
+  fieldData: Record<string, string | boolean | string[]>
+): Promise<Uint8Array> => {
+  const pdfDoc = await PDFDocument.load(bytes);
+  const form = pdfDoc.getForm();
+
+  // Fill in each field with provided data
+  for (const [fieldName, value] of Object.entries(fieldData)) {
+    try {
+      // Determine field type and set value accordingly
+      try {
+        const textField = form.getTextField(fieldName);
+        if (typeof value === "string") {
+          textField.setText(value);
+        }
+        continue;
+      } catch (e) {
+        // Not a text field, try another type
+      }
+
+      try {
+        const checkBox = form.getCheckBox(fieldName);
+        if (typeof value === "boolean") {
+          if (value) {
+            checkBox.check();
+          } else {
+            checkBox.uncheck();
+          }
+        }
+        continue;
+      } catch (e) {
+        // Not a checkbox, try another type
+      }
+
+      try {
+        const radioGroup = form.getRadioGroup(fieldName);
+        if (typeof value === "string") {
+          radioGroup.select(value);
+        }
+        continue;
+      } catch (e) {
+        // Not a radio group, try another type
+      }
+
+      try {
+        const dropdown = form.getDropdown(fieldName);
+        if (Array.isArray(value)) {
+          dropdown.select(value);
+        } else if (typeof value === "string") {
+          dropdown.select([value]);
+        }
+        continue;
+      } catch (e) {
+        // Not a dropdown, no more types to try
+      }
+    } catch (error) {
+      console.warn(`Field ${fieldName} could not be filled:`, error);
+    }
+  }
+
+  // Return the updated PDF
+  return await pdfDoc.save();
+};
+
+/**
+ * Make a PDF document editable by flattening existing form fields
+ * and preparing it for annotation
+ */
+export const makeEditable = async (bytes: Uint8Array): Promise<Uint8Array> => {
+  try {
+    const pdfDoc = await PDFDocument.load(bytes);
+
+    // Check if the document has form fields
+    const form = pdfDoc.getForm();
+    const fields = form.getFields();
+
+    // If the document has form fields, flatten them to make them part of the content
+    if (fields.length > 0) {
+      form.flatten();
+    }
+
+    // Save the editable version
+    return await pdfDoc.save();
+  } catch (error) {
+    console.error("Error making PDF editable:", error);
+    return bytes; // Return original if there was an error
+  }
+};
+
+/**
+ * Convert PDF bytes to a Blob object
+ */
+export const pdfBytesToBlob = (bytes: Uint8Array): Blob => {
+  return new Blob([bytes], { type: "application/pdf" });
+};
+
+/**
+ * Create a download URL for a PDF
+ */
+export const createPdfUrl = (bytes: Uint8Array): string => {
+  const blob = pdfBytesToBlob(bytes);
+  return URL.createObjectURL(blob);
+};
+
+/**
+ * Print a PDF using a hidden iframe
+ */
+export const printPdf = (pdfUrl: string): void => {
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = pdfUrl;
+
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.print();
+    } catch (error) {
+      console.error("Error printing PDF:", error);
+    }
+
+    // Remove the iframe after printing (or after a delay)
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 1000);
+  };
+};

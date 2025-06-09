@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, ResponseType } from "axios";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -8,7 +8,18 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-});
+}) as AxiosInstance & {
+  uploadFile: (
+    url: string,
+    formData: FormData,
+    config?: AxiosRequestConfig
+  ) => Promise<any>;
+  downloadFile: (
+    url: string,
+    responseType?: ResponseType,
+    config?: AxiosRequestConfig
+  ) => Promise<any>;
+};
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
@@ -98,5 +109,63 @@ api.interceptors.response.use(
     throw error;
   }
 );
+
+// Custom API method to handle file uploads
+const uploadFile = async (
+  url: string,
+  formData: FormData,
+  config: AxiosRequestConfig = {}
+) => {
+  try {
+    const token = localStorage.getItem("token");
+    const requestConfig: AxiosRequestConfig = {
+      ...config,
+      headers: {
+        ...(config.headers || {}),
+        "Content-Type": "multipart/form-data",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    };
+
+    const response = await axios.post(
+      `${API_URL}${url}`,
+      formData,
+      requestConfig
+    );
+    return response.data;
+  } catch (error) {
+    console.error("File upload error:", error);
+    throw error;
+  }
+};
+
+// Custom API method to download files
+const downloadFile = async (
+  url: string,
+  responseType: ResponseType = "arraybuffer",
+  config: AxiosRequestConfig = {}
+) => {
+  try {
+    const token = localStorage.getItem("token");
+    const requestConfig: AxiosRequestConfig = {
+      ...config,
+      responseType,
+      headers: {
+        ...(config.headers || {}),
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    };
+
+    const response = await axios.get(`${API_URL}${url}`, requestConfig);
+    return response.data;
+  } catch (error) {
+    console.error("File download error:", error);
+    throw error;
+  }
+};
+
+// Add the methods to the api object
+api.uploadFile = uploadFile;
+api.downloadFile = downloadFile;
 
 export default api;
