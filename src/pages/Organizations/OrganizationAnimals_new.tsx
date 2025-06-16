@@ -480,15 +480,6 @@ export default function OrganizationAnimals({
               <MedicalIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={() => handleDeleteClick(params.row)}
-              color="error"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="PDF Forms">
             <IconButton
               size="small"
@@ -497,6 +488,15 @@ export default function OrganizationAnimals({
             >
               <PdfIcon fontSize="small" />
               <ArrowDropDownIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteClick(params.row)}
+              color="error"
+            >
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>

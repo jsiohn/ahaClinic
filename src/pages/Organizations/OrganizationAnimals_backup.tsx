@@ -49,18 +49,14 @@ export default function OrganizationAnimals({
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [openAnimalDialog, setOpenAnimalDialog] = useState(false);
-  const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
+  const [openAnimalDialog, setOpenAnimalDialog] = useState(false);  const [openMedicalDialog, setOpenMedicalDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
-
-  // PDF-related state
   const [openPdfDialog, setOpenPdfDialog] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfMenuAnchor, setPdfMenuAnchor] = useState<null | HTMLElement>(null);
-  const [currentPdfFormTitle, setCurrentPdfFormTitle] =
-    useState<string>("PDF Form");
+  const [currentPdfFormTitle, setCurrentPdfFormTitle] = useState<string>("PDF Form");
 
   // Define available PDF forms
   const pdfForms = [
@@ -77,9 +73,7 @@ export default function OrganizationAnimals({
       const response = await api.get(
         `/animals?organization=${organization.id}`
       );
-      const data = response.data || response;
-
-      const transformedData = Array.isArray(data)
+      const data = response.data || response;        const transformedData = Array.isArray(data)
         ? data.map((animal: any) => ({
             id: animal._id,
             name: animal.name,
@@ -92,9 +86,7 @@ export default function OrganizationAnimals({
             organizationName: animal.organization?.name || organization.name,
             medicalHistory: animal.medicalHistory || [],
             microchipNumber: animal.microchipNumber,
-            dateOfBirth: animal.dateOfBirth
-              ? new Date(animal.dateOfBirth)
-              : new Date(),
+            dateOfBirth: animal.dateOfBirth ? new Date(animal.dateOfBirth) : new Date(),
             isSpayedNeutered: animal.isSpayedNeutered,
             notes: animal.notes,
             isActive: animal.isActive,
@@ -134,9 +126,10 @@ export default function OrganizationAnimals({
     if (window.confirm(`Are you sure you want to delete ${animal.name}?`)) {
       try {
         await api.delete(`/animals/${animal.id}`);
-        setAnimals(animals.filter((a) => a.id !== animal.id));
+        setAnimals((prevAnimals) =>
+          prevAnimals.filter((a) => a.id !== animal.id)
+        );
       } catch (err: any) {
-        console.error("Error deleting animal:", err);
         setError(
           err?.response?.data?.message ||
             err.message ||
@@ -146,14 +139,14 @@ export default function OrganizationAnimals({
     }
   };
 
-  const handleAddMedicalRecord = (animal: Animal) => {
-    setSelectedAnimal(animal);
-    setOpenMedicalDialog(true);
-  };
-
   const handleCloseAnimalDialog = () => {
     setOpenAnimalDialog(false);
     setSelectedAnimal(null);
+  };
+
+  const handleAddMedicalRecord = (animal: Animal) => {
+    setSelectedAnimal(animal);
+    setOpenMedicalDialog(true);
   };
 
   const handleCloseMedicalDialog = () => {
@@ -162,7 +155,7 @@ export default function OrganizationAnimals({
   };
 
   const handleRowClick = (params: any) => {
-    // Check if the click target is within an action button to prevent dialog from opening
+    // Check if the click target is a button or icon
     const isActionButton = (params.event?.target as HTMLElement)?.closest(
       ".MuiIconButton-root"
     );
@@ -186,44 +179,18 @@ export default function OrganizationAnimals({
     try {
       if (!selectedAnimal) return;
 
-      const response = await api.post(
-        `/animals/${selectedAnimal.id}/medical-records`,
-        data
-      );
-      const updatedAnimal = response.data || response;
+      // Save medical record to API
+      await api.post(`/animals/${selectedAnimal.id}/medical-records`, data);
 
-      setAnimals((prevAnimals) =>
-        prevAnimals.map((animal) =>
-          animal.id === updatedAnimal._id
-            ? {
-                ...updatedAnimal,
-                id: updatedAnimal._id,
-                organization:
-                  updatedAnimal.organization?._id || organization.id,
-                organizationName:
-                  updatedAnimal.organization?.name || organization.name,
-                medicalHistory: updatedAnimal.medicalHistory || [],
-                microchipNumber: updatedAnimal.microchipNumber,
-                dateOfBirth: updatedAnimal.dateOfBirth
-                  ? new Date(updatedAnimal.dateOfBirth)
-                  : new Date(),
-                isSpayedNeutered: updatedAnimal.isSpayedNeutered,
-                notes: updatedAnimal.notes,
-                isActive: updatedAnimal.isActive,
-                createdAt: new Date(updatedAnimal.createdAt),
-                updatedAt: new Date(updatedAnimal.updatedAt),
-              }
-            : animal
-        )
-      );
+      // Refresh animal data
+      await fetchOrganizationAnimals();
 
       handleCloseMedicalDialog();
     } catch (err: any) {
-      console.error("Error adding medical record:", err);
       setError(
         err?.response?.data?.message ||
           err.message ||
-          "Failed to add medical record"
+          "Failed to save medical record"
       );
     }
   };
@@ -255,9 +222,7 @@ export default function OrganizationAnimals({
             responseData.organization?.name || organization.name,
           medicalHistory: responseData.medicalHistory || [],
           microchipNumber: responseData.microchipNumber,
-          dateOfBirth: responseData.dateOfBirth
-            ? new Date(responseData.dateOfBirth)
-            : new Date(),
+          dateOfBirth: responseData.dateOfBirth ? new Date(responseData.dateOfBirth) : new Date(),
           isSpayedNeutered: responseData.isSpayedNeutered,
           notes: responseData.notes,
           isActive: responseData.isActive,
@@ -273,9 +238,7 @@ export default function OrganizationAnimals({
       } else {
         // Create new animal
         const response = await api.post("/animals", animalData);
-        const responseData = response.data || response;
-
-        // Transform the received data
+        const responseData = response.data || response;        // Transform the received data
         const newAnimal: Animal = {
           id: responseData._id,
           name: responseData.name,
@@ -292,9 +255,7 @@ export default function OrganizationAnimals({
             responseData.organization?.name || organization.name,
           medicalHistory: responseData.medicalHistory || [],
           microchipNumber: responseData.microchipNumber,
-          dateOfBirth: responseData.dateOfBirth
-            ? new Date(responseData.dateOfBirth)
-            : new Date(),
+          dateOfBirth: responseData.dateOfBirth ? new Date(responseData.dateOfBirth) : new Date(),
           isSpayedNeutered: responseData.isSpayedNeutered,
           notes: responseData.notes,
           isActive: responseData.isActive,
@@ -314,11 +275,7 @@ export default function OrganizationAnimals({
   };
 
   // PDF handlers
-  const handleViewPdfForm = async (
-    animal: Animal,
-    formFile: string,
-    formTitle: string
-  ) => {
+  const handleViewPdfForm = async (animal: Animal, formFile: string, formTitle: string) => {
     try {
       setPdfLoading(true);
       setCurrentPdfFormTitle(formTitle);
@@ -345,19 +302,23 @@ export default function OrganizationAnimals({
         "Don't Know": !animal.gender,
         "Description/Coloring": animal.breed || "",
         "Microchip Number": animal.microchipNumber || "N/A",
-        "Date of Birth": animal.dateOfBirth
+        "Date of Birth": animal.dateOfBirth 
           ? new Date(animal.dateOfBirth).toLocaleDateString()
           : "",
         Date: new Date().toLocaleDateString(),
       };
 
-      // Add organization contact information (address is a string, not object)
+      // Add organization contact information
       Object.assign(formData, {
         "Client Name": organization.contactPerson || "",
         "Client Phone": organization.phone || "",
         "Client Email": organization.email || "",
-        "Client Address": organization.address || "",
-        "Client Address 2": "",
+        "Client Address": organization.address
+          ? `${organization.address.street}, ${organization.address.city}`
+          : "",
+        "Client Address 2": organization.address
+          ? `${organization.address.state} ${organization.address.zipCode}`
+          : "",
         County: "",
       });
 
@@ -366,18 +327,98 @@ export default function OrganizationAnimals({
       setPdfUrl(url);
       setOpenPdfDialog(true);
     } catch (error: any) {
-      const errorMessage =
-        error?.message || `Failed to generate ${formTitle.toLowerCase()}`;
+      const errorMessage = error?.message || `Failed to generate ${formTitle.toLowerCase()}`;
       setError(errorMessage);
     } finally {
       setPdfLoading(false);
     }
   };
 
-  const handlePdfMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    animal: Animal
-  ) => {
+  const handlePdfMenuClick = (event: React.MouseEvent<HTMLElement>, animal: Animal) => {
+    event.stopPropagation();
+    setPdfMenuAnchor(event.currentTarget);
+    setSelectedAnimal(animal);
+  };
+
+  const handlePdfMenuClose = () => {
+    setPdfMenuAnchor(null);
+  };
+
+  const handlePdfFormSelect = (formFile: string, formTitle: string) => {
+    if (selectedAnimal) {
+      handleViewPdfForm(selectedAnimal, formFile, formTitle);
+    }
+    handlePdfMenuClose();
+  };
+
+  const handleClosePdfDialog = () => {
+    setOpenPdfDialog(false);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);    }
+  };
+
+  // PDF handlers
+  const handleViewPdfForm = async (animal: Animal, formFile: string, formTitle: string) => {
+    try {
+      setPdfLoading(true);
+      setCurrentPdfFormTitle(formTitle);
+
+      // Fetch the blank form
+      const formResponse = await fetch(`/src/assets/${formFile}`);
+      const formArrayBuffer = await formResponse.arrayBuffer();
+      const formBytes = new Uint8Array(formArrayBuffer);
+
+      // Prepare basic form data with animal information
+      const formData: Record<string, any> = {
+        "Animal Name": animal.name,
+        "Animal Age": animal.age?.toString() || "",
+        Weight: animal.weight?.toString() || "",
+        Dog: animal.species === "DOG",
+        "Domes. Cat":
+          animal.species === "CAT" &&
+          !(animal.breed || "").toLowerCase().includes("feral"),
+        "Feral Cat":
+          animal.species === "CAT" &&
+          (animal.breed || "").toLowerCase().includes("feral"),
+        Male: animal.gender?.toUpperCase() === "MALE",
+        Female: animal.gender?.toUpperCase() === "FEMALE",
+        "Don't Know": !animal.gender,
+        "Description/Coloring": animal.breed || "",
+        "Microchip Number": animal.microchipNumber || "N/A",
+        "Date of Birth": animal.dateOfBirth 
+          ? new Date(animal.dateOfBirth).toLocaleDateString()
+          : "",
+        Date: new Date().toLocaleDateString(),
+      };
+
+      // Add organization contact information
+      Object.assign(formData, {
+        "Client Name": organization.contactPerson || "",
+        "Client Phone": organization.phone || "",
+        "Client Email": organization.email || "",
+        "Client Address": organization.address
+          ? `${organization.address.street}, ${organization.address.city}`
+          : "",
+        "Client Address 2": organization.address
+          ? `${organization.address.state} ${organization.address.zipCode}`
+          : "",
+        County: "",
+      });
+
+      const filledPdfBytes = await pdfUtils.fillFormFields(formBytes, formData);
+      const url = pdfUtils.createPdfUrl(filledPdfBytes);
+      setPdfUrl(url);
+      setOpenPdfDialog(true);
+    } catch (error: any) {
+      const errorMessage = error?.message || `Failed to generate ${formTitle.toLowerCase()}`;
+      setError(errorMessage);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handlePdfMenuClick = (event: React.MouseEvent<HTMLElement>, animal: Animal) => {
     event.stopPropagation();
     setPdfMenuAnchor(event.currentTarget);
     setSelectedAnimal(animal);
@@ -460,7 +501,7 @@ export default function OrganizationAnimals({
     {
       field: "actions",
       headerName: "Actions",
-      width: 220,
+      width: 180,
       renderCell: (params: GridRenderCellParams<any, Animal>) => (
         <Box>
           <Tooltip title="Edit">
@@ -488,103 +529,7 @@ export default function OrganizationAnimals({
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
-          </Tooltip>
-          <Tooltip title="PDF Forms">
-            <IconButton
-              size="small"
-              onClick={(e) => handlePdfMenuClick(e, params.row)}
-              color="default"
-            >
-              <PdfIcon fontSize="small" />
-              <ArrowDropDownIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
-    },
-  ];
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>{organization.name} - Animals</DialogTitle>
-      <DialogContent>
-        <Box sx={{ mb: 2, mt: 1, display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-          >
-            Add Animal
-          </Button>
-        </Box>
-
-        <DataGrid
-          rows={animals}
-          columns={columns}
-          autoHeight
-          pageSizeOptions={[5, 10, 25]}
-          initialState={{
-            pagination: {
-              paginationModel: { page: 0, pageSize: 10 },
-            },
-            sorting: {
-              sortModel: [{ field: "name", sort: "asc" }],
-            },
-          }}
-          loading={loading}
-          disableRowSelectionOnClick={false}
-          onRowClick={handleRowClick}
-          sx={{
-            "& .MuiDataGrid-row": {
-              cursor: "pointer",
-            },
-          }}
-        />
-
-        {error && (
-          <Typography color="error" sx={{ mt: 2 }}>
-            {error}
-          </Typography>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-
-      {/* Animal Form Dialog */}
-      <Dialog
-        open={openAnimalDialog}
-        onClose={handleCloseAnimalDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <OrganizationAnimalForm
-          animal={selectedAnimal}
-          organization={organization}
-          onSave={handleSaveAnimal}
-          onCancel={handleCloseAnimalDialog}
-        />
-      </Dialog>
-
-      {/* Medical Record Dialog */}
-      <Dialog
-        open={openMedicalDialog}
-        onClose={handleCloseMedicalDialog}
-        maxWidth="md"
-        fullWidth
-        disableEnforceFocus
-        aria-labelledby="medical-dialog-title"
-      >
-        <MedicalRecordForm
-          animal={selectedAnimal}
-          onSave={handleSaveMedicalRecord}
-          onCancel={handleCloseMedicalDialog}
-        />
-      </Dialog>
-
-      {/* Animal Detail Dialog */}
-      <Dialog
-        open={openDetailDialog}
+         
         onClose={handleCloseDetailDialog}
         maxWidth="sm"
         fullWidth
@@ -629,18 +574,6 @@ export default function OrganizationAnimals({
                       ? `${selectedAnimal.weight} lbs`
                       : "-"}
                   </Typography>
-                  <Typography variant="body2">
-                    <strong>Microchip:</strong>{" "}
-                    {selectedAnimal?.microchipNumber || "Not microchipped"}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Date of Birth:</strong>{" "}
-                    {selectedAnimal?.dateOfBirth
-                      ? new Date(
-                          selectedAnimal.dateOfBirth
-                        ).toLocaleDateString()
-                      : "Unknown"}
-                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -665,7 +598,7 @@ export default function OrganizationAnimals({
               </Card>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2 }} />{" "}
           <Typography variant="subtitle1">Medical History</Typography>
           {selectedAnimal &&
           selectedAnimal.medicalHistory &&
@@ -682,6 +615,7 @@ export default function OrganizationAnimals({
                       borderRadius: 1,
                     }}
                   >
+                    {" "}
                     <Typography variant="body2">
                       <strong>Date:</strong>{" "}
                       {new Date(record.date).toLocaleDateString()}
@@ -709,66 +643,6 @@ export default function OrganizationAnimals({
           <Button onClick={handleCloseDetailDialog}>Close</Button>
         </DialogActions>
       </Dialog>
-
-      {/* PDF Viewer Dialog */}
-      <Dialog
-        open={openPdfDialog}
-        onClose={handleClosePdfDialog}
-        maxWidth="xl"
-        fullWidth
-      >
-        <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Typography variant="h6">{currentPdfFormTitle}</Typography>
-          <IconButton onClick={handleClosePdfDialog}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <Box sx={{ height: "80vh", p: 2 }}>
-          {pdfLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          ) : pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              style={{ width: "100%", height: "100%", border: "none" }}
-              title={currentPdfFormTitle}
-            />
-          ) : (
-            <Typography color="error">Failed to load PDF</Typography>
-          )}
-        </Box>
-      </Dialog>
-
-      {/* PDF Forms Menu */}
-      <Menu
-        anchorEl={pdfMenuAnchor}
-        open={Boolean(pdfMenuAnchor)}
-        onClose={handlePdfMenuClose}
-      >
-        {pdfForms.map((form) => (
-          <MenuItem
-            key={form.file}
-            onClick={() => handlePdfFormSelect(form.file, form.title)}
-          >
-            {form.title}
-          </MenuItem>
-        ))}
-      </Menu>
     </Dialog>
   );
 }

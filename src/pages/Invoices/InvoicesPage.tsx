@@ -39,7 +39,6 @@ import {
   createPdfUrl,
   printPdf,
   editPdfFile,
-  pdfBytesToBlob,
 } from "../../utils/pdfUtils";
 
 // Set the worker source for react-pdf
@@ -90,9 +89,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-
   // PDF-related state
-  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [openPdfDialog, setOpenPdfDialog] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -279,7 +276,7 @@ export default function InvoicesPage() {
 
       // Generate PDF from invoice data
       const bytes = await generateInvoicePdf(invoice);
-      setPdfBytes(bytes);
+      // setPdfBytes(bytes); // Not needed for display
 
       // Create a URL for the PDF
       const url = createPdfUrl(bytes);
@@ -314,7 +311,7 @@ export default function InvoicesPage() {
 
       // Edit the uploaded PDF (e.g., add a watermark)
       const editedPdfBytes = await editPdfFile(file);
-      setPdfBytes(editedPdfBytes);
+      // setPdfBytes(editedPdfBytes); // Not needed for display
 
       // Create a URL for the edited PDF
       const url = createPdfUrl(editedPdfBytes);
@@ -353,7 +350,7 @@ export default function InvoicesPage() {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
-    setPdfBytes(null);
+    // setPdfBytes(null); // Not needed
   };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -718,8 +715,8 @@ export default function InvoicesPage() {
                     <Typography variant="body1" gutterBottom>
                       <strong>Due Date:</strong>{" "}
                       {new Date(selectedInvoice.dueDate).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
+                    </Typography>{" "}
+                    <Typography variant="body1" gutterBottom component="div">
                       <strong>Status:</strong>{" "}
                       <Chip
                         label={selectedInvoice.status}

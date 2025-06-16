@@ -20,6 +20,8 @@ import {
   ListItem,
   ListItemText,
   CircularProgress,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   DataGrid,
@@ -35,6 +37,7 @@ import {
   MedicalServices as MedicalIcon,
   Close as CloseIcon,
   PictureAsPdf as PdfIcon,
+  ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
 import { Animal, MedicalRecord, Client } from "../../types/models";
 import AnimalForm from "./AnimalForm";
@@ -56,6 +59,17 @@ export default function AnimalsPage() {
   const [openPdfDialog, setOpenPdfDialog] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfMenuAnchor, setPdfMenuAnchor] = useState<null | HTMLElement>(null);
+  const [currentPdfFormTitle, setCurrentPdfFormTitle] =
+    useState<string>("PDF Form");
+
+  // Define available PDF forms
+  const pdfForms = [
+    { file: "clinicIntakeForm.pdf", title: "Intake Form" },
+    { file: "clinicDoaReg.pdf", title: "DOA Registration" },
+    { file: "clinicRabiesCert.pdf", title: "Rabies Certificate" },
+    { file: "clinicTakehomeForm.pdf", title: "Take-home Form" },
+  ];
 
   const fetchClients = async () => {
     try {
@@ -149,18 +163,20 @@ export default function AnimalsPage() {
     setOpenMedicalDialog(false);
     setSelectedAnimal(null);
   };
-
-  const handleViewIntakeForm = async (animal: Animal) => {
+  const handleViewPdfForm = async (
+    animal: Animal,
+    formFile: string,
+    formTitle: string
+  ) => {
     try {
       setPdfLoading(true);
+      setCurrentPdfFormTitle(formTitle);
 
-      // Fetch the blank clinic intake form
-      const formResponse = await fetch("/src/assets/clinicIntakeForm.pdf");
+      // Fetch the blank form
+      const formResponse = await fetch(`/src/assets/${formFile}`);
       const formArrayBuffer = await formResponse.arrayBuffer();
-      const formBytes = new Uint8Array(formArrayBuffer);
-
-      // Prepare form data with correct field names
-      const formData = {
+      const formBytes = new Uint8Array(formArrayBuffer); // Prepare basic form data with animal information
+      const formData: Record<string, any> = {
         "Animal Name": animal.name,
         "Animal Age": animal.age?.toString() || "",
         Weight: animal.weight?.toString() || "",
@@ -175,9 +191,14 @@ export default function AnimalsPage() {
         Female: animal.gender?.toUpperCase() === "FEMALE",
         "Don't Know": !animal.gender,
         "Description/Coloring": animal.breed || "",
+        "Microchip Number": animal.microchipNumber || "N/A",
+        "Date of Birth": animal.dateOfBirth
+          ? new Date(animal.dateOfBirth).toLocaleDateString()
+          : "",
         Date: new Date().toLocaleDateString(),
       };
 
+      // Add client information if available
       if (animal.client) {
         const clientResponse = await api.get(`/clients/${animal.client}`);
         const client = clientResponse.data || clientResponse;
@@ -202,11 +223,32 @@ export default function AnimalsPage() {
       setPdfUrl(url);
       setOpenPdfDialog(true);
     } catch (error: any) {
-      const errorMessage = error?.message || "Failed to generate intake form";
+      const errorMessage =
+        error?.message || `Failed to generate ${formTitle.toLowerCase()}`;
       setError(errorMessage);
     } finally {
       setPdfLoading(false);
     }
+  };
+
+  const handlePdfMenuClick = (
+    event: React.MouseEvent<HTMLElement>,
+    animal: Animal
+  ) => {
+    event.stopPropagation();
+    setPdfMenuAnchor(event.currentTarget);
+    setSelectedAnimal(animal);
+  };
+
+  const handlePdfMenuClose = () => {
+    setPdfMenuAnchor(null);
+  };
+
+  const handlePdfFormSelect = (formFile: string, formTitle: string) => {
+    if (selectedAnimal) {
+      handleViewPdfForm(selectedAnimal, formFile, formTitle);
+    }
+    handlePdfMenuClose();
   };
 
   const columns: GridColDef[] = [
@@ -293,16 +335,14 @@ export default function AnimalsPage() {
               <DeleteIcon />
             </IconButton>
           </Tooltip>{" "}
-          <Tooltip title="View Intake Form">
+          <Tooltip title="PDF Forms">
             <IconButton
               size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleViewIntakeForm(params.row);
-              }}
+              onClick={(e) => handlePdfMenuClick(e, params.row)}
               color="default"
             >
               <PdfIcon />
+              <ArrowDropDownIcon />
             </IconButton>
           </Tooltip>
         </Box>
@@ -544,8 +584,8 @@ export default function AnimalsPage() {
                   <CardContent>
                     <Typography variant="body1" gutterBottom>
                       <strong>Name:</strong> {selectedAnimal.name}
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
+                    </Typography>{" "}
+                    <Typography variant="body1" gutterBottom component="div">
                       <strong>Species:</strong>{" "}
                       <Chip
                         icon={<PetsIcon />}
@@ -564,8 +604,8 @@ export default function AnimalsPage() {
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Age:</strong> {selectedAnimal.age || "Unknown"}
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
+                    </Typography>{" "}
+                    <Typography variant="body1" gutterBottom component="div">
                       <strong>Gender:</strong>{" "}
                       <Chip
                         label={
@@ -606,8 +646,8 @@ export default function AnimalsPage() {
                             selectedAnimal.dateOfBirth
                           ).toLocaleDateString()
                         : "Unknown"}
-                    </Typography>
-                    <Typography variant="body1">
+                    </Typography>{" "}
+                    <Typography variant="body1" component="div">
                       <strong>Spayed/Neutered:</strong>{" "}
                       {selectedAnimal.isSpayedNeutered ? (
                         <Chip label="Yes" color="success" size="small" />
@@ -661,6 +701,8 @@ export default function AnimalsPage() {
                                   <Typography
                                     variant="body2"
                                     color="text.secondary"
+                                    component="span"
+                                    display="block"
                                   >
                                     <strong>Veterinarian:</strong>{" "}
                                     {record.veterinarian}
@@ -668,6 +710,8 @@ export default function AnimalsPage() {
                                   <Typography
                                     variant="body2"
                                     color="text.secondary"
+                                    component="span"
+                                    display="block"
                                   >
                                     <strong>Notes:</strong> {record.notes}
                                   </Typography>
@@ -702,7 +746,7 @@ export default function AnimalsPage() {
               startIcon={<EditIcon />}
             >
               Edit Animal
-            </Button>
+            </Button>{" "}
             <Button
               variant="outlined"
               color="primary"
@@ -714,16 +758,6 @@ export default function AnimalsPage() {
             >
               Add Medical Record
             </Button>{" "}
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PdfIcon />}
-              onClick={() =>
-                selectedAnimal && handleViewIntakeForm(selectedAnimal)
-              }
-            >
-              View Intake Form
-            </Button>
             <Button
               variant="contained"
               color="primary"
@@ -749,7 +783,7 @@ export default function AnimalsPage() {
             justifyContent: "space-between",
           }}
         >
-          <Typography variant="h6">Clinic Intake Form</Typography>
+          <Typography variant="h6">{currentPdfFormTitle}</Typography>
           <IconButton onClick={handleClosePdfDialog}>
             <CloseIcon />
           </IconButton>
@@ -770,13 +804,28 @@ export default function AnimalsPage() {
             <iframe
               src={pdfUrl}
               style={{ width: "100%", height: "100%", border: "none" }}
-              title="Clinic Intake Form"
+              title={currentPdfFormTitle}
             />
           ) : (
             <Typography color="error">Failed to load PDF</Typography>
           )}
         </Box>
       </Dialog>
+      {/* PDF Forms Menu */}
+      <Menu
+        anchorEl={pdfMenuAnchor}
+        open={Boolean(pdfMenuAnchor)}
+        onClose={handlePdfMenuClose}
+      >
+        {pdfForms.map((form) => (
+          <MenuItem
+            key={form.file}
+            onClick={() => handlePdfFormSelect(form.file, form.title)}
+          >
+            {form.title}
+          </MenuItem>
+        ))}
+      </Menu>
     </Box>
   );
 }
