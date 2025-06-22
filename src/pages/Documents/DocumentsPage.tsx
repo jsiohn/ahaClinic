@@ -112,12 +112,11 @@ export default function DocumentsPage() {
         api.get("/clients"),
         api.get("/organizations"),
       ]);
-
       setAnimals(Array.isArray(animalsRes.data) ? animalsRes.data : []);
       setClients(Array.isArray(clientsRes.data) ? clientsRes.data : []);
       setOrganizations(Array.isArray(orgsRes.data) ? orgsRes.data : []);
     } catch (error) {
-      console.error("Error fetching dropdown data:", error);
+      setError("Failed to load form data");
     }
   };
 
@@ -135,7 +134,6 @@ export default function DocumentsPage() {
 
       setDocuments(transformedDocuments);
     } catch (error) {
-      console.error("Error fetching documents:", error);
       setError("Failed to fetch documents");
     } finally {
       setLoading(false);
@@ -200,11 +198,9 @@ export default function DocumentsPage() {
           "Content-Type": "multipart/form-data",
         },
       });
-
       setOpenDialog(false);
       fetchDocuments();
     } catch (error) {
-      console.error("Error uploading document:", error);
       setError("Failed to upload document");
     } finally {
       setUploading(false);

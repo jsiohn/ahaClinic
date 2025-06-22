@@ -54,7 +54,7 @@ export default function OrganizationForm({
       try {
         return JSON.parse(storedFormData);
       } catch (error) {
-        console.error("Error parsing draft form data:", error);
+        localStorage.removeItem("organizationDraftFormData");
         return null;
       }
     }
@@ -108,7 +108,7 @@ export default function OrganizationForm({
         updatedAt: new Date(),
       });
     } catch (error) {
-      console.error("Error submitting form:", error);
+      // Form submission will handle error display
     }
   };
 

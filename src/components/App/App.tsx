@@ -83,12 +83,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Dashboard temporarily removed */}
             <Route index element={<Navigate to="/clients" replace />} />
-            <Route
-              path="appointments"
-              element={<div>Appointments (Coming Soon)</div>}
-            />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="animals" element={<AnimalsPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
