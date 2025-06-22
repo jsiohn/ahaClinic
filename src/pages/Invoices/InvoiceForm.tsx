@@ -22,12 +22,74 @@ import {
   Select,
   Autocomplete,
 } from "@mui/material";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Delete as DeleteIcon } from "@mui/icons-material";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { Invoice, InvoiceItem, Client, Animal } from "../../types/models";
+import { Invoice, InvoiceItem, Animal } from "../../types/models";
 import api from "../../utils/api";
+import clinicServicesData from "../../data/clinicServices.json";
+
+// Combined interface for clients and organizations in the dropdown
+interface ClientOption {
+  id: string;
+  name: string;
+  type: "client" | "organization";
+  email: string;
+  phone: string;
+  address: string;
+}
+
+// Transform clinic services data into searchable format
+interface ServiceOption {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  priceDisplay: string;
+}
+
+const transformServicesData = (): ServiceOption[] => {
+  const services: ServiceOption[] = [];
+
+  clinicServicesData.forEach((category) => {
+    category.services.forEach((service, index) => {
+      // Parse price - handle various formats like "$140", "Free with microchip", "$10 per dose"
+      let price = 0;
+      let priceDisplay = service.price;
+
+      // Extract numeric value from price string
+      const priceMatch = service.price.match(/\$(\d+(?:\.\d{2})?)/);
+      if (priceMatch) {
+        price = parseFloat(priceMatch[1]);
+      }
+
+      services.push({
+        id: `${category.category}-${index}`,
+        name: service.name,
+        price: price,
+        category: category.category,
+        priceDisplay: priceDisplay,
+      });
+    });
+  });
+
+  return services;
+};
+
+// Custom filter function for better search experience
+const filterOptions = (options: ServiceOption[], { inputValue }: any) => {
+  const searchTerm = inputValue.toLowerCase();
+  if (!searchTerm) return options;
+
+  return options.filter(
+    (option) =>
+      option.name.toLowerCase().includes(searchTerm) ||
+      option.category.toLowerCase().includes(searchTerm)
+  );
+};
+
+const availableServices = transformServicesData();
 
 interface InvoiceFormProps {
   invoice?: Invoice | null;
@@ -86,13 +148,6 @@ const schema = yup.object().shape({
     }),
 });
 
-const defaultProcedures = [
-  { id: "spay", name: "Spay Surgery", price: 150.0 },
-  { id: "neuter", name: "Neuter Surgery", price: 120.0 },
-  { id: "vaccine", name: "Vaccination", price: 45.0 },
-  { id: "checkup", name: "Check-up", price: 50.0 },
-];
-
 const generateInvoiceNumber = () => {
   const date = new Date();
   const year = date.getFullYear();
@@ -108,17 +163,35 @@ export default function InvoiceForm({
   onSave,
   onCancel,
 }: InvoiceFormProps) {
-  const [items, setItems] = useState<InvoiceItem[]>(
-    invoice?.items?.map((item) => ({
-      ...item,
-      quantity: Math.max(1, parseInt(String(item.quantity)) || 1),
-      unitPrice: parseFloat(Number(item.unitPrice || 0).toFixed(2)),
-      total: parseFloat(Number(item.total || 0).toFixed(2)),
-    })) || []
-  );
-  const [clients, setClients] = useState<Client[]>([]);
+  // Initialize with existing items or a single blank item
+  const initializeItems = (): InvoiceItem[] => {
+    if (invoice?.items && invoice.items.length > 0) {
+      return invoice.items.map((item) => ({
+        ...item,
+        quantity: Math.max(1, parseInt(String(item.quantity)) || 1),
+        unitPrice: parseFloat(Number(item.unitPrice || 0).toFixed(2)),
+        total: parseFloat(Number(item.total || 0).toFixed(2)),
+      }));
+    }
+    // Always start with one blank item
+    return [
+      {
+        id: "temp-1",
+        invoiceId: "",
+        procedure: "",
+        description: "",
+        quantity: 1,
+        unitPrice: 0,
+        total: 0,
+      },
+    ];
+  };
+  const [items, setItems] = useState<InvoiceItem[]>(initializeItems());
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(
+    null
+  );
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const taxRate = 0.08; // 8% tax rate
 
@@ -152,19 +225,45 @@ export default function InvoiceForm({
   useEffect(() => {
     // State is being tracked but no longer logging
   }, [invoice, selectedClient, selectedAnimal]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch clients first
+        // Fetch clients
         const clientResponse = await api.get("/clients");
         const transformedClients = Array.isArray(clientResponse)
           ? clientResponse.map((client: any) => ({
-              ...client,
               id: client._id || client.id,
+              name: `${client.firstName} ${client.lastName}`,
+              type: "client" as const,
+              email: client.email,
+              phone: client.phone,
+              address: `${client.address?.street || ""}, ${
+                client.address?.city || ""
+              }, ${client.address?.state || ""} ${
+                client.address?.zipCode || ""
+              }`.trim(),
             }))
           : [];
-        setClients(transformedClients);
+
+        // Fetch organizations
+        const organizationResponse = await api.get("/organizations");
+        const transformedOrganizations = Array.isArray(organizationResponse)
+          ? organizationResponse.map((org: any) => ({
+              id: org._id || org.id,
+              name: org.name,
+              type: "organization" as const,
+              email: org.email,
+              phone: org.phone,
+              address: org.address || "",
+            }))
+          : [];
+
+        // Combine clients and organizations
+        const combinedOptions = [
+          ...transformedClients,
+          ...transformedOrganizations,
+        ];
+        setClientOptions(combinedOptions);
 
         // Fetch animals
         const animalResponse = await api.get("/animals");
@@ -176,15 +275,19 @@ export default function InvoiceForm({
                 typeof animal.client === "object"
                   ? animal.client._id || animal.client.id
                   : animal.client,
+              organization:
+                typeof animal.organization === "object"
+                  ? animal.organization._id || animal.organization.id
+                  : animal.organization,
             }))
           : [];
         setAnimals(transformedAnimals);
 
         // If we have an invoice being edited, set the client and animal
         if (invoice) {
-          // Find matching client
-          const matchingClient = transformedClients.find(
-            (c) => c.id === invoice.clientId || c._id === invoice.clientId
+          // Find matching client or organization
+          const matchingClient = combinedOptions.find(
+            (c) => c.id === invoice.clientId
           );
           if (matchingClient) {
             setSelectedClient(matchingClient);
@@ -207,15 +310,20 @@ export default function InvoiceForm({
 
     fetchData();
   }, [invoice, setValue]);
-
-  // Filter animals based on selected client
+  // Filter animals based on selected client or organization
   const filteredAnimals = selectedClient
-    ? animals.filter((animal) => animal.client === selectedClient.id)
+    ? animals.filter((animal) =>
+        selectedClient.type === "client"
+          ? animal.client === selectedClient.id
+          : animal.organization === selectedClient.id
+      )
     : animals;
 
-  const getClientOptionLabel = (option: Client | null) => {
+  const getClientOptionLabel = (option: ClientOption | null) => {
     if (!option) return "";
-    return `${option.firstName} ${option.lastName}`;
+    return `${option.name}${
+      option.type === "organization" ? " (Organization)" : ""
+    }`;
   };
 
   const getAnimalOptionLabel = (option: Animal | null) => {
@@ -223,7 +331,7 @@ export default function InvoiceForm({
     return `${option.name} (${option.species})`;
   };
 
-  const handleClientChange = (client: Client | null) => {
+  const handleClientChange = (client: ClientOption | null) => {
     setSelectedClient(client);
     setValue("clientId", client?.id || "");
     // Reset animal selection when client changes
@@ -237,10 +345,14 @@ export default function InvoiceForm({
   };
 
   const status = watch("status");
-
   const calculateTotals = () => {
+    // Only calculate totals for items with content
+    const validItems = items.filter(
+      (item) => item.procedure.trim() !== "" || item.description.trim() !== ""
+    );
+
     const subtotal = parseFloat(
-      items
+      validItems
         .reduce((sum, item) => {
           const itemTotal = parseFloat(
             (Number(item.quantity) * Number(item.unitPrice)).toFixed(2)
@@ -259,22 +371,67 @@ export default function InvoiceForm({
       total,
     };
   };
-
-  const handleAddItem = () => {
-    const newItem: InvoiceItem = {
-      id: `temp-${items.length + 1}`,
-      invoiceId: invoice?.id || "",
-      procedure: "",
-      description: "",
-      quantity: 1,
-      unitPrice: 0,
-      total: 0,
-    };
-    setItems([...items, newItem]);
-  };
-
   const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    // Don't allow removing the last item if it would leave no items
+    if (items.length === 1) {
+      // Reset the item instead of removing it
+      const resetItem: InvoiceItem = {
+        id: `temp-1`,
+        invoiceId: invoice?.id || "",
+        procedure: "",
+        description: "",
+        quantity: 1,
+        unitPrice: 0,
+        total: 0,
+      };
+      setItems([resetItem]);
+    } else {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+  const handleServiceSelection = (
+    index: number,
+    service: ServiceOption | null
+  ) => {
+    const newItems = [...items];
+    if (service) {
+      // Update the current item with selected service
+      newItems[index] = {
+        ...newItems[index],
+        procedure: service.name,
+        description: service.name, // Set description to same as procedure name
+        unitPrice: service.price,
+        total: service.price * newItems[index].quantity,
+      };
+
+      // Check if this is the last item and if it has content, add a new blank item
+      const isLastItem = index === items.length - 1;
+      const hasContent = service.name.trim() !== "";
+
+      if (isLastItem && hasContent) {
+        const newBlankItem: InvoiceItem = {
+          id: `temp-${items.length + 1}`,
+          invoiceId: invoice?.id || "",
+          procedure: "",
+          description: "",
+          quantity: 1,
+          unitPrice: 0,
+          total: 0,
+        };
+        newItems.push(newBlankItem);
+      }
+    } else {
+      // Clear the service selection
+      newItems[index] = {
+        ...newItems[index],
+        procedure: "",
+        description: "",
+        unitPrice: 0,
+        total: 0,
+      };
+    }
+
+    setItems(newItems);
   };
 
   const handleItemChange = (
@@ -287,22 +444,8 @@ export default function InvoiceForm({
     if (item) {
       const updatedItem = { ...item, [field]: value };
 
-      // If procedure changes, update the unit price
-      if (field === "procedure") {
-        const selectedProcedure = defaultProcedures.find(
-          (p) => p.name === value
-        );
-        if (selectedProcedure) {
-          updatedItem.unitPrice = selectedProcedure.price;
-        }
-      }
-
       // Recalculate total whenever quantity or unitPrice changes
-      if (
-        field === "quantity" ||
-        field === "unitPrice" ||
-        field === "procedure"
-      ) {
+      if (field === "quantity" || field === "unitPrice") {
         updatedItem.total = parseFloat(
           (
             Number(updatedItem.quantity) * Number(updatedItem.unitPrice)
@@ -314,9 +457,13 @@ export default function InvoiceForm({
       setItems(newItems);
     }
   };
-
   const onSubmit = (data: InvoiceFormData) => {
     const { subtotal, tax, total } = calculateTotals();
+
+    // Filter out empty items (items without procedure or description)
+    const validItems = items.filter(
+      (item) => item.procedure.trim() !== "" || item.description.trim() !== ""
+    );
 
     // Create a base invoice object first
     const invoiceBase = {
@@ -328,7 +475,7 @@ export default function InvoiceForm({
       status: data.status,
       paymentMethod: data.paymentMethod,
       paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
-      items: items.map((item) => ({
+      items: validItems.map((item) => ({
         description: item.description,
         procedure: item.procedure,
         quantity: Number(item.quantity),
@@ -377,19 +524,19 @@ export default function InvoiceForm({
                 render={({ field: { onChange, value, ...field } }) => (
                   <Autocomplete
                     {...field}
-                    options={clients}
+                    options={clientOptions}
                     value={selectedClient}
                     getOptionLabel={getClientOptionLabel}
                     onChange={(_, value) => handleClientChange(value)}
                     isOptionEqualToValue={(option, value) =>
-                      option.id === value?.id
+                      option?.id === value?.id
                     }
                     // Disable if editing an existing invoice
                     disabled={!!invoice}
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Client"
+                        label="Client / Organization"
                         fullWidth
                         error={!!errors.clientId}
                         helperText={
@@ -400,7 +547,7 @@ export default function InvoiceForm({
                         }
                         inputProps={{
                           ...params.inputProps,
-                          "aria-label": "Client selection",
+                          "aria-label": "Client or organization selection",
                         }}
                       />
                     )}
@@ -435,7 +582,7 @@ export default function InvoiceForm({
                             ? "Animal cannot be changed after invoice creation"
                             : selectedClient
                             ? errors.animalId?.message
-                            : "Please select a client first"
+                            : "Please select a client or organization first"
                         }
                         inputProps={{
                           ...params.inputProps,
@@ -581,7 +728,6 @@ export default function InvoiceForm({
               </>
             )}
           </Grid>
-
           <Box
             sx={{
               mt: 4,
@@ -591,64 +737,92 @@ export default function InvoiceForm({
               alignItems: "center",
             }}
           >
-            <Typography variant="h6">Items</Typography>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddItem}
-              variant="outlined"
-              aria-label="Add item"
-            >
-              Add Item
-            </Button>
+            <Typography variant="h6">Items</Typography>{" "}
+            <Typography variant="body2" color="text.secondary">
+              Select services to automatically add pricing
+            </Typography>
           </Box>
-
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Procedure</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell align="right">Quantity</TableCell>
-                  <TableCell align="right">Unit Price</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell sx={{ width: "50%" }}>Procedure</TableCell>
+                  <TableCell align="right" sx={{ width: "10%" }}>
+                    Qty
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: "15%" }}>
+                    Unit Price
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: "15%" }}>
+                    Total
+                  </TableCell>
+                  <TableCell align="center" sx={{ width: "10%" }}>
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {items.map((item, index) => (
                   <TableRow key={item.id}>
-                    <TableCell>
-                      <FormControl fullWidth>
-                        <Select
-                          value={item.procedure || ""}
-                          onChange={(e) =>
-                            handleItemChange(index, "procedure", e.target.value)
-                          }
-                          inputProps={{ "aria-label": "Procedure" }}
-                          displayEmpty
-                        >
-                          <MenuItem value="" disabled>
-                            <em>Select a procedure</em>
-                          </MenuItem>
-                          {defaultProcedures.map((proc) => (
-                            <MenuItem key={proc.id} value={proc.name}>
-                              {proc.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        value={item.description}
-                        onChange={(e) =>
-                          handleItemChange(index, "description", e.target.value)
+                    <TableCell sx={{ width: "50%" }}>
+                      <Autocomplete
+                        options={availableServices}
+                        getOptionLabel={(option) => option.name}
+                        groupBy={(option) => option.category}
+                        value={
+                          availableServices.find(
+                            (service) => service.name === item.procedure
+                          ) || null
                         }
-                        inputProps={{ "aria-label": "Description" }}
+                        onChange={(_, service) =>
+                          handleServiceSelection(index, service)
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Search services..."
+                            fullWidth
+                            variant="outlined"
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                width: "100%",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Box>
+                                <Typography variant="body2">
+                                  {option.name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {option.category}
+                                </Typography>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                color="primary"
+                                sx={{ fontWeight: "medium" }}
+                              >
+                                {option.priceDisplay}
+                              </Typography>
+                            </Box>
+                          </li>
+                        )}
+                        isOptionEqualToValue={(option, value) =>
+                          option.id === value.id
+                        }
+                        filterOptions={filterOptions}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ width: "10%" }}>
                       <TextField
                         type="number"
                         value={item.quantity}
@@ -661,12 +835,14 @@ export default function InvoiceForm({
                         }
                         inputProps={{
                           min: 1,
-                          style: { textAlign: "right" },
+                          style: { textAlign: "right", width: "60px" },
                           "aria-label": "Quantity",
                         }}
+                        size="small"
+                        sx={{ maxWidth: "80px" }}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ width: "15%" }}>
                       <TextField
                         type="number"
                         value={item.unitPrice}
@@ -680,15 +856,17 @@ export default function InvoiceForm({
                         inputProps={{
                           min: 0,
                           step: 0.01,
-                          style: { textAlign: "right" },
+                          style: { textAlign: "right", width: "90px" },
                           "aria-label": "Unit price",
                         }}
+                        size="small"
+                        sx={{ maxWidth: "110px" }}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ width: "15%" }}>
                       {formatCurrency(item.total)}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ width: "10%" }}>
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveItem(index)}
@@ -701,7 +879,7 @@ export default function InvoiceForm({
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell colSpan={4} align="right">
+                  <TableCell colSpan={3} align="right">
                     <Typography variant="subtitle1">Subtotal</Typography>
                   </TableCell>
                   <TableCell align="right" colSpan={2}>
@@ -711,7 +889,7 @@ export default function InvoiceForm({
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={4} align="right">
+                  <TableCell colSpan={3} align="right">
                     <Typography variant="subtitle1">
                       Tax ({(taxRate * 100).toFixed(0)}%)
                     </Typography>
@@ -723,7 +901,7 @@ export default function InvoiceForm({
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={4} align="right">
+                  <TableCell colSpan={3} align="right">
                     <Typography variant="h6">Total</Typography>
                   </TableCell>
                   <TableCell align="right" colSpan={2}>

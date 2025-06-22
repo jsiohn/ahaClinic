@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -15,7 +15,6 @@ import {
   Grid,
   TextField,
   InputAdornment,
-  CircularProgress,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
@@ -26,11 +25,7 @@ import {
   LocalPrintshop as PrintIcon,
   Close as CloseIcon,
   Search as SearchIcon,
-  PictureAsPdf as PdfIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
 } from "@mui/icons-material";
-import { Document, Page, pdfjs } from "react-pdf";
 import { Invoice } from "../../types/models";
 import InvoiceForm from "./InvoiceForm";
 import api from "../../utils/api";
@@ -38,11 +33,7 @@ import {
   generateInvoicePdf,
   createPdfUrl,
   printPdf,
-  editPdfFile,
 } from "../../utils/pdfUtils";
-
-// Set the worker source for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 // Extended invoice interface for use in this component
 interface ExtendedInvoice extends Invoice {
@@ -89,13 +80,6 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  // PDF-related state
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [openPdfDialog, setOpenPdfDialog] = useState(false);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -244,16 +228,21 @@ export default function InvoicesPage() {
       }
     }
   };
-
   const handlePrintClick = async (invoice: ExtendedInvoice) => {
     try {
-      setPdfLoading(true);
+      setLoading(true);
+      console.log(
+        "Starting PDF generation for invoice:",
+        invoice.invoiceNumber
+      );
 
       // Generate PDF from invoice data
       const pdfBytes = await generateInvoicePdf(invoice);
+      console.log("PDF generated successfully, size:", pdfBytes.length);
 
       // Create a URL for the PDF
       const url = createPdfUrl(pdfBytes);
+      console.log("PDF URL created:", url);
 
       // Print the PDF
       printPdf(url);
@@ -264,98 +253,14 @@ export default function InvoicesPage() {
       }, 2000);
     } catch (error) {
       console.error("Error generating/printing PDF:", error);
-      setError("Failed to generate or print invoice");
+      setError(
+        `Failed to generate or print invoice: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      setPdfLoading(false);
+      setLoading(false);
     }
-  };
-
-  const handleViewAsPdf = async (invoice: ExtendedInvoice) => {
-    try {
-      setPdfLoading(true);
-
-      // Generate PDF from invoice data
-      const bytes = await generateInvoicePdf(invoice);
-      // setPdfBytes(bytes); // Not needed for display
-
-      // Create a URL for the PDF
-      const url = createPdfUrl(bytes);
-      setPdfUrl(url);
-
-      // Open the PDF viewer dialog
-      setSelectedInvoice(invoice);
-      setOpenPdfDialog(true);
-    } catch (error) {
-      console.error("Error generating PDF for viewing:", error);
-      setError("Failed to generate PDF for viewing");
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  const handleUploadPdf = () => {
-    // Trigger the hidden file input
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setPdfLoading(true);
-
-      // Edit the uploaded PDF (e.g., add a watermark)
-      const editedPdfBytes = await editPdfFile(file);
-      // setPdfBytes(editedPdfBytes); // Not needed for display
-
-      // Create a URL for the edited PDF
-      const url = createPdfUrl(editedPdfBytes);
-      setPdfUrl(url);
-
-      // Open the PDF viewer dialog
-      setOpenPdfDialog(true);
-    } catch (error) {
-      console.error("Error editing uploaded PDF:", error);
-      setError("Failed to process the uploaded PDF");
-    } finally {
-      setPdfLoading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleDownloadPdf = () => {
-    if (pdfUrl && selectedInvoice) {
-      // Create a link element and trigger download
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = `Invoice_${selectedInvoice.invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const handleClosePdfDialog = () => {
-    setOpenPdfDialog(false);
-    // Clean up the URL when closing the dialog
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
-    // setPdfBytes(null); // Not needed
-  };
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
   };
 
   const handleCloseDialog = () => {
@@ -523,7 +428,7 @@ export default function InvoicesPage() {
     {
       field: "actions",
       headerName: "Actions",
-      width: 240,
+      width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
           <Tooltip title="Edit">
@@ -535,18 +440,6 @@ export default function InvoicesPage() {
               }}
             >
               <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View as PDF">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewAsPdf(params.row);
-              }}
-              color="primary"
-            >
-              <PdfIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Print">
@@ -693,9 +586,7 @@ export default function InvoicesPage() {
               <CloseIcon />
             </IconButton>
           </Box>
-
           <Divider sx={{ mb: 3 }} />
-
           {selectedInvoice && (
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
@@ -819,7 +710,6 @@ export default function InvoicesPage() {
               </Grid>
             </Grid>
           )}
-
           <Box
             sx={{
               display: "flex",
@@ -838,18 +728,7 @@ export default function InvoicesPage() {
               startIcon={<EditIcon />}
             >
               Edit Invoice
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={() => {
-                handleCloseDetailDialog();
-                handleViewAsPdf(selectedInvoice!);
-              }}
-              startIcon={<PdfIcon />}
-            >
-              View as PDF
-            </Button>
+            </Button>{" "}
             <Button
               variant="outlined"
               color="primary"
@@ -868,143 +747,7 @@ export default function InvoicesPage() {
             >
               Close
             </Button>
-          </Box>
-        </Box>
-      </Dialog>
-      <Dialog
-        open={openPdfDialog}
-        onClose={handleClosePdfDialog}
-        maxWidth="lg"
-        fullWidth
-        aria-labelledby="pdf-dialog-title"
-      >
-        <Box sx={{ p: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h5" component="h2" id="pdf-dialog-title">
-              Invoice PDF
-            </Typography>
-            <Box>
-              <Button
-                variant="outlined"
-                startIcon={<UploadIcon />}
-                onClick={handleUploadPdf}
-                sx={{ mr: 1 }}
-              >
-                Upload PDF
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<DownloadIcon />}
-                onClick={handleDownloadPdf}
-                disabled={!pdfUrl}
-                sx={{ mr: 1 }}
-              >
-                Download PDF
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<PrintIcon />}
-                onClick={() => pdfUrl && printPdf(pdfUrl)}
-                disabled={!pdfUrl}
-                sx={{ mr: 1 }}
-              >
-                Print PDF
-              </Button>
-              <IconButton onClick={handleClosePdfDialog} size="small">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Divider sx={{ mb: 2 }} />
-
-          {pdfLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "60vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          ) : pdfUrl ? (
-            <Box
-              sx={{
-                height: "70vh",
-                overflow: "auto",
-                display: "flex",
-                justifyContent: "center",
-                bgcolor: "#f5f5f5",
-                border: "1px solid #e0e0e0",
-                borderRadius: 1,
-              }}
-            >
-              <Document
-                file={pdfUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={<CircularProgress />}
-              >
-                <Page
-                  pageNumber={pageNumber}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  width={800}
-                />
-              </Document>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                height: "60vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Typography variant="body1" color="text.secondary">
-                No PDF to display
-              </Typography>
-            </Box>
-          )}
-
-          {numPages && numPages > 1 && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                mt: 2,
-                gap: 2,
-              }}
-            >
-              <Button
-                disabled={pageNumber <= 1}
-                onClick={() => setPageNumber(pageNumber - 1)}
-                variant="outlined"
-              >
-                Previous
-              </Button>
-              <Typography variant="body1">
-                Page {pageNumber} of {numPages}
-              </Typography>
-              <Button
-                disabled={pageNumber >= numPages}
-                onClick={() => setPageNumber(pageNumber + 1)}
-                variant="outlined"
-              >
-                Next
-              </Button>
-            </Box>
-          )}
+          </Box>{" "}
         </Box>
       </Dialog>
       <Snackbar
@@ -1017,151 +760,6 @@ export default function InvoicesPage() {
           {error}
         </Alert>
       </Snackbar>
-      {/* PDF Viewer Dialog */}
-      <Dialog
-        open={openPdfDialog}
-        onClose={handleClosePdfDialog}
-        maxWidth="lg"
-        fullWidth
-        aria-labelledby="pdf-dialog-title"
-      >
-        <Box sx={{ p: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h5" component="h2" id="pdf-dialog-title">
-              Invoice PDF
-            </Typography>
-            <Box>
-              <Button
-                variant="outlined"
-                startIcon={<UploadIcon />}
-                onClick={handleUploadPdf}
-                sx={{ mr: 1 }}
-              >
-                Upload PDF
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<DownloadIcon />}
-                onClick={handleDownloadPdf}
-                disabled={!pdfUrl}
-                sx={{ mr: 1 }}
-              >
-                Download PDF
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<PrintIcon />}
-                onClick={() => pdfUrl && printPdf(pdfUrl)}
-                disabled={!pdfUrl}
-                sx={{ mr: 1 }}
-              >
-                Print PDF
-              </Button>
-              <IconButton onClick={handleClosePdfDialog} size="small">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Divider sx={{ mb: 2 }} />
-
-          {pdfLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "60vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          ) : pdfUrl ? (
-            <Box
-              sx={{
-                height: "70vh",
-                overflow: "auto",
-                display: "flex",
-                justifyContent: "center",
-                bgcolor: "#f5f5f5",
-                border: "1px solid #e0e0e0",
-                borderRadius: 1,
-              }}
-            >
-              <Document
-                file={pdfUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={<CircularProgress />}
-              >
-                <Page
-                  pageNumber={pageNumber}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  width={800}
-                />
-              </Document>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                height: "60vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Typography variant="body1" color="text.secondary">
-                No PDF to display
-              </Typography>
-            </Box>
-          )}
-
-          {numPages && numPages > 1 && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                mt: 2,
-                gap: 2,
-              }}
-            >
-              <Button
-                disabled={pageNumber <= 1}
-                onClick={() => setPageNumber(pageNumber - 1)}
-                variant="outlined"
-              >
-                Previous
-              </Button>
-              <Typography variant="body1">
-                Page {pageNumber} of {numPages}
-              </Typography>
-              <Button
-                disabled={pageNumber >= numPages}
-                onClick={() => setPageNumber(pageNumber + 1)}
-                variant="outlined"
-              >
-                Next
-              </Button>
-            </Box>
-          )}
-        </Box>
-      </Dialog>
-      {/* Hidden file input for PDF upload */}
-      <input
-        type="file"
-        accept=".pdf"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        onChange={handleFileChange}
-      />
     </Box>
   );
 }
