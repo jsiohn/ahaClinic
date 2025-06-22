@@ -599,23 +599,37 @@ export default function DocumentsPage() {
 
   return (
     <Box sx={{ height: "100%", width: "100%" }}>
+      {" "}
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: 2,
           mb: 2,
         }}
       >
-        <Typography variant="h5" component="h1">
+        <Typography variant="h5" component="h1" sx={{ flexShrink: 0 }}>
           Documents
         </Typography>{" "}
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 2,
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
           <TextField
             size="small"
             placeholder="Search documents..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{
+              width: { xs: "100%", sm: 300 },
+              maxWidth: 300,
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -624,39 +638,63 @@ export default function DocumentsPage() {
               ),
             }}
           />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleUploadClick}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: { xs: "wrap", sm: "nowrap" },
+            }}
           >
-            Upload Document
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<PdfIcon />}
-            onClick={handleCreateBlankForm}
-          >
-            Create Form
-          </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleUploadClick}
+              size="small"
+              sx={{
+                flex: { xs: 1, sm: "none" },
+                minWidth: { xs: "auto", sm: "140px" },
+              }}
+            >
+              Upload Document
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PdfIcon />}
+              onClick={handleCreateBlankForm}
+              size="small"
+              sx={{
+                flex: { xs: 1, sm: "none" },
+                minWidth: { xs: "auto", sm: "120px" },
+              }}
+            >
+              Create Form
+            </Button>
+          </Box>
         </Box>
+      </Box>{" "}
+      <Box sx={{ width: "100%", overflow: "auto" }}>
+        <DataGrid
+          rows={filteredDocuments}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 },
+            },
+            sorting: {
+              sortModel: [{ field: "updatedAt", sort: "desc" }],
+            },
+          }}
+          pageSizeOptions={[10, 20, 50]}
+          checkboxSelection={false}
+          disableRowSelectionOnClick
+          loading={loading}
+          sx={{
+            minHeight: 500,
+            minWidth: 0,
+            width: "100%",
+          }}
+        />
       </Box>
-      <DataGrid
-        rows={filteredDocuments}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-          sorting: {
-            sortModel: [{ field: "updatedAt", sort: "desc" }],
-          },
-        }}
-        pageSizeOptions={[10, 20, 50]}
-        checkboxSelection={false}
-        disableRowSelectionOnClick
-        loading={loading}
-        sx={{ minHeight: 500 }}
-      />
       {/* Upload Dialog */}
       <Dialog
         open={openDialog}

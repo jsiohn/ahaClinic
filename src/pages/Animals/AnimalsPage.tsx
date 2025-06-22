@@ -464,60 +464,86 @@ export default function AnimalsPage() {
         <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
-      </Snackbar>
+      </Snackbar>{" "}
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: 2,
           mb: 2,
         }}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant="h4" component="h1" sx={{ flexShrink: 0 }}>
           Animals
         </Typography>
-        <Box sx={{ width: 300, mx: 2 }}>
-          <Autocomplete
-            options={clients}
-            getOptionLabel={(client) =>
-              `${client.firstName} ${client.lastName}`
-            }
-            renderInput={(params) => (
-              <TextField {...params} label="Filter by Client" size="small" />
-            )}
-            value={selectedClient}
-            onChange={handleClientChange}
-            isOptionEqualToValue={(option, value) => option.id === value?.id}
-          />
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            gap: 2,
+            flex: 1,
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+          }}
         >
-          Add Animal
-        </Button>
+          <Box
+            sx={{
+              width: { xs: "100%", sm: 300 },
+              maxWidth: 300,
+            }}
+          >
+            <Autocomplete
+              options={clients}
+              getOptionLabel={(client) =>
+                `${client.firstName} ${client.lastName}`
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Filter by Client" size="small" />
+              )}
+              value={selectedClient}
+              onChange={handleClientChange}
+              isOptionEqualToValue={(option, value) => option.id === value?.id}
+            />
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              flexShrink: 0,
+            }}
+          >
+            Add Animal
+          </Button>
+        </Box>
       </Box>
-      <DataGrid
-        rows={filteredAnimals}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-        }}
-        pageSizeOptions={[10, 20, 50]}
-        checkboxSelection={false}
-        disableRowSelectionOnClick={false}
-        autoHeight
-        loading={loading}
-        onRowClick={handleRowClick}
-        sx={{
-          "& .MuiDataGrid-row": {
-            cursor: "pointer",
-          },
-        }}
-      />
+      <Box sx={{ width: "100%", overflow: "auto" }}>
+        <DataGrid
+          rows={filteredAnimals}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 },
+            },
+          }}
+          pageSizeOptions={[10, 20, 50]}
+          checkboxSelection={false}
+          disableRowSelectionOnClick={false}
+          autoHeight
+          loading={loading}
+          onRowClick={handleRowClick}
+          sx={{
+            "& .MuiDataGrid-row": {
+              cursor: "pointer",
+            },
+            minWidth: 0,
+            width: "100%",
+          }}
+        />
+      </Box>
       <Dialog
         open={openAnimalDialog}
         onClose={handleCloseAnimalDialog}

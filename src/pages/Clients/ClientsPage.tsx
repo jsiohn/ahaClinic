@@ -344,16 +344,17 @@ export default function ClientsPage() {
       </Snackbar>{" "}
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "stretch", sm: "center" },
           gap: 2,
           mb: 2,
         }}
       >
         <Typography variant="h4" component="h1">
           Clients
-        </Typography>
+        </Typography>{" "}
         <TextField
           placeholder="Search clients..."
           size="small"
@@ -368,38 +369,52 @@ export default function ClientsPage() {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 300 }}
-        />
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          sx={{
+            width: { xs: "100%", sm: 300 },
+            maxWidth: 300,
+          }}
+        />{" "}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleCreateClick}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             Add Client
           </Button>
         </Box>
+      </Box>{" "}
+      <Box sx={{ width: "100%", overflow: "auto" }}>
+        <DataGrid
+          rows={filteredClients}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 },
+            },
+          }}
+          pageSizeOptions={[10, 20, 50]}
+          checkboxSelection={false}
+          disableRowSelectionOnClick={false}
+          autoHeight
+          loading={loading}
+          onRowClick={handleRowClick}
+          sx={{
+            "& .MuiDataGrid-row": {
+              cursor: "pointer",
+            },
+            minWidth: 0,
+            width: "100%",
+          }}
+        />
       </Box>
-      <DataGrid
-        rows={filteredClients}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-        }}
-        pageSizeOptions={[10, 20, 50]}
-        checkboxSelection={false}
-        disableRowSelectionOnClick={false}
-        autoHeight
-        loading={loading}
-        onRowClick={handleRowClick}
-        sx={{
-          "& .MuiDataGrid-row": {
-            cursor: "pointer",
-          },
-        }}
-      />
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}

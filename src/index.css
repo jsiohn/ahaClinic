@@ -1,1 +1,83 @@
 @import url("./vendor/normalize.css");
+
+/* Global styles to prevent horizontal overflow */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+#root {
+  min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Ensure tables are responsive */
+.MuiTableContainer-root {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Prevent text overflow in components */
+.MuiTypography-root {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure form components don't exceed container width */
+.MuiTextField-root,
+.MuiAutocomplete-root,
+.MuiFormControl-root {
+  max-width: 100%;
+}
+
+/* Make DataGrid responsive */
+.MuiDataGrid-root {
+  max-width: 100%;
+  overflow: auto;
+}
+
+/* Handle very small screens */
+@media (max-width: 600px) {
+  .MuiDataGrid-columnHeaders {
+    font-size: 0.75rem;
+  }
+
+  .MuiDataGrid-cell {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+
+  /* Make dialogs more responsive on mobile */
+  .MuiDialog-paperWidthMd {
+    margin: 8px;
+    width: calc(100% - 16px);
+    max-width: none;
+  }
+
+  .MuiDialog-paperWidthLg {
+    margin: 8px;
+    width: calc(100% - 16px);
+    max-width: none;
+  }
+}
+
+/* Ensure buttons don't overflow */
+.MuiButton-root {
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+/* Handle drawer responsiveness */
+@media (max-width: 960px) {
+  .MuiDrawer-paper {
+    width: 200px !important;
+  }
+}

@@ -521,7 +521,10 @@ export default function OrganizationsPage() {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 300 }}
+          sx={{
+            width: { xs: "100%", sm: 300 },
+            maxWidth: 300,
+          }}
         />
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button

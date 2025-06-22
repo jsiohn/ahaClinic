@@ -27,7 +27,8 @@ import {
   ChevronLeft as ChevronLeftIcon,
   Pets as PetsIcon,
   Receipt as ReceiptIcon,
-  Apartment as ApartmentIcon,  Block as BlockIcon,
+  Apartment as ApartmentIcon,
+  Block as BlockIcon,
   Logout as LogoutIcon,
   People as PeopleIcon,
 } from "@mui/icons-material";
@@ -45,6 +46,9 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })<{
     duration: theme.transitions.duration.leavingScreen,
   }),
   marginLeft: `-${drawerWidth}px`,
+  minWidth: 0, // Allow content to shrink
+  overflow: "auto", // Handle overflow gracefully
+  maxWidth: "100vw", // Prevent exceeding viewport width
   ...(open && {
     transition: theme.transitions.create("margin", {
       easing: theme.transitions.easing.easeOut,
@@ -69,6 +73,9 @@ const StyledAppBar = styled(AppBar, {
       duration: theme.transitions.duration.enteringScreen,
     }),
   }),
+  // Ensure AppBar doesn't cause horizontal overflow
+  minWidth: 0,
+  maxWidth: "100vw",
 }));
 
 const DrawerHeader = styled("div")(({ theme }) => ({
@@ -133,7 +140,7 @@ export default function MainLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
       <StyledAppBar position="fixed" open={open}>
         <Toolbar>
           <IconButton
@@ -220,12 +227,20 @@ export default function MainLayout() {
             </ListItem>
           ))}
         </List>
-      </Drawer>
+      </Drawer>{" "}
       <Main open={open}>
         <DrawerHeader />
-        <Outlet />
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            overflow: "auto",
+            maxWidth: "100%",
+          }}
+        >
+          <Outlet />
+        </Box>
       </Main>
-
       {/* Logout Confirmation Dialog */}
       <Dialog
         open={logoutDialogOpen}

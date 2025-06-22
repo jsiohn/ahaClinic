@@ -476,23 +476,27 @@ export default function InvoicesPage() {
       {" "}
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "stretch", sm: "center" },
           gap: 2,
           mb: 2,
         }}
       >
         <Typography variant="h4" component="h1">
           Invoices
-        </Typography>
+        </Typography>{" "}
         <TextField
           variant="outlined"
           placeholder="Search Invoices..."
           size="small"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ width: 300 }}
+          sx={{
+            width: { xs: "100%", sm: 300 },
+            maxWidth: 300,
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -500,12 +504,19 @@ export default function InvoicesPage() {
               </InputAdornment>
             ),
           }}
-        />
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        />{" "}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleCreateClick}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             Create Invoice
           </Button>
@@ -515,41 +526,45 @@ export default function InvoicesPage() {
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}
-      <DataGrid
-        rows={
-          Array.isArray(filteredInvoices)
-            ? filteredInvoices.map((invoice) => ({
-                ...invoice,
-                // Explicitly convert monetary values to numbers to ensure they're correctly displayed
-                subtotal: Number(invoice.subtotal || 0),
-                tax: Number(invoice.tax || 0),
-                total: Number(invoice.total || 0),
-              }))
-            : []
-        }
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-          sorting: {
-            sortModel: [{ field: "date", sort: "desc" }],
-          },
-        }}
-        pageSizeOptions={[10, 20, 50]}
-        checkboxSelection={false}
-        disableRowSelectionOnClick={false}
-        getRowId={(row) => row.id || row._id}
-        onRowClick={handleRowClick}
-        sx={{
-          "& .MuiDataGrid-row": {
-            cursor: "pointer",
-          },
-          minHeight: 400,
-        }}
-        loading={loading}
-      />
+      )}{" "}
+      <Box sx={{ width: "100%", overflow: "auto" }}>
+        <DataGrid
+          rows={
+            Array.isArray(filteredInvoices)
+              ? filteredInvoices.map((invoice) => ({
+                  ...invoice,
+                  // Explicitly convert monetary values to numbers to ensure they're correctly displayed
+                  subtotal: Number(invoice.subtotal || 0),
+                  tax: Number(invoice.tax || 0),
+                  total: Number(invoice.total || 0),
+                }))
+              : []
+          }
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 },
+            },
+            sorting: {
+              sortModel: [{ field: "date", sort: "desc" }],
+            },
+          }}
+          pageSizeOptions={[10, 20, 50]}
+          checkboxSelection={false}
+          disableRowSelectionOnClick={false}
+          getRowId={(row) => row.id || row._id}
+          onRowClick={handleRowClick}
+          sx={{
+            "& .MuiDataGrid-row": {
+              cursor: "pointer",
+            },
+            minHeight: 400,
+            minWidth: 0,
+            width: "100%",
+          }}
+          loading={loading}
+        />
+      </Box>
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}

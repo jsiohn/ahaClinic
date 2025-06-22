@@ -727,7 +727,7 @@ export default function InvoiceForm({
                 </Grid>
               </>
             )}
-          </Grid>
+          </Grid>{" "}
           <Box
             sx={{
               mt: 4,
@@ -735,36 +735,51 @@ export default function InvoiceForm({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
             }}
           >
             <Typography variant="h6">Items</Typography>{" "}
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                textAlign: { xs: "left", sm: "right" },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              }}
+            >
               Select services to automatically add pricing
             </Typography>
           </Box>
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
+            <Table stickyHeader sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: "50%" }}>Procedure</TableCell>
-                  <TableCell align="right" sx={{ width: "10%" }}>
+                  <TableCell sx={{ minWidth: 300, width: "50%" }}>
+                    Procedure
+                  </TableCell>
+                  <TableCell align="right" sx={{ minWidth: 80, width: "10%" }}>
                     Qty
                   </TableCell>
-                  <TableCell align="right" sx={{ width: "15%" }}>
+                  <TableCell align="right" sx={{ minWidth: 120, width: "15%" }}>
                     Unit Price
                   </TableCell>
-                  <TableCell align="right" sx={{ width: "15%" }}>
+                  <TableCell align="right" sx={{ minWidth: 120, width: "15%" }}>
                     Total
                   </TableCell>
-                  <TableCell align="center" sx={{ width: "10%" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ minWidth: 100, width: "10%" }}
+                  >
                     Actions
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
+                {" "}
                 {items.map((item, index) => (
                   <TableRow key={item.id}>
-                    <TableCell sx={{ width: "50%" }}>
+                    <TableCell sx={{ minWidth: 300, width: "50%" }}>
                       <Autocomplete
                         options={availableServices}
                         getOptionLabel={(option) => option.name}
@@ -783,6 +798,7 @@ export default function InvoiceForm({
                             placeholder="Search services..."
                             fullWidth
                             variant="outlined"
+                            size="small"
                           />
                         )}
                         renderOption={(props, option) => (
@@ -795,13 +811,14 @@ export default function InvoiceForm({
                                 alignItems: "center",
                               }}
                             >
-                              <Box>
-                                <Typography variant="body2">
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" noWrap>
                                   {option.name}
                                 </Typography>
                                 <Typography
                                   variant="caption"
                                   color="text.secondary"
+                                  noWrap
                                 >
                                   {option.category}
                                 </Typography>
@@ -809,7 +826,11 @@ export default function InvoiceForm({
                               <Typography
                                 variant="body2"
                                 color="primary"
-                                sx={{ fontWeight: "medium" }}
+                                sx={{
+                                  fontWeight: "medium",
+                                  ml: 1,
+                                  flexShrink: 0,
+                                }}
                               >
                                 {option.priceDisplay}
                               </Typography>
@@ -820,9 +841,13 @@ export default function InvoiceForm({
                           option.id === value.id
                         }
                         filterOptions={filterOptions}
+                        size="small"
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: "10%" }}>
+                    <TableCell
+                      align="right"
+                      sx={{ minWidth: 80, width: "10%" }}
+                    >
                       <TextField
                         type="number"
                         value={item.quantity}
@@ -835,14 +860,17 @@ export default function InvoiceForm({
                         }
                         inputProps={{
                           min: 1,
-                          style: { textAlign: "right", width: "60px" },
+                          style: { textAlign: "right" },
                           "aria-label": "Quantity",
                         }}
                         size="small"
-                        sx={{ maxWidth: "80px" }}
+                        sx={{ width: "100%", maxWidth: "80px" }}
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: "15%" }}>
+                    <TableCell
+                      align="right"
+                      sx={{ minWidth: 120, width: "15%" }}
+                    >
                       <TextField
                         type="number"
                         value={item.unitPrice}
@@ -856,17 +884,25 @@ export default function InvoiceForm({
                         inputProps={{
                           min: 0,
                           step: 0.01,
-                          style: { textAlign: "right", width: "90px" },
+                          style: { textAlign: "right" },
                           "aria-label": "Unit price",
                         }}
                         size="small"
-                        sx={{ maxWidth: "110px" }}
+                        sx={{ width: "100%", maxWidth: "110px" }}
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: "15%" }}>
-                      {formatCurrency(item.total)}
+                    <TableCell
+                      align="right"
+                      sx={{ minWidth: 120, width: "15%" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                        {formatCurrency(item.total)}
+                      </Typography>
                     </TableCell>
-                    <TableCell align="center" sx={{ width: "10%" }}>
+                    <TableCell
+                      align="center"
+                      sx={{ minWidth: 100, width: "10%" }}
+                    >
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveItem(index)}
