@@ -95,7 +95,6 @@ function App() {
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="organizations" element={<OrganizationsPage />} />
             <Route path="blacklist" element={<BlacklistPage />} />
-            <Route path="documents" element={<DocumentsPage />} />
           </Route>
         </Routes>
 

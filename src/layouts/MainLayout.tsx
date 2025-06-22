@@ -161,9 +161,9 @@ export default function MainLayout() {
             onClick={handleMenu}
             size="small"
             sx={{ ml: 2 }}
-            aria-controls={Boolean(anchorEl) ? "account-menu" : undefined}
+            aria-controls={anchorEl ? "account-menu" : undefined}
             aria-haspopup="true"
-            aria-expanded={Boolean(anchorEl) ? "true" : undefined}
+            aria-expanded={anchorEl ? "true" : undefined}
           >
             <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main" }}>
               {user.username?.[0]?.toUpperCase() || "U"}
@@ -172,7 +172,7 @@ export default function MainLayout() {
           <Menu
             anchorEl={anchorEl}
             id="account-menu"
-            open={Boolean(anchorEl)}
+            open={!!anchorEl}
             onClose={handleClose}
             onClick={handleClose}
             transformOrigin={{ horizontal: "right", vertical: "top" }}

@@ -221,10 +221,6 @@ export default function InvoiceForm({
     },
   });
 
-  // Add a debug effect to track state changes
-  useEffect(() => {
-    // State is being tracked but no longer logging
-  }, [invoice, selectedClient, selectedAnimal]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -304,7 +300,7 @@ export default function InvoiceForm({
           }
         }
       } catch (err) {
-        console.error("Failed to fetch data:", err);
+        // Silently handle data fetch errors
       }
     };
 

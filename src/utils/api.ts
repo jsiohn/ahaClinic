@@ -31,7 +31,6 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("API Request Error:", error);
     return Promise.reject(error);
   }
 );
@@ -91,7 +90,6 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.error("API Response Error:", error);
     if (error.response) {
       // Server responded with error status
       if (
@@ -126,7 +124,6 @@ const uploadFile = async (
         Authorization: token ? `Bearer ${token}` : "",
       },
     };
-
     const response = await axios.post(
       `${API_URL}${url}`,
       formData,
@@ -134,7 +131,6 @@ const uploadFile = async (
     );
     return response.data;
   } catch (error) {
-    console.error("File upload error:", error);
     throw error;
   }
 };
@@ -159,7 +155,6 @@ const downloadFile = async (
     const response = await axios.get(`${API_URL}${url}`, requestConfig);
     return response.data;
   } catch (error) {
-    console.error("File download error:", error);
     throw error;
   }
 };

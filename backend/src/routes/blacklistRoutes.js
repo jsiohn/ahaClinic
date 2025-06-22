@@ -61,7 +61,7 @@ router.delete("/:id", auth, async (req, res) => {
     if (!blacklistEntry) {
       return res.status(404).json({ message: "Blacklist entry not found" });
     }
-    await blacklistEntry.remove();
+    await blacklistEntry.deleteOne();
     res.json({ message: "Blacklist entry deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

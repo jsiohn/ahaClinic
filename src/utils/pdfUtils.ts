@@ -22,8 +22,6 @@ export const generateInvoicePdf = async (
   invoice: Invoice | PopulatedInvoice
 ): Promise<Uint8Array> => {
   try {
-    console.log("Generating PDF for invoice:", invoice);
-
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     const { width, height } = page.getSize();
@@ -382,10 +380,8 @@ export const generateInvoicePdf = async (
     );
     // Serialize the PDF document to bytes
     const pdfBytes = await pdfDoc.save();
-    console.log("PDF generation completed successfully");
     return pdfBytes;
   } catch (error) {
-    console.error("Error generating PDF:", error);
     throw new Error(
       `Failed to generate PDF: ${
         error instanceof Error ? error.message : "Unknown error"
@@ -558,12 +554,9 @@ export const extractFormFields = async (
         continue;
       } catch (e) {
         // Not a dropdown, continue checking other types
-      }
-
-      // If we couldn't determine the type, add as unknown
+      } // If we couldn't determine the type, add as unknown
       result[fieldName] = { type: "unknown", value: "" };
     } catch (error) {
-      console.warn(`Error extracting field ${fieldName}:`, error);
       result[fieldName] = { type: "error", value: "" };
     }
   }
@@ -631,7 +624,7 @@ export const fillFormFields = async (
         // Not a dropdown, no more types to try
       }
     } catch (error) {
-      console.warn(`Field ${fieldName} could not be filled:`, error);
+      // Silently continue if field cannot be filled
     }
   }
 
@@ -654,12 +647,9 @@ export const makeEditable = async (bytes: Uint8Array): Promise<Uint8Array> => {
     // If the document has form fields, flatten them to make them part of the content
     if (fields.length > 0) {
       form.flatten();
-    }
-
-    // Save the editable version
+    } // Save the editable version
     return await pdfDoc.save();
   } catch (error) {
-    console.error("Error making PDF editable:", error);
     return bytes; // Return original if there was an error
   }
 };
@@ -683,8 +673,6 @@ export const createPdfUrl = (bytes: Uint8Array): string => {
  * Print a PDF using a hidden iframe
  */
 export const printPdf = (pdfUrl: string): void => {
-  console.log("Attempting to print PDF:", pdfUrl);
-
   // First try opening in a new window for printing
   const printWindow = window.open(pdfUrl, "_blank");
 
@@ -696,7 +684,6 @@ export const printPdf = (pdfUrl: string): void => {
           // Don't close the window immediately - let the user handle it
           // The user can close it after printing is complete
         } catch (error) {
-          console.error("Error printing in new window:", error);
           printWindow.close();
           // Fallback to iframe method
           printWithIframe(pdfUrl);
@@ -707,13 +694,11 @@ export const printPdf = (pdfUrl: string): void => {
     // Handle case where window doesn't load (e.g., PDF plugin issues)
     setTimeout(() => {
       if (printWindow.closed) {
-        console.log("Print window was closed, trying iframe method");
         printWithIframe(pdfUrl);
       }
     }, 3000);
   } else {
     // Fallback to iframe method if popup blocked
-    console.log("Popup blocked, using iframe method");
     printWithIframe(pdfUrl);
   }
 };
@@ -722,7 +707,6 @@ export const printPdf = (pdfUrl: string): void => {
  * Fallback print method using iframe
  */
 const printWithIframe = (pdfUrl: string): void => {
-  console.log("Using iframe method for printing");
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
   iframe.src = pdfUrl;
@@ -735,12 +719,10 @@ const printWithIframe = (pdfUrl: string): void => {
         if (iframe.contentWindow) {
           iframe.contentWindow.print();
         } else {
-          console.log("No content window, trying direct download");
           downloadPdf(pdfUrl);
         }
       }, 1500); // Increased timeout for better PDF loading
     } catch (error) {
-      console.error("Error printing PDF with iframe:", error);
       // Last resort: download the PDF
       downloadPdf(pdfUrl);
     }
@@ -752,9 +734,7 @@ const printWithIframe = (pdfUrl: string): void => {
       }
     }, 5000);
   };
-
   iframe.onerror = () => {
-    console.error("Error loading PDF in iframe");
     // Remove failed iframe
     if (document.body.contains(iframe)) {
       document.body.removeChild(iframe);
@@ -768,7 +748,6 @@ const printWithIframe = (pdfUrl: string): void => {
  * Download the PDF as a fallback when printing fails
  */
 const downloadPdf = (pdfUrl: string): void => {
-  console.log("Downloading PDF as fallback");
   const link = document.createElement("a");
   link.href = pdfUrl;
   link.download = "invoice.pdf";

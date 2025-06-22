@@ -168,7 +168,6 @@ export default function OrganizationsPage() {
           }
         }
       } catch (err) {
-        console.error("Error parsing stored organization data:", err);
         localStorage.removeItem("organizationDialogState");
       }
     }
@@ -213,8 +212,6 @@ export default function OrganizationsPage() {
           prevOrganizations.filter((org) => org.id !== organization.id)
         );
       } catch (err: any) {
-        console.error("Error deleting organization:", err);
-
         let errorMessage = "Failed to delete organization";
 
         if (err?.response?.data?.message) {
@@ -331,14 +328,10 @@ export default function OrganizationsPage() {
             ? [...organizations, transformedData]
             : [transformedData]
         );
-      }
-
-      // Clear localStorage on successful save
+      } // Clear localStorage on successful save
       localStorage.removeItem("organizationDialogState");
       handleCloseDialog();
     } catch (err: any) {
-      console.error("Error saving organization:", err);
-
       let errorMessage = "Failed to save organization";
 
       if (err?.response?.data?.message) {

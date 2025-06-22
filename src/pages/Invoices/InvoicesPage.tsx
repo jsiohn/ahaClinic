@@ -184,7 +184,6 @@ export default function InvoicesPage() {
       const transformedInvoices = invoiceData.map(transformInvoiceData);
       setInvoices(transformedInvoices);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
       setError("Failed to fetch invoices");
     } finally {
       setLoading(false);
@@ -207,7 +206,6 @@ export default function InvoicesPage() {
         setOpenDialog(true);
       }
     } catch (error) {
-      console.error("Error fetching invoice details:", error);
       // Fallback to using the row data if fetch fails
       setSelectedInvoice(invoice);
       setOpenDialog(true);
@@ -221,7 +219,6 @@ export default function InvoicesPage() {
         await api.delete(`/invoices/${invoice.id}`);
         setInvoices(invoices.filter((i) => i.id !== invoice.id));
       } catch (error) {
-        console.error("Error deleting invoice:", error);
         setError("Failed to delete invoice");
       } finally {
         setLoading(false);
@@ -231,18 +228,10 @@ export default function InvoicesPage() {
   const handlePrintClick = async (invoice: ExtendedInvoice) => {
     try {
       setLoading(true);
-      console.log(
-        "Starting PDF generation for invoice:",
-        invoice.invoiceNumber
-      );
 
       // Generate PDF from invoice data
-      const pdfBytes = await generateInvoicePdf(invoice);
-      console.log("PDF generated successfully, size:", pdfBytes.length);
-
-      // Create a URL for the PDF
+      const pdfBytes = await generateInvoicePdf(invoice); // Create a URL for the PDF
       const url = createPdfUrl(pdfBytes);
-      console.log("PDF URL created:", url);
 
       // Print the PDF
       printPdf(url);
@@ -252,7 +241,6 @@ export default function InvoicesPage() {
         URL.revokeObjectURL(url);
       }, 2000);
     } catch (error) {
-      console.error("Error generating/printing PDF:", error);
       setError(
         `Failed to generate or print invoice: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -288,13 +276,10 @@ export default function InvoicesPage() {
         await api.put(`/invoices/${selectedInvoice.id}`, invoiceData);
       } else {
         await api.post("/invoices", invoiceData);
-      }
-
-      // Refresh the invoice list to get the latest data
+      } // Refresh the invoice list to get the latest data
       await fetchInvoices();
       handleCloseDialog();
     } catch (error: any) {
-      console.error("Error saving invoice:", error);
       const message =
         error.message || error.errors?.[0]?.msg || "Failed to save invoice";
       setError(message);

@@ -1,4 +1,3 @@
-// @ts-ignore - Suppress false positive unused variable warnings for React components
 import { useState, useEffect } from "react";
 import {
   Box,
