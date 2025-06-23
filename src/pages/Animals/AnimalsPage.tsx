@@ -476,15 +476,13 @@ export default function AnimalsPage() {
       >
         <Typography variant="h4" component="h1" sx={{ flexShrink: 0 }}>
           Animals
-        </Typography>
+        </Typography>{" "}
         <Box
           sx={{
             display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: { xs: "stretch", sm: "center" },
-            gap: 2,
+            justifyContent: "center",
             flex: 1,
-            justifyContent: { xs: "stretch", sm: "flex-end" },
+            mx: 2,
           }}
         >
           <Box
@@ -506,18 +504,17 @@ export default function AnimalsPage() {
               isOptionEqualToValue={(option, value) => option.id === value?.id}
             />
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-            sx={{
-              width: { xs: "100%", sm: "auto" },
-              flexShrink: 0,
-            }}
-          >
-            Add Animal
-          </Button>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateClick}
+          sx={{
+            flexShrink: 0,
+          }}
+        >
+          Add Animal
+        </Button>
       </Box>
       <Box sx={{ width: "100%", overflow: "auto" }}>
         <DataGrid

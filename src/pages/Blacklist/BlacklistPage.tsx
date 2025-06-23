@@ -222,16 +222,11 @@ export default function BlacklistPage() {
         <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
-      </Snackbar>
+      </Snackbar>{" "}
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-        <Box>
-          <Typography variant="h4" component="h1">
-            Blacklist
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Manage problematic clients and view blacklist history
-          </Typography>
-        </Box>
+        <Typography variant="h4" component="h1">
+          Blacklist
+        </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
