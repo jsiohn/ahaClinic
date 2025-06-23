@@ -318,7 +318,7 @@ export default function AnimalForm({
                     fullWidth
                     error={!!errors.dateOfBirth}
                     helperText={
-                      errors.dateOfBirth?.message || "Use format YYYY-MM-DD"
+                      errors.dateOfBirth?.message || "Use format MM-DD_YYYY"
                     }
                     InputLabelProps={{
                       shrink: true,

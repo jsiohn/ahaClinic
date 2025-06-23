@@ -150,7 +150,6 @@ export default function OrganizationAnimals({
     setSelectedAnimal(animal);
     setOpenMedicalDialog(true);
   };
-
   const handleCloseAnimalDialog = () => {
     setOpenAnimalDialog(false);
     setSelectedAnimal(null);
@@ -466,7 +465,10 @@ export default function OrganizationAnimals({
           <Tooltip title="Edit">
             <IconButton
               size="small"
-              onClick={() => handleEditClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditClick(params.row);
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -474,7 +476,10 @@ export default function OrganizationAnimals({
           <Tooltip title="Add Medical Record">
             <IconButton
               size="small"
-              onClick={() => handleAddMedicalRecord(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddMedicalRecord(params.row);
+              }}
               color="primary"
             >
               <MedicalIcon fontSize="small" />
@@ -483,7 +488,10 @@ export default function OrganizationAnimals({
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => handleDeleteClick(params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(params.row);
+              }}
               color="error"
             >
               <DeleteIcon fontSize="small" />
@@ -492,7 +500,10 @@ export default function OrganizationAnimals({
           <Tooltip title="PDF Forms">
             <IconButton
               size="small"
-              onClick={(e) => handlePdfMenuClick(e, params.row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePdfMenuClick(e, params.row);
+              }}
               color="default"
             >
               <PdfIcon fontSize="small" />

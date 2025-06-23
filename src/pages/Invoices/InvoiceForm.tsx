@@ -104,7 +104,13 @@ interface InvoiceFormData {
   dueDate: string;
   invoiceNumber: string;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
-  paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
+  paymentMethod?:
+    | "cash"
+    | "credit_card"
+    | "bank_transfer"
+    | "check"
+    | ""
+    | null;
   paymentDate?: string | null;
 }
 
@@ -128,7 +134,7 @@ const schema = yup.object().shape({
     .string()
     .transform((value) => (value === "" ? null : value))
     .nullable()
-    .oneOf(["cash", "credit_card", "bank_transfer", "check", null])
+    .oneOf(["cash", "credit_card", "bank_transfer", "check", "", null])
     .when("status", {
       is: "paid",
       then: (schema) =>
@@ -216,7 +222,7 @@ export default function InvoiceForm({
           .split("T")[0], // 30 days from now
       invoiceNumber: invoice?.invoiceNumber || generateInvoiceNumber(),
       status: invoice?.status || "draft",
-      paymentMethod: invoice?.paymentMethod || null,
+      paymentMethod: invoice?.paymentMethod || "",
       paymentDate: invoice?.paymentDate?.toISOString().split("T")[0],
     },
   });
@@ -735,7 +741,7 @@ export default function InvoiceForm({
               gap: 1,
             }}
           >
-            <Typography variant="h6">Items</Typography>{" "}
+            <Typography variant="h6">Items</Typography>
             <Typography
               variant="body2"
               color="text.secondary"
@@ -772,7 +778,6 @@ export default function InvoiceForm({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {" "}
                 {items.map((item, index) => (
                   <TableRow key={item.id}>
                     <TableCell sx={{ minWidth: 300, width: "50%" }}>

@@ -24,6 +24,10 @@ interface OrganizationAnimalFormData {
   gender: "MALE" | "FEMALE";
   weight: string | null;
   organizationId?: string;
+  microchipNumber?: string;
+  dateOfBirth: string;
+  isSpayedNeutered?: string;
+  spayNeuterDate?: string;
 }
 
 interface OrganizationAnimalFormProps {
@@ -63,7 +67,23 @@ const schema = yup.object().shape({
     .required("Weight is required")
     .nullable(),
   organizationId: yup.string(),
-});
+  microchipNumber: yup.string().optional(),
+  dateOfBirth: yup
+    .string()
+    .required("Date of birth is required")
+    .test("is-date-valid", "Invalid date format. Use MM-DD-YYYY", (value) => {
+      if (!value) return false;
+      return !isNaN(Date.parse(value));
+    }),
+  isSpayedNeutered: yup.string().optional(),
+  spayNeuterDate: yup
+    .string()
+    .optional()
+    .test("valid-date", "Invalid date format", (value) => {
+      if (!value) return true; // Optional field can be empty
+      return !isNaN(Date.parse(value));
+    }),
+}) satisfies yup.ObjectSchema<OrganizationAnimalFormData>;
 
 export default function OrganizationAnimalForm({
   animal,
@@ -85,10 +105,20 @@ export default function OrganizationAnimalForm({
       gender: (animal?.gender?.toUpperCase() as "MALE" | "FEMALE") || "MALE",
       weight: animal?.weight?.toString() || "",
       organizationId: organization.id,
+      microchipNumber: animal?.microchipNumber || "",
+      dateOfBirth: animal?.dateOfBirth
+        ? new Date(animal.dateOfBirth).toISOString().split("T")[0]
+        : "",
+      isSpayedNeutered: animal?.isSpayedNeutered ? "true" : "false",
+      spayNeuterDate: animal?.isSpayedNeutered
+        ? new Date().toISOString().split("T")[0]
+        : "",
     },
   });
-
   const onSubmit = (data: OrganizationAnimalFormData) => {
+    // Set isSpayedNeutered based on whether spayNeuterDate has a value
+    const isSpayedNeutered = !!data.spayNeuterDate;
+
     onSave({
       name: data.name,
       species: data.species,
@@ -98,6 +128,9 @@ export default function OrganizationAnimalForm({
       weight: data.weight ? Number(data.weight) : null,
       organization: organization.id,
       organizationName: organization.name,
+      microchipNumber: data.microchipNumber,
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date(),
+      isSpayedNeutered: isSpayedNeutered,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
@@ -220,6 +253,64 @@ export default function OrganizationAnimalForm({
                     error={!!errors.weight}
                     helperText={errors.weight?.message}
                     inputProps={{ min: 0, step: "0.1" }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="microchipNumber"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Microchip Number"
+                    fullWidth
+                    error={!!errors.microchipNumber}
+                    helperText={errors.microchipNumber?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="dateOfBirth"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Date of Birth"
+                    type="date"
+                    fullWidth
+                    error={!!errors.dateOfBirth}
+                    helperText={
+                      errors.dateOfBirth?.message || "Use format MM-DD-YYYY"
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="spayNeuterDate"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Spay/Neuter Date"
+                    type="date"
+                    fullWidth
+                    error={!!errors.spayNeuterDate}
+                    helperText={
+                      errors.spayNeuterDate?.message ||
+                      "Leave empty if not spayed/neutered"
+                    }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
                   />
                 )}
               />

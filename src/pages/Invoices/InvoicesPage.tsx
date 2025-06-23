@@ -455,10 +455,15 @@ export default function InvoicesPage() {
       ),
     },
   ];
-
   return (
-    <Box sx={{ height: "100%", width: "100%" }}>
-      {" "}
+    <Box
+      sx={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -506,13 +511,13 @@ export default function InvoicesPage() {
             Create Invoice
           </Button>
         </Box>
-      </Box>
+      </Box>{" "}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}{" "}
-      <Box sx={{ width: "100%", overflow: "auto" }}>
+      )}
+      <Box sx={{ flex: 1, width: "100%", minHeight: 0 }}>
         <DataGrid
           rows={
             Array.isArray(filteredInvoices)
@@ -543,7 +548,7 @@ export default function InvoicesPage() {
             "& .MuiDataGrid-row": {
               cursor: "pointer",
             },
-            minHeight: 400,
+            height: "100%",
             minWidth: 0,
             width: "100%",
           }}
