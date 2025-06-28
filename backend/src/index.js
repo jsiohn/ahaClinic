@@ -16,7 +16,16 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173", // React app
+      "https://ahaclinic.onrender.com",
+    ],
+    credentials: true, // Allow cookies to be sent
+  })
+);
 app.use(express.json());
 
 // MongoDB connection
