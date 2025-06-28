@@ -55,7 +55,7 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                     color: theme.palette.primary.main,
                   }}
                 >
-                  Welcome to AhaClinic
+                  Welcome to AHA! Clinic
                 </Typography>
               </Box>
 

@@ -21,7 +21,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:5173", // React app
-      "https://ahaclinic.onrender.com",
+      "https://ahaclinic.onrender.com", // Your actual frontend URL
     ],
     credentials: true, // Allow cookies to be sent
   })
