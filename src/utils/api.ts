@@ -1,7 +1,11 @@
 import axios, { AxiosInstance, AxiosRequestConfig, ResponseType } from "axios";
-import API_BASE_URL from "../config/api.js";
+import API_BASE_URL from "../config/api";
 
 const API_URL = `${API_BASE_URL}/api`;
+
+// Debug logging
+console.log("API_BASE_URL in utils:", API_BASE_URL);
+console.log("Final API_URL:", API_URL);
 
 // Create axios instance with default config
 const api = axios.create({
