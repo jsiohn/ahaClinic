@@ -10,7 +10,6 @@ const transformInvoice = (invoice) => {
   return {
     ...invoiceObj,
     subtotal: parseFloat(Number(invoiceObj.subtotal).toFixed(2)),
-    tax: parseFloat(Number(invoiceObj.tax).toFixed(2)),
     total: parseFloat(Number(invoiceObj.total).toFixed(2)),
     items: invoiceObj.items.map((item) => ({
       ...item,
@@ -93,7 +92,6 @@ router.post("/", auth, validateInvoice, async (req, res) => {
     const invoiceData = {
       ...req.body,
       subtotal: Number(req.body.subtotal) || 0,
-      tax: Number(req.body.tax) || 0,
       total: Number(req.body.total) || 0,
       items: req.body.items.map((item) => ({
         ...item,
@@ -140,7 +138,6 @@ router.put("/:id", auth, validateInvoice, async (req, res) => {
     const updateData = {
       ...req.body,
       subtotal: Number(req.body.subtotal) || 0,
-      tax: Number(req.body.tax) || 0,
       total: Number(req.body.total) || 0,
       items: req.body.items.map((item) => ({
         ...item,

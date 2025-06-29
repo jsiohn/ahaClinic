@@ -45,12 +45,7 @@ const ensureNumeric = (data: any): any => {
     const result = { ...data };
     for (const key in result) {
       // Handle monetary values
-      if (
-        key === "subtotal" ||
-        key === "tax" ||
-        key === "total" ||
-        key === "unitPrice"
-      ) {
+      if (key === "subtotal" || key === "total" || key === "unitPrice") {
         result[key] = parseFloat(Number(result[key] || 0).toFixed(2));
       }
       // Handle quantities as integers with minimum value of 1

@@ -199,7 +199,6 @@ export default function InvoiceForm({
     null
   );
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
-  const taxRate = 0.08; // 8% tax rate
 
   const {
     control,
@@ -364,12 +363,11 @@ export default function InvoiceForm({
         .toFixed(2)
     );
 
-    const tax = parseFloat((subtotal * taxRate).toFixed(2));
-    const total = parseFloat((subtotal + tax).toFixed(2));
+    // For non-profit, total equals subtotal (no tax)
+    const total = subtotal;
 
     return {
       subtotal,
-      tax,
       total,
     };
   };
@@ -460,7 +458,7 @@ export default function InvoiceForm({
     }
   };
   const onSubmit = (data: InvoiceFormData) => {
-    const { subtotal, tax, total } = calculateTotals();
+    const { subtotal, total } = calculateTotals();
 
     // Filter out empty items (items without procedure or description)
     const validItems = items.filter(
@@ -487,7 +485,6 @@ export default function InvoiceForm({
         ),
       })),
       subtotal: parseFloat(subtotal.toFixed(2)),
-      tax: parseFloat(tax.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
     };
 
@@ -501,7 +498,7 @@ export default function InvoiceForm({
     }).format(amount);
   };
 
-  const { subtotal, tax, total } = calculateTotals();
+  const { subtotal, total } = calculateTotals();
 
   return (
     <>
@@ -922,18 +919,6 @@ export default function InvoiceForm({
                   <TableCell align="right" colSpan={2}>
                     <Typography variant="subtitle1">
                       {formatCurrency(subtotal)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell colSpan={3} align="right">
-                    <Typography variant="subtitle1">
-                      Tax ({(taxRate * 100).toFixed(0)}%)
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" colSpan={2}>
-                    <Typography variant="subtitle1">
-                      {formatCurrency(tax)}
                     </Typography>
                   </TableCell>
                 </TableRow>

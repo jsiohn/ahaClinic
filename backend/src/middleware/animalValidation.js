@@ -52,9 +52,8 @@ export const validateAnimal = [
     .optional()
     .isISO8601()
     .withMessage("Invalid date format"),
-  body("medicalHistory.*.description").optional().trim(),
-  body("medicalHistory.*.diagnosis").optional().trim(),
-  body("medicalHistory.*.treatment").optional().trim(),
+  body("medicalHistory.*.procedure").optional().trim(),
+  body("medicalHistory.*.notes").optional().trim(),
   body("medicalHistory.*.veterinarian").optional().trim(),
 
   body("vaccinations.*.name").optional().trim(),

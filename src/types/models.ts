@@ -86,7 +86,6 @@ export interface Invoice {
   dueDate: Date;
   items: InvoiceItem[];
   subtotal: number;
-  tax: number;
   total: number;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;

@@ -161,9 +161,8 @@ router.post("/:id/medical-records", auth, async (req, res) => {
 
     const newMedicalRecord = {
       date: req.body.date || new Date(),
-      description: req.body.procedure,
-      diagnosis: req.body.notes,
-      treatment: req.body.treatment || "",
+      procedure: req.body.procedure,
+      notes: req.body.notes,
       veterinarian: req.body.veterinarian,
     };
 

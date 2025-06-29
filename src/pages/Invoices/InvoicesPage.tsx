@@ -105,19 +105,12 @@ export default function InvoicesPage() {
         ? invoice.subtotal
         : 0;
 
-    const tax =
-      typeof invoice.tax === "string"
-        ? parseFloat(invoice.tax)
-        : typeof invoice.tax === "number"
-        ? invoice.tax
-        : 0;
-
     const total =
       typeof invoice.total === "string"
         ? parseFloat(invoice.total)
         : typeof invoice.total === "number"
         ? invoice.total
-        : 0;
+        : subtotal; // Default total to subtotal when no tax
 
     // Extract client and animal IDs properly with type checking
     let clientId: string = "";
@@ -154,7 +147,6 @@ export default function InvoicesPage() {
       createdAt: new Date(invoice.createdAt),
       updatedAt: new Date(invoice.updatedAt),
       subtotal,
-      tax,
       total,
       items: invoice.items.map((item) => ({
         ...item,
@@ -393,15 +385,6 @@ export default function InvoicesPage() {
       },
     },
     {
-      field: "tax",
-      headerName: "Tax",
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => {
-        const value = Number(params.row.tax || 0);
-        return <span>{formatCurrency(value)}</span>;
-      },
-    },
-    {
       field: "total",
       headerName: "Total",
       width: 120,
@@ -525,7 +508,6 @@ export default function InvoicesPage() {
                   ...invoice,
                   // Explicitly convert monetary values to numbers to ensure they're correctly displayed
                   subtotal: Number(invoice.subtotal || 0),
-                  tax: Number(invoice.tax || 0),
                   total: Number(invoice.total || 0),
                 }))
               : []
@@ -641,10 +623,6 @@ export default function InvoicesPage() {
                     <Typography variant="body1" gutterBottom>
                       <strong>Subtotal:</strong>{" "}
                       {formatCurrency(selectedInvoice.subtotal)}
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      <strong>Tax:</strong>{" "}
-                      {formatCurrency(selectedInvoice.tax)}
                     </Typography>
                     <Typography variant="body1">
                       <strong>Total:</strong>{" "}

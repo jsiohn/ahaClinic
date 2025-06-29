@@ -65,8 +65,6 @@ export const validateInvoice = [
     .isFloat({ min: 0 })
     .withMessage("Subtotal must be a positive number"),
 
-  body("tax").isFloat({ min: 0 }).withMessage("Tax must be a positive number"),
-
   body("total")
     .isFloat({ min: 0 })
     .withMessage("Total must be a positive number"),

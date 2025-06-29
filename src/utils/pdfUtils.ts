@@ -310,32 +310,16 @@ export const generateInvoicePdf = async (
       color: rgb(0.1, 0.1, 0.1),
     });
 
-    page.drawText("Tax:", {
-      x: 400,
-      y: totalsY - 20,
-      size: 10,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-
-    page.drawText(`$${invoice.tax?.toFixed(2)}`, {
-      x: 500,
-      y: totalsY - 20,
-      size: 10,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-
     page.drawLine({
-      start: { x: 350, y: totalsY - 30 },
-      end: { x: width - 50, y: totalsY - 30 },
+      start: { x: 350, y: totalsY - 10 },
+      end: { x: width - 50, y: totalsY - 10 },
       thickness: 1,
       color: rgb(0.8, 0.8, 0.8),
     });
 
     page.drawText("Total:", {
       x: 400,
-      y: totalsY - 50,
+      y: totalsY - 30,
       size: 12,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
@@ -343,7 +327,7 @@ export const generateInvoicePdf = async (
 
     page.drawText(`$${invoice.total?.toFixed(2)}`, {
       x: 500,
-      y: totalsY - 50,
+      y: totalsY - 30,
       size: 12,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),

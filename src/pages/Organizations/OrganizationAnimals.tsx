@@ -323,7 +323,12 @@ export default function OrganizationAnimals({
       setCurrentPdfFormTitle(formTitle);
 
       // Fetch the blank form
-      const formResponse = await fetch(`/src/assets/${formFile}`);
+      const formResponse = await fetch(`/${formFile}`);
+      if (!formResponse.ok) {
+        throw new Error(
+          `Failed to fetch PDF: ${formResponse.status} ${formResponse.statusText}`
+        );
+      }
       const formArrayBuffer = await formResponse.arrayBuffer();
       const formBytes = new Uint8Array(formArrayBuffer);
 

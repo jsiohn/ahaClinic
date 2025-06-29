@@ -42,9 +42,8 @@ const animalSchema = new mongoose.Schema({
   medicalHistory: [
     {
       date: Date,
-      description: String,
-      diagnosis: String,
-      treatment: String,
+      procedure: String,
+      notes: String,
       veterinarian: String,
     },
   ],

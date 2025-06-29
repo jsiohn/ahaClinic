@@ -78,12 +78,6 @@ const invoiceSchema = new mongoose.Schema({
     get: (v) => parseFloat(v.toFixed(2)),
     set: (v) => parseFloat(v.toFixed(2)),
   },
-  tax: {
-    type: Number,
-    required: true,
-    get: (v) => parseFloat(v.toFixed(2)),
-    set: (v) => parseFloat(v.toFixed(2)),
-  },
   total: {
     type: Number,
     required: true,
