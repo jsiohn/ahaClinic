@@ -1,0 +1,11 @@
+# Build command
+build: npm run build
+
+# Publish directory
+publish: dist
+
+# Redirects for SPA routing
+redirects:
+  - from: /*
+    to: /index.html
+    status: 200

@@ -16,6 +16,7 @@ import BlacklistPage from "../../pages/Blacklist/BlacklistPage";
 import DocumentsPage from "../../pages/Documents/DocumentsPage";
 import Landing from "../../pages/Auth/Landing";
 import AuthModal from "./AuthModal";
+import ApiDebug from "../ApiDebug";
 import "./App.css";
 
 // Create theme instance
@@ -99,6 +100,7 @@ function App() {
           mode={authMode}
           onSwitchMode={handleSwitchAuthMode}
         />
+        <ApiDebug />
       </Router>
     </ThemeProvider>
   );
