@@ -31,7 +31,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     >
       <DialogContent sx={{ p: 0 }}>
         {mode === "login" ? (
-          <Login onSwitchMode={onSwitchMode} onSuccess={onClose} />
+          <Login onSuccess={onClose} />
         ) : (
           <Register onSwitchMode={onSwitchMode} onSuccess={onClose} />
         )}
