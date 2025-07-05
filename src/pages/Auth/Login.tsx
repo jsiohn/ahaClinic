@@ -12,11 +12,10 @@ import {
 import { useUser } from "../../contexts/UserContext";
 
 interface LoginProps {
-  onSwitchMode: () => void;
   onSuccess: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
   const { login } = useUser();
   const [formData, setFormData] = useState({
@@ -123,18 +122,6 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
           </Button>
         </Stack>
       </form>
-      <Box sx={{ mt: 3, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          Don't have an account?{" "}
-          <Button
-            onClick={onSwitchMode}
-            sx={{ textTransform: "none" }}
-            color="primary"
-          >
-            Sign up
-          </Button>
-        </Typography>
-      </Box>
     </motion.div>
   );
 };
