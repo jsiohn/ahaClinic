@@ -38,6 +38,8 @@ import VersionHistoryDialog from "../../components/PDFEditor/VersionHistoryDialo
 import api from "../../utils/api";
 import { createPdfUrl, printPdf } from "../../utils/pdfUtils";
 import { createMedicalFormTemplate } from "../../utils/createMedicalForm";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 interface Document {
   _id: string;
@@ -404,14 +406,16 @@ export default function DocumentsPage() {
       width: 240,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <Tooltip title="View & Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleViewDocument(params.row)}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.UPDATE_DOCUMENTS}>
+            <Tooltip title="View & Edit">
+              <IconButton
+                size="small"
+                onClick={() => handleViewDocument(params.row)}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
           <Tooltip title="Print">
             <IconButton
               size="small"
@@ -439,15 +443,17 @@ export default function DocumentsPage() {
               <ShareIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={() => handleDeleteDocument(params.row)}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.DELETE_DOCUMENTS}>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                onClick={() => handleDeleteDocument(params.row)}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
         </Box>
       ),
     },
@@ -641,30 +647,34 @@ export default function DocumentsPage() {
               flexWrap: { xs: "wrap", sm: "nowrap" },
             }}
           >
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleUploadClick}
-              size="small"
-              sx={{
-                flex: { xs: 1, sm: "none" },
-                minWidth: { xs: "auto", sm: "140px" },
-              }}
-            >
-              Upload Document
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PdfIcon />}
-              onClick={handleCreateBlankForm}
-              size="small"
-              sx={{
-                flex: { xs: 1, sm: "none" },
-                minWidth: { xs: "auto", sm: "120px" },
-              }}
-            >
-              Create Form
-            </Button>
+            <PermissionGuard permission={PERMISSIONS.CREATE_DOCUMENTS}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleUploadClick}
+                size="small"
+                sx={{
+                  flex: { xs: 1, sm: "none" },
+                  minWidth: { xs: "auto", sm: "140px" },
+                }}
+              >
+                Upload Document
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard permission={PERMISSIONS.CREATE_DOCUMENTS}>
+              <Button
+                variant="outlined"
+                startIcon={<PdfIcon />}
+                onClick={handleCreateBlankForm}
+                size="small"
+                sx={{
+                  flex: { xs: 1, sm: "none" },
+                  minWidth: { xs: "auto", sm: "120px" },
+                }}
+              >
+                Create Form
+              </Button>
+            </PermissionGuard>
           </Box>
         </Box>
       </Box>{" "}

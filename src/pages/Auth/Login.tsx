@@ -9,18 +9,7 @@ import {
   Alert,
   Stack,
 } from "@mui/material";
-import api from "../../utils/api";
-
-interface LoginResponse {
-  message: string;
-  token: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-  };
-}
+import { useUser } from "../../contexts/UserContext";
 
 interface LoginProps {
   onSwitchMode: () => void;
@@ -29,6 +18,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
   const navigate = useNavigate();
+  const { login } = useUser();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -42,31 +32,24 @@ const Login: React.FC<LoginProps> = ({ onSwitchMode, onSuccess }) => {
       [e.target.name]: e.target.value,
     });
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const { token, user } = await api.post<any, LoginResponse>(
-        "/auth/login",
-        formData
-      );
-
-      // Store auth data
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // Verify token was stored
-      const storedToken = localStorage.getItem("token");
-      if (!storedToken) {
-        throw new Error("Failed to store authentication token");
-      } // Only call onSuccess and navigate if login is successful
+      await login(formData);
+      // Only call onSuccess and navigate if login is successful
       onSuccess();
       navigate("/clients");
     } catch (err: any) {
       // Set error message but don't close modal or navigate away
-      setError(err.message || "Invalid username or password");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Invalid username or password"
+      );
       // Clear the password field but keep the username
       setFormData({
         ...formData,

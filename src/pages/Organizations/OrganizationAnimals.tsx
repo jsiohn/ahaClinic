@@ -34,6 +34,8 @@ import OrganizationAnimalForm from "./OrganizationAnimalForm";
 import MedicalRecordForm from "../Animals/MedicalRecordForm";
 import api from "../../utils/api";
 import * as pdfUtils from "../../utils/pdfUtils";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 interface OrganizationAnimalsProps {
   organization: Organization;
@@ -467,17 +469,19 @@ export default function OrganizationAnimals({
       width: 220,
       renderCell: (params: GridRenderCellParams<any, Animal>) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditClick(params.row);
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.UPDATE_ORGANIZATION_ANIMALS}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
           <Tooltip title="Add Medical Record">
             <IconButton
               size="small"
@@ -525,13 +529,15 @@ export default function OrganizationAnimals({
       <DialogTitle>{organization.name} - Animals</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 2, mt: 1, display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-          >
-            Add Animal
-          </Button>
+          <PermissionGuard permission={PERMISSIONS.CREATE_ORGANIZATION_ANIMALS}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateClick}
+            >
+              Add Animal
+            </Button>
+          </PermissionGuard>
         </Box>
 
         <DataGrid

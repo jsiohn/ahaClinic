@@ -34,6 +34,8 @@ import {
   createPdfUrl,
   printPdf,
 } from "../../utils/pdfUtils";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 // Extended invoice interface for use in this component
 interface ExtendedInvoice extends Invoice {
@@ -399,17 +401,19 @@ export default function InvoicesPage() {
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditClick(params.row);
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.UPDATE_INVOICES}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
           <Tooltip title="Print">
             <IconButton
               size="small"
@@ -422,18 +426,20 @@ export default function InvoicesPage() {
               <PrintIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteClick(params.row);
-              }}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.DELETE_INVOICES}>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(params.row);
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
         </Box>
       ),
     },
@@ -485,14 +491,16 @@ export default function InvoicesPage() {
             width: { xs: "100%", sm: "auto" },
           }}
         >
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-            sx={{ width: { xs: "100%", sm: "auto" } }}
-          >
-            Create Invoice
-          </Button>
+          <PermissionGuard permission={PERMISSIONS.CREATE_INVOICES}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateClick}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
+            >
+              Create Invoice
+            </Button>
+          </PermissionGuard>
         </Box>
       </Box>{" "}
       {error && (

@@ -62,23 +62,23 @@ export default function BlacklistForm({
         const response = await api.get("/clients");
 
         // Transform and filter out already blacklisted clients
-        const transformedData = Array.isArray(response)
-          ? response
-              .filter((c: any) => !c.isBlacklisted)
-              .map((client: any) => ({
-                ...client,
-                id: client._id || client.id,
-                address: client.address || {
-                  street: "",
-                  city: "",
-                  state: "",
-                  zipCode: "",
-                  country: "",
-                },
-                createdAt: new Date(client.createdAt),
-                updatedAt: new Date(client.updatedAt),
-              }))
-          : [];
+        // Note: API interceptor returns response.data directly, so response is the actual data
+        const clientsData = Array.isArray(response) ? response : [];
+        const transformedData = clientsData
+          .filter((c: any) => !c.isBlacklisted)
+          .map((client: any) => ({
+            ...client,
+            id: client._id || client.id,
+            address: client.address || {
+              street: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: "",
+            },
+            createdAt: new Date(client.createdAt),
+            updatedAt: new Date(client.updatedAt),
+          }));
 
         setClients(transformedData);
       } catch (error) {

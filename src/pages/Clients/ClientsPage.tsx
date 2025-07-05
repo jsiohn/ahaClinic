@@ -28,6 +28,8 @@ import { Client } from "../../types/models";
 import ClientForm from "./ClientForm";
 import BlacklistForm from "../Blacklist/BlacklistForm";
 import api from "../../utils/api";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -284,47 +286,53 @@ export default function ClientsPage() {
       width: 150,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleEditClick(params.row);
-              }}
+          <PermissionGuard permission={PERMISSIONS.UPDATE_CLIENTS}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.UPDATE_BLACKLIST}>
+            <Tooltip
+              title={
+                params.row.isBlacklisted
+                  ? "Remove from Blacklist"
+                  : "Add to Blacklist"
+              }
             >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              params.row.isBlacklisted
-                ? "Remove from Blacklist"
-                : "Add to Blacklist"
-            }
-          >
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleToggleBlacklist(params.row);
-              }}
-              color={params.row.isBlacklisted ? "error" : "default"}
-            >
-              <BlockIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleDeleteClick(params.row);
-              }}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleToggleBlacklist(params.row);
+                }}
+                color={params.row.isBlacklisted ? "error" : "default"}
+              >
+                <BlockIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.DELETE_CLIENTS}>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleDeleteClick(params.row);
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
         </Box>
       ),
     },
@@ -381,14 +389,16 @@ export default function ClientsPage() {
             width: { xs: "100%", sm: "auto" },
           }}
         >
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-            sx={{ width: { xs: "100%", sm: "auto" } }}
-          >
-            Add Client
-          </Button>
+          <PermissionGuard permission={PERMISSIONS.CREATE_CLIENTS}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateClick}
+              sx={{ width: { xs: "100%", sm: "auto" } }}
+            >
+              Add Client
+            </Button>
+          </PermissionGuard>
         </Box>
       </Box>{" "}
       <Box sx={{ width: "100%", overflow: "auto" }}>

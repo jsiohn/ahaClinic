@@ -12,10 +12,9 @@ import { useTheme } from "@mui/material/styles";
 
 interface LandingProps {
   onLogin: () => void;
-  onRegister: () => void;
 }
 
-const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
+const Landing: React.FC<LandingProps> = ({ onLogin }) => {
   const theme = useTheme();
 
   return (
@@ -82,20 +81,6 @@ const Landing: React.FC<LandingProps> = ({ onLogin, onRegister }) => {
                   }}
                 >
                   Sign In
-                </Button>
-                <Button
-                  onClick={onRegister}
-                  variant="outlined"
-                  size="large"
-                  sx={{
-                    minWidth: 200,
-                    py: 1.5,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  Create Account
                 </Button>
               </Stack>
 

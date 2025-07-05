@@ -1,7 +1,8 @@
 import express from "express";
 import multer from "multer";
 import Document from "../models/Document.js";
-import { auth } from "../middleware/auth.js";
+import { auth, requirePermission } from "../middleware/auth.js";
+import { PERMISSIONS } from "../config/roles.js";
 import crypto from "crypto";
 
 const router = express.Router();
@@ -22,73 +23,88 @@ const upload = multer({
 });
 
 // Get all documents
-router.get("/", auth, async (req, res) => {
-  try {
-    const filter = {};
+router.get(
+  "/",
+  auth,
+  requirePermission(PERMISSIONS.READ_DOCUMENTS),
+  async (req, res) => {
+    try {
+      const filter = {};
 
-    // Filter by organization if provided
-    if (req.query.organization) {
-      filter.organization = req.query.organization;
+      // Filter by organization if provided
+      if (req.query.organization) {
+        filter.organization = req.query.organization;
+      }
+
+      // Filter by client if provided
+      if (req.query.client) {
+        filter.client = req.query.client;
+      }
+
+      // Filter by animal if provided
+      if (req.query.animal) {
+        filter.animal = req.query.animal;
+      }
+
+      // Don't return the file data in the list to reduce payload size
+      const documents = await Document.find(filter)
+        .select("-fileData -versions.fileData")
+        .populate("animal", "name species")
+        .populate("client", "firstName lastName")
+        .populate("organization", "name");
+
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    // Filter by client if provided
-    if (req.query.client) {
-      filter.client = req.query.client;
-    }
-
-    // Filter by animal if provided
-    if (req.query.animal) {
-      filter.animal = req.query.animal;
-    }
-
-    // Don't return the file data in the list to reduce payload size
-    const documents = await Document.find(filter)
-      .select("-fileData -versions.fileData")
-      .populate("animal", "name species")
-      .populate("client", "firstName lastName")
-      .populate("organization", "name");
-
-    res.json(documents);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Get a single document
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const document = await Document.findById(req.params.id)
-      .select("-fileData -versions.fileData")
-      .populate("animal", "name species")
-      .populate("client", "firstName lastName")
-      .populate("organization", "name");
+router.get(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.READ_DOCUMENTS),
+  async (req, res) => {
+    try {
+      const document = await Document.findById(req.params.id)
+        .select("-fileData -versions.fileData")
+        .populate("animal", "name species")
+        .populate("client", "firstName lastName")
+        .populate("organization", "name");
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      res.json(document);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    res.json(document);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Get document file
-router.get("/:id/file", auth, async (req, res) => {
-  try {
-    const document = await Document.findById(req.params.id);
+router.get(
+  "/:id/file",
+  auth,
+  requirePermission(PERMISSIONS.READ_DOCUMENTS),
+  async (req, res) => {
+    try {
+      const document = await Document.findById(req.params.id);
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Send the file data with proper content type
+      res.contentType("application/pdf");
+      res.send(document.fileData);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    // Send the file data with proper content type
-    res.contentType("application/pdf");
-    res.send(document.fileData);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Get specific version of a document
 router.get("/:id/version/:versionNumber", auth, async (req, res) => {
@@ -122,94 +138,106 @@ router.get("/:id/version/:versionNumber", auth, async (req, res) => {
 });
 
 // Upload a new document
-router.post("/", auth, upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "PDF file is required" });
+router.post(
+  "/",
+  auth,
+  requirePermission(PERMISSIONS.CREATE_DOCUMENTS),
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "PDF file is required" });
+      }
+
+      const document = new Document({
+        name: req.body.name || req.file.originalname,
+        description: req.body.description || "",
+        fileType: "PDF",
+        fileData: req.file.buffer,
+        animal: req.body.animal || null,
+        client: req.body.client || null,
+        organization: req.body.organization || null,
+        isEditable: req.body.isEditable !== "false",
+        isPrintable: req.body.isPrintable !== "false",
+        currentVersion: 1,
+        versions: [],
+      });
+
+      const newDocument = await document.save();
+
+      // Don't return the file data in the response to reduce payload size
+      const response = { ...newDocument.toObject() };
+      delete response.fileData;
+      delete response.versions;
+
+      res.status(201).json(response);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
-
-    const document = new Document({
-      name: req.body.name || req.file.originalname,
-      description: req.body.description || "",
-      fileType: "PDF",
-      fileData: req.file.buffer,
-      animal: req.body.animal || null,
-      client: req.body.client || null,
-      organization: req.body.organization || null,
-      isEditable: req.body.isEditable !== "false",
-      isPrintable: req.body.isPrintable !== "false",
-      currentVersion: 1,
-      versions: [],
-    });
-
-    const newDocument = await document.save();
-
-    // Don't return the file data in the response to reduce payload size
-    const response = { ...newDocument.toObject() };
-    delete response.fileData;
-    delete response.versions;
-
-    res.status(201).json(response);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
   }
-});
+);
 
 // Update a document
-router.put("/:id", auth, upload.single("file"), async (req, res) => {
-  try {
-    const document = await Document.findById(req.params.id);
+router.put(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.UPDATE_DOCUMENTS),
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const document = await Document.findById(req.params.id);
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Update metadata
+      if (req.body.name) document.name = req.body.name;
+      if (req.body.description) document.description = req.body.description;
+      if (req.body.animal) document.animal = req.body.animal;
+      if (req.body.client) document.client = req.body.client;
+      if (req.body.organization) document.organization = req.body.organization;
+      if (req.body.isEditable !== undefined)
+        document.isEditable = req.body.isEditable !== "false";
+      if (req.body.isPrintable !== undefined)
+        document.isPrintable = req.body.isPrintable !== "false";
+
+      // Update file data if a new file is provided
+      if (req.file) {
+        // Save the current version
+        const currentVersion = {
+          fileData: document.fileData,
+          createdAt: document.updatedAt,
+          createdBy: req.user ? req.user._id : null,
+          notes: req.body.versionNotes || `Version ${document.currentVersion}`,
+        };
+
+        document.versions.push(currentVersion);
+        document.currentVersion++;
+        document.fileData = req.file.buffer;
+      }
+
+      const updatedDocument = await document.save();
+
+      // Don't return the file data in the response
+      const response = { ...updatedDocument.toObject() };
+      delete response.fileData;
+
+      // Remove file data from versions too
+      if (response.versions) {
+        response.versions = response.versions.map((v) => {
+          const versionCopy = { ...v };
+          delete versionCopy.fileData;
+          return versionCopy;
+        });
+      }
+
+      res.json(response);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
-
-    // Update metadata
-    if (req.body.name) document.name = req.body.name;
-    if (req.body.description) document.description = req.body.description;
-    if (req.body.animal) document.animal = req.body.animal;
-    if (req.body.client) document.client = req.body.client;
-    if (req.body.organization) document.organization = req.body.organization;
-    if (req.body.isEditable !== undefined)
-      document.isEditable = req.body.isEditable !== "false";
-    if (req.body.isPrintable !== undefined)
-      document.isPrintable = req.body.isPrintable !== "false";
-
-    // Update file data if a new file is provided
-    if (req.file) {
-      // Save the current version
-      const currentVersion = {
-        fileData: document.fileData,
-        createdAt: document.updatedAt,
-        createdBy: req.user ? req.user._id : null,
-        notes: req.body.versionNotes || `Version ${document.currentVersion}`,
-      };
-
-      document.versions.push(currentVersion);
-      document.currentVersion++;
-      document.fileData = req.file.buffer;
-    }
-
-    const updatedDocument = await document.save();
-
-    // Don't return the file data in the response
-    const response = { ...updatedDocument.toObject() };
-    delete response.fileData;
-
-    // Remove file data from versions too
-    if (response.versions) {
-      response.versions = response.versions.map((v) => {
-        const versionCopy = { ...v };
-        delete versionCopy.fileData;
-        return versionCopy;
-      });
-    }
-
-    res.json(response);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
   }
-});
+);
 
 // Generate a sharing link for a document
 router.post("/:id/share", auth, async (req, res) => {
@@ -265,18 +293,23 @@ router.get("/share/:token", async (req, res) => {
 });
 
 // Delete a document
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const document = await Document.findByIdAndDelete(req.params.id);
+router.delete(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.DELETE_DOCUMENTS),
+  async (req, res) => {
+    try {
+      const document = await Document.findByIdAndDelete(req.params.id);
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      res.json({ message: "Document deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    res.json({ message: "Document deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 export default router;

@@ -34,6 +34,7 @@ const clientSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Blacklist functionality - stores blacklist status directly on client
   isBlacklisted: {
     type: Boolean,
     default: false,

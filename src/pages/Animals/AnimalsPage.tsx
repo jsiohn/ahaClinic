@@ -43,6 +43,8 @@ import AnimalForm from "./AnimalForm";
 import MedicalRecordForm from "./MedicalRecordForm";
 import api from "../../utils/api";
 import * as pdfUtils from "../../utils/pdfUtils";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 export default function AnimalsPage() {
   // State declarations
@@ -304,41 +306,47 @@ export default function AnimalsPage() {
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleEditClick(params.row);
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Add Medical Record">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleAddMedicalRecord(params.row);
-              }}
-              color="primary"
-            >
-              <MedicalIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleDeleteClick(params.row);
-              }}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>{" "}
+          <PermissionGuard permission={PERMISSIONS.UPDATE_ANIMALS}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.CREATE_MEDICAL_RECORDS}>
+            <Tooltip title="Add Medical Record">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleAddMedicalRecord(params.row);
+                }}
+                color="primary"
+              >
+                <MedicalIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.DELETE_ANIMALS}>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleDeleteClick(params.row);
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>{" "}
           <Tooltip title="PDF Forms">
             <IconButton
               size="small"
@@ -510,16 +518,18 @@ export default function AnimalsPage() {
             />
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-          sx={{
-            flexShrink: 0,
-          }}
-        >
-          Add Animal
-        </Button>
+        <PermissionGuard permission={PERMISSIONS.CREATE_ANIMALS}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+            sx={{
+              flexShrink: 0,
+            }}
+          >
+            Add Animal
+          </Button>
+        </PermissionGuard>
       </Box>
       <Box sx={{ width: "100%", overflow: "auto" }}>
         <DataGrid

@@ -18,6 +18,23 @@ export interface Client {
   updatedAt: Date;
 }
 
+export interface User {
+  id: string;
+  _id?: string;
+  username: string;
+  email: string;
+  role: "admin" | "staff" | "user";
+  lastLogin?: Date;
+  createdAt: Date;
+  isActive?: boolean;
+  mustChangePassword?: boolean;
+}
+
+export interface UserProfile {
+  user: User;
+  permissions: string[];
+}
+
 export interface Animal {
   id: string;
   _id?: string;

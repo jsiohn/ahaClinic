@@ -1,76 +1,104 @@
 import express from "express";
 import Organization from "../models/Organization.js";
 import { validateOrganization } from "../middleware/organizationValidation.js";
-import { auth } from "../middleware/auth.js";
+import { auth, requirePermission } from "../middleware/auth.js";
+import { PERMISSIONS } from "../config/roles.js";
 
 const router = express.Router();
 
 // Get all organizations
-router.get("/", auth, async (req, res) => {
-  try {
-    const organizations = await Organization.find();
-    res.json(organizations);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+router.get(
+  "/",
+  auth,
+  requirePermission(PERMISSIONS.READ_ORGANIZATIONS),
+  async (req, res) => {
+    try {
+      const organizations = await Organization.find();
+      res.json(organizations);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
 
 // Get a single organization
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const organization = await Organization.findById(req.params.id);
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
+router.get(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.READ_ORGANIZATIONS),
+  async (req, res) => {
+    try {
+      const organization = await Organization.findById(req.params.id);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      res.json(organization);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-    res.json(organization);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
 // Create a new organization
-router.post("/", auth, validateOrganization, async (req, res) => {
-  try {
-    const organization = new Organization(req.body);
-    const newOrganization = await organization.save();
-    res.status(201).json(newOrganization);
-  } catch (error) {
-    console.error("Error creating organization:", error);
-    res.status(400).json({ message: error.message });
+router.post(
+  "/",
+  auth,
+  requirePermission(PERMISSIONS.CREATE_ORGANIZATIONS),
+  validateOrganization,
+  async (req, res) => {
+    try {
+      const organization = new Organization(req.body);
+      const newOrganization = await organization.save();
+      res.status(201).json(newOrganization);
+    } catch (error) {
+      console.error("Error creating organization:", error);
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 // Update an organization
-router.put("/:id", auth, validateOrganization, async (req, res) => {
-  try {
-    const organization = await Organization.findById(req.params.id);
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
-    }
+router.put(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.UPDATE_ORGANIZATIONS),
+  validateOrganization,
+  async (req, res) => {
+    try {
+      const organization = await Organization.findById(req.params.id);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
 
-    Object.assign(organization, req.body);
-    const updatedOrganization = await organization.save();
-    res.json(updatedOrganization);
-  } catch (error) {
-    console.error("Error updating organization:", error);
-    res.status(400).json({ message: error.message });
+      Object.assign(organization, req.body);
+      const updatedOrganization = await organization.save();
+      res.json(updatedOrganization);
+    } catch (error) {
+      console.error("Error updating organization:", error);
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 // Delete an organization
-router.delete("/:id", auth, async (req, res) => {
-  try {
-    const organization = await Organization.findById(req.params.id);
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
-    }
+router.delete(
+  "/:id",
+  auth,
+  requirePermission(PERMISSIONS.DELETE_ORGANIZATIONS),
+  async (req, res) => {
+    try {
+      const organization = await Organization.findById(req.params.id);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
 
-    await organization.deleteOne();
-    res.json({ message: "Organization deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+      await organization.deleteOne();
+      res.json({ message: "Organization deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
 
 /* To be implemented later:
 // Update business hours

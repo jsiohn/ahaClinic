@@ -3,6 +3,31 @@ import API_BASE_URL from "../config/api";
 
 const API_URL = `${API_BASE_URL}/api`;
 
+// Type imports will be added when we use them
+interface UserProfile {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: "admin" | "staff" | "user";
+    lastLogin?: Date;
+    createdAt: Date;
+    mustChangePassword?: boolean;
+  };
+  permissions: string[];
+}
+
+interface LoginResponse {
+  message: string;
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: "admin" | "staff" | "user";
+  };
+}
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -158,5 +183,40 @@ const downloadFile = async (
 // Add the methods to the api object
 api.uploadFile = uploadFile;
 api.downloadFile = downloadFile;
+
+// Auth-related API functions
+export const authApi = {
+  // Get current user profile and permissions
+  getProfile: async (): Promise<UserProfile> => {
+    const data = (await api.get("/auth/me")) as UserProfile;
+    return data; // Response interceptor already returns response.data
+  },
+
+  // Login user
+  login: async (credentials: {
+    username: string;
+    password: string;
+  }): Promise<LoginResponse> => {
+    const data = (await api.post("/auth/login", credentials)) as LoginResponse;
+    return data; // Response interceptor already returns response.data
+  },
+
+  // Register user
+  register: async (userData: {
+    username: string;
+    email: string;
+    password: string;
+    role?: string;
+  }) => {
+    const data = await api.post("/auth/register", userData);
+    return data; // Response interceptor already returns response.data
+  },
+
+  // Logout user
+  logout: async () => {
+    const data = await api.post("/auth/logout");
+    return data; // Response interceptor already returns response.data
+  },
+};
 
 export default api;

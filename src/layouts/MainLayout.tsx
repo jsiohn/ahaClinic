@@ -21,6 +21,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Chip,
+  Alert,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -31,8 +33,13 @@ import {
   Block as BlockIcon,
   Logout as LogoutIcon,
   People as PeopleIcon,
+  ManageAccounts as ManageAccountsIcon,
 } from "@mui/icons-material";
 import { useNavigate, Outlet } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
+import { PERMISSIONS, getRoleDisplayName } from "../utils/auth";
+import UserManagement from "../components/UserManagement";
+import PasswordChangeDialog from "../components/PasswordChangeDialog";
 
 const drawerWidth = 240;
 
@@ -103,7 +110,10 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const [userManagementOpen, setUserManagementOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const { user, logout, hasPermission, mustChangePassword, refreshProfile } =
+    useUser();
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -136,6 +146,34 @@ export default function MainLayout() {
     setLogoutDialogOpen(false);
   };
 
+  const handleUserManagementOpen = () => {
+    handleClose();
+    setUserManagementOpen(true);
+  };
+
+  const handleUserManagementClose = () => {
+    setUserManagementOpen(false);
+  };
+
+  const handlePasswordChangeSuccess = async () => {
+    // Password was changed successfully
+    setSuccessMessage("Password changed successfully!");
+
+    // Refresh user profile to update mustChangePassword flag
+    await refreshProfile();
+
+    // Clear success message after 5 seconds
+    setTimeout(() => {
+      setSuccessMessage("");
+    }, 5000);
+  };
+
+  const handlePasswordChangeCancel = () => {
+    // User cancelled password change, log them out
+    logout();
+    navigate("/auth");
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
       <StyledAppBar position="fixed" open={open}>
@@ -163,7 +201,7 @@ export default function MainLayout() {
             aria-expanded={anchorEl ? "true" : undefined}
           >
             <Avatar sx={{ width: 32, height: 32, bgcolor: "secondary.main" }}>
-              {user.username?.[0]?.toUpperCase() || "U"}
+              {user?.username?.[0]?.toUpperCase() || "U"}
             </Avatar>
           </IconButton>
           <Menu
@@ -177,15 +215,36 @@ export default function MainLayout() {
           >
             <MenuItem disabled>
               <Typography variant="body2" color="text.secondary">
-                {user.username}
+                {user?.username || "User"}
               </Typography>
             </MenuItem>
             <MenuItem disabled>
               <Typography variant="body2" color="text.secondary">
-                {user.email}
+                {user?.email || ""}
               </Typography>
             </MenuItem>
+            <MenuItem disabled>
+              <Chip
+                label={getRoleDisplayName(user?.role || "user")}
+                size="small"
+                color={
+                  user?.role === "admin"
+                    ? "error"
+                    : user?.role === "staff"
+                    ? "warning"
+                    : "default"
+                }
+              />
+            </MenuItem>
             <Divider />
+            {hasPermission(PERMISSIONS.MANAGE_USERS) && (
+              <MenuItem onClick={handleUserManagementOpen}>
+                <ListItemIcon>
+                  <ManageAccountsIcon fontSize="small" />
+                </ListItemIcon>
+                Manage Users
+              </MenuItem>
+            )}
             <MenuItem onClick={handleLogoutClick}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />
@@ -235,6 +294,25 @@ export default function MainLayout() {
             maxWidth: "100%",
           }}
         >
+          {/* Success Message */}
+          {successMessage && (
+            <Alert
+              severity="success"
+              sx={{
+                position: "fixed",
+                top: 80,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 1000,
+                minWidth: 300,
+                maxWidth: 600,
+                boxShadow: 3,
+              }}
+              onClose={() => setSuccessMessage("")}
+            >
+              {successMessage}
+            </Alert>
+          )}
           <Outlet />
         </Box>
       </Main>
@@ -264,6 +342,18 @@ export default function MainLayout() {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* User Management Dialog */}
+      <UserManagement
+        open={userManagementOpen}
+        onClose={handleUserManagementClose}
+      />
+      {/* Password Change Dialog */}
+      <PasswordChangeDialog
+        open={mustChangePassword}
+        onSuccess={handlePasswordChangeSuccess}
+        onCancel={handlePasswordChangeCancel}
+        username={user?.username || ""}
+      />
     </Box>
   );
 }

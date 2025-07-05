@@ -6,7 +6,6 @@ import clientRoutes from "./routes/clientRoutes.js";
 import animalRoutes from "./routes/animalRoutes.js";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
 import organizationRoutes from "./routes/organizationRoutes.js";
-import blacklistRoutes from "./routes/blacklistRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 
@@ -43,7 +42,6 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/animals", animalRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/organizations", organizationRoutes);
-app.use("/api/blacklist", blacklistRoutes);
 app.use("/api/documents", documentRoutes);
 
 // Basic route

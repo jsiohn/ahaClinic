@@ -28,6 +28,8 @@ import { Organization } from "../../types/models";
 import OrganizationForm from "./OrganizationForm";
 import OrganizationAnimals from "./OrganizationAnimals";
 import api from "../../utils/api";
+import { useUser } from "../../contexts/UserContext";
+import { PERMISSIONS } from "../../utils/auth";
 
 // Backend organization data structure might be different from frontend
 interface ApiOrganization {
@@ -69,6 +71,7 @@ interface ApiOrganization {
 }
 
 export default function OrganizationsPage() {
+  const { hasPermission } = useUser();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [openAnimalsDialog, setOpenAnimalsDialog] = useState(false);
@@ -425,17 +428,19 @@ export default function OrganizationsPage() {
       renderCell: (params: GridRenderCellParams) => (
         <Box>
           {" "}
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditClick(params.row);
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+          {hasPermission(PERMISSIONS.UPDATE_ORGANIZATIONS) && (
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Email">
             <IconButton
               size="small"
@@ -460,18 +465,20 @@ export default function OrganizationsPage() {
               <PetsIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteClick(params.row);
-              }}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+          {hasPermission(PERMISSIONS.DELETE_ORGANIZATIONS) && (
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(params.row);
+                }}
+                color="error"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       ),
     },
@@ -520,13 +527,15 @@ export default function OrganizationsPage() {
           }}
         />
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateClick}
-          >
-            Add Organization
-          </Button>
+          {hasPermission(PERMISSIONS.CREATE_ORGANIZATIONS) && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateClick}
+            >
+              Add Organization
+            </Button>
+          )}
         </Box>
       </Box>
       <DataGrid

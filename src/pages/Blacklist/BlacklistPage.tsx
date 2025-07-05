@@ -24,6 +24,8 @@ import {
 import { Client } from "../../types/models";
 import BlacklistForm from "./BlacklistForm";
 import api from "../../utils/api";
+import { PermissionGuard } from "../../components/PermissionGuard";
+import { PERMISSIONS } from "../../utils/auth";
 
 export default function BlacklistPage() {
   const [blacklistedClients, setBlacklistedClients] = useState<Client[]>([]);
@@ -36,27 +38,29 @@ export default function BlacklistPage() {
   const fetchBlacklistedClients = async () => {
     try {
       setLoading(true);
-      // Fetch only blacklisted clients
+      // Fetch clients and filter by blacklist status
+      // Note: Blacklist data is stored directly on the Client model as flags
       const response = await api.get("/clients");
 
+      // Note: API interceptor returns response.data directly, so response is the actual data
+      const clientsData = Array.isArray(response) ? response : [];
+
       // Filter by isBlacklisted flag and transform data
-      const transformedData = Array.isArray(response)
-        ? response
-            .filter((client: any) => client.isBlacklisted)
-            .map((client: any) => ({
-              ...client,
-              id: client._id || client.id,
-              address: client.address || {
-                street: "",
-                city: "",
-                state: "",
-                zipCode: "",
-                country: "",
-              },
-              createdAt: new Date(client.createdAt),
-              updatedAt: new Date(client.updatedAt),
-            }))
-        : [];
+      const transformedData = clientsData
+        .filter((client: any) => client.isBlacklisted)
+        .map((client: any) => ({
+          ...client,
+          id: client._id || client.id,
+          address: client.address || {
+            street: "",
+            city: "",
+            state: "",
+            zipCode: "",
+            country: "",
+          },
+          createdAt: new Date(client.createdAt),
+          updatedAt: new Date(client.updatedAt),
+        }));
 
       setBlacklistedClients(transformedData);
       setError("");
@@ -109,6 +113,7 @@ export default function BlacklistPage() {
     setOpenDialog(false);
     setSelectedClient(null);
   };
+  
   const handleRowClick = (params: any) => {
     // Check if the click target is a button or icon
     const isActionButton = (params.event?.target as HTMLElement)?.closest(
@@ -183,29 +188,33 @@ export default function BlacklistPage() {
       width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleEditClick(params.row);
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Remove from Blacklist">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleRemoveFromBlacklist(params.row);
-              }}
-              color="error"
-            >
-              <BlockIcon />
-            </IconButton>
-          </Tooltip>
+          <PermissionGuard permission={PERMISSIONS.UPDATE_BLACKLIST}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleEditClick(params.row);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.DELETE_BLACKLIST}>
+            <Tooltip title="Remove from Blacklist">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleRemoveFromBlacklist(params.row);
+                }}
+                color="error"
+              >
+                <BlockIcon />
+              </IconButton>
+            </Tooltip>
+          </PermissionGuard>
         </Box>
       ),
     },
@@ -222,19 +231,21 @@ export default function BlacklistPage() {
         <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
-      </Snackbar>{" "}
+      </Snackbar>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h4" component="h1">
           Blacklist
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-          color="error"
-        >
-          Add to Blacklist
-        </Button>
+        <PermissionGuard permission={PERMISSIONS.CREATE_BLACKLIST}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+            color="error"
+          >
+            Add to Blacklist
+          </Button>
+        </PermissionGuard>
       </Box>
       <DataGrid
         rows={blacklistedClients}
@@ -270,7 +281,7 @@ export default function BlacklistPage() {
           onSave={handleSaveBlacklist}
           onCancel={handleCloseDialog}
         />
-      </Dialog>{" "}
+      </Dialog>
       <Dialog
         open={openDetailDialog}
         onClose={handleCloseDetailDialog}

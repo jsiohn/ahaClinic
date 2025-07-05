@@ -7,6 +7,7 @@ import {
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useState } from "react";
+import { UserProvider } from "../../contexts/UserContext";
 import MainLayout from "../../layouts/MainLayout";
 import ClientsPage from "../../pages/Clients/ClientsPage";
 import AnimalsPage from "../../pages/Animals/AnimalsPage";
@@ -16,6 +17,7 @@ import BlacklistPage from "../../pages/Blacklist/BlacklistPage";
 import DocumentsPage from "../../pages/Documents/DocumentsPage";
 import Landing from "../../pages/Auth/Landing";
 import AuthModal from "./AuthModal";
+import { isLoggedIn } from "../../utils/auth";
 import "./App.css";
 
 // Create theme instance
@@ -32,9 +34,9 @@ const theme = createTheme({
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem("token");
+  const loggedIn = isLoggedIn();
 
-  if (!token) {
+  if (!loggedIn) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -59,48 +61,45 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Routes>
-          {/* Auth landing page */}
-          <Route
-            path="/auth"
-            element={
-              <Landing
-                onLogin={() => handleOpenAuthModal("login")}
-                onRegister={() => handleOpenAuthModal("register")}
-              />
-            }
+    <UserProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <Routes>
+            {/* Auth landing page */}
+            <Route
+              path="/auth"
+              element={<Landing onLogin={() => handleOpenAuthModal("login")} />}
+            />
+
+            {/* Protected routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/clients" replace />} />
+              <Route path="clients" element={<ClientsPage />} />
+              <Route path="animals" element={<AnimalsPage />} />
+              <Route path="invoices" element={<InvoicesPage />} />
+              <Route path="documents" element={<DocumentsPage />} />
+              <Route path="organizations" element={<OrganizationsPage />} />
+              <Route path="blacklist" element={<BlacklistPage />} />
+            </Route>
+          </Routes>
+
+          <AuthModal
+            open={authModalOpen}
+            onClose={handleCloseAuthModal}
+            mode={authMode}
+            onSwitchMode={handleSwitchAuthMode}
           />
-
-          {/* Protected routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/clients" replace />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="animals" element={<AnimalsPage />} />
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="documents" element={<DocumentsPage />} />
-            <Route path="organizations" element={<OrganizationsPage />} />
-            <Route path="blacklist" element={<BlacklistPage />} />
-          </Route>
-        </Routes>
-
-        <AuthModal
-          open={authModalOpen}
-          onClose={handleCloseAuthModal}
-          mode={authMode}
-          onSwitchMode={handleSwitchAuthMode}
-        />
-      </Router>
-    </ThemeProvider>
+        </Router>
+      </ThemeProvider>
+    </UserProvider>
   );
 }
 
