@@ -40,6 +40,11 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [duplicateConfirmDialog, setDuplicateConfirmDialog] = useState<{
+    open: boolean;
+    duplicates: any[];
+    clientData: Partial<Client>;
+  }>({ open: false, duplicates: [], clientData: {} });
 
   const fetchClients = async () => {
     try {
@@ -130,11 +135,23 @@ export default function ClientsPage() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedClient(null);
+    // Clear focus to prevent aria-hidden accessibility warning
+    setTimeout(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }, 0);
   };
 
   const handleCloseBlacklistDialog = () => {
     setOpenBlacklistDialog(false);
     setSelectedClient(null);
+    // Clear focus to prevent aria-hidden accessibility warning
+    setTimeout(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }, 0);
   };
 
   const handleSaveBlacklist = async (clientData: Partial<Client>) => {
@@ -153,69 +170,178 @@ export default function ClientsPage() {
     }
   };
 
+  const checkForDuplicates = (clientData: Partial<Client>) => {
+    const duplicates = [];
+
+    // Check for duplicate phone numbers (non-empty)
+    if (clientData.phone && clientData.phone.trim()) {
+      const phoneMatches = clients.filter(
+        (client) =>
+          client.phone === clientData.phone &&
+          (!selectedClient || client.id !== selectedClient.id)
+      );
+      if (phoneMatches.length > 0) {
+        duplicates.push({
+          field: "phone",
+          value: clientData.phone,
+          matches: phoneMatches,
+        });
+      }
+    }
+
+    // Check for duplicate emails (non-empty)
+    if (clientData.email && clientData.email.trim()) {
+      const emailMatches = clients.filter(
+        (client) =>
+          client.email === clientData.email &&
+          (!selectedClient || client.id !== selectedClient.id)
+      );
+      if (emailMatches.length > 0) {
+        duplicates.push({
+          field: "email",
+          value: clientData.email,
+          matches: emailMatches,
+        });
+      }
+    }
+
+    // Check for duplicate name combinations
+    if (clientData.firstName && clientData.lastName) {
+      const nameMatches = clients.filter(
+        (client) =>
+          client.firstName?.toLowerCase() ===
+            clientData.firstName?.toLowerCase() &&
+          client.lastName?.toLowerCase() ===
+            clientData.lastName?.toLowerCase() &&
+          (!selectedClient || client.id !== selectedClient.id)
+      );
+      if (nameMatches.length > 0) {
+        duplicates.push({
+          field: "name",
+          value: `${clientData.firstName} ${clientData.lastName}`,
+          matches: nameMatches,
+        });
+      }
+    }
+
+    return duplicates;
+  };
+
   const handleSaveClient = async (clientData: Partial<Client>) => {
     try {
       // Clean up empty address fields before sending
-      const formattedData = {
+      const formattedData: any = {
         ...clientData,
-        address: Object.entries(clientData.address || {}).reduce(
-          (acc, [key, value]) => {
-            if (value && value.trim() !== "") {
-              acc[key] = value.trim();
+        // Convert empty email to null to work with sparse unique index
+        email:
+          clientData.email && clientData.email.trim() ? clientData.email : null,
+        address: clientData.address
+          ? {
+              street: clientData.address.street || "",
+              city: clientData.address.city || "",
+              state: clientData.address.state || "",
+              zipCode: clientData.address.zipCode || "",
+              country: clientData.address.country || "",
+              county: clientData.address.county || "",
             }
-            return acc;
-          },
-          {} as Record<string, string>
-        ),
+          : undefined,
       };
 
-      let responseData: any;
-      if (selectedClient) {
-        // Update existing client
-        responseData = await api.put<any>(
-          `/clients/${selectedClient.id}`,
-          formattedData
-        );
-      } else {
-        // Create new client
-        responseData = await api.post<any>("/clients", formattedData);
+      // Check for duplicates only when creating new clients
+      if (!selectedClient) {
+        const duplicates = checkForDuplicates(formattedData);
+        if (duplicates.length > 0) {
+          setDuplicateConfirmDialog({
+            open: true,
+            duplicates,
+            clientData: formattedData,
+          });
+          return; // Stop execution and wait for user confirmation
+        }
       }
 
-      // Transform the response data to match Client type
-      const transformedData: Client = {
-        ...responseData,
-        id: responseData._id || responseData.id,
-        firstName: responseData.firstName,
-        lastName: responseData.lastName,
-        email: responseData.email,
-        phone: responseData.phone,
-        address: responseData.address || {},
-        createdAt: new Date(responseData.createdAt),
-        updatedAt: new Date(responseData.updatedAt),
-      };
-
-      if (selectedClient) {
-        setClients((clients) =>
-          clients.map((client) =>
-            client.id === selectedClient.id ? transformedData : client
-          )
-        );
-      } else {
-        setClients((clients) =>
-          Array.isArray(clients)
-            ? [...clients, transformedData]
-            : [transformedData]
-        );
-      }
-      handleCloseDialog();
+      await saveClientData(formattedData);
     } catch (error: any) {
       const errorMessage = error?.message || "Failed to save client";
       setError(errorMessage);
     }
   };
+
+  const saveClientData = async (formattedData: Partial<Client>) => {
+    let responseData: any;
+    if (selectedClient) {
+      // Update existing client
+      responseData = await api.put<any>(
+        `/clients/${selectedClient.id}`,
+        formattedData
+      );
+    } else {
+      // Create new client
+      responseData = await api.post<any>("/clients", formattedData);
+    }
+
+    // Transform the response data to match Client type
+    const transformedData: Client = {
+      ...responseData,
+      id: responseData._id || responseData.id,
+      firstName: responseData.firstName,
+      lastName: responseData.lastName,
+      email: responseData.email,
+      phone: responseData.phone,
+      address: {
+        street: responseData.address?.street || "",
+        city: responseData.address?.city || "",
+        state: responseData.address?.state || "",
+        zipCode: responseData.address?.zipCode || "",
+        country: responseData.address?.country || "",
+        county: responseData.address?.county || "",
+      },
+      createdAt: new Date(responseData.createdAt),
+      updatedAt: new Date(responseData.updatedAt),
+    };
+
+    if (selectedClient) {
+      setClients((clients) =>
+        clients.map((client) =>
+          client.id === selectedClient.id ? transformedData : client
+        )
+      );
+    } else {
+      setClients((clients) =>
+        Array.isArray(clients)
+          ? [...clients, transformedData]
+          : [transformedData]
+      );
+    }
+    handleCloseDialog();
+  };
+
+  const handleDuplicateConfirmation = async (proceed: boolean) => {
+    if (proceed) {
+      try {
+        await saveClientData(duplicateConfirmDialog.clientData);
+      } catch (error: any) {
+        const errorMessage = error?.message || "Failed to save client";
+        setError(errorMessage);
+      }
+    }
+    setDuplicateConfirmDialog({ open: false, duplicates: [], clientData: {} });
+    // Clear focus to prevent aria-hidden accessibility warning
+    setTimeout(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }, 0);
+  };
   const handleCloseDetailDialog = () => {
     setOpenDetailDialog(false);
     setSelectedClient(null);
+    // Clear focus to prevent aria-hidden accessibility warning
+    setTimeout(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }, 0);
   };
   const handleRowClick = (params: any) => {
     // Check if the click target is a button or icon
@@ -413,6 +539,7 @@ export default function ClientsPage() {
           pageSizeOptions={[10, 20, 50]}
           checkboxSelection={false}
           disableRowSelectionOnClick={false}
+          disableVirtualization
           autoHeight
           loading={loading}
           onRowClick={handleRowClick}
@@ -430,6 +557,7 @@ export default function ClientsPage() {
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
+        disableEnforceFocus
       >
         <ClientForm
           client={selectedClient}
@@ -443,6 +571,7 @@ export default function ClientsPage() {
         onClose={handleCloseBlacklistDialog}
         maxWidth="md"
         fullWidth
+        disableEnforceFocus
       >
         <BlacklistForm
           client={selectedClient}
@@ -456,6 +585,7 @@ export default function ClientsPage() {
         onClose={handleCloseDetailDialog}
         maxWidth="md"
         fullWidth
+        disableEnforceFocus
       >
         <Box sx={{ p: 3 }}>
           <Box
@@ -520,8 +650,8 @@ export default function ClientsPage() {
                     {selectedClient?.address?.zipCode || "N/A"}
                   </Typography>
                   <Typography variant="body1">
-                    <strong>Country:</strong>{" "}
-                    {selectedClient?.address?.country || "N/A"}
+                    <strong>County:</strong>{" "}
+                    {selectedClient?.address?.county || "N/A"}
                   </Typography>
                 </CardContent>
               </Card>
@@ -586,6 +716,74 @@ export default function ClientsPage() {
               onClick={handleCloseDetailDialog}
             >
               Close
+            </Button>
+          </Box>
+        </Box>
+      </Dialog>
+      {/* Duplicate Confirmation Dialog */}
+      <Dialog
+        open={duplicateConfirmDialog.open}
+        onClose={() =>
+          setDuplicateConfirmDialog({
+            open: false,
+            duplicates: [],
+            clientData: {},
+          })
+        }
+        maxWidth="md"
+        fullWidth
+        disableEnforceFocus
+      >
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Duplicate Client Detected
+          </Typography>
+
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            The following information matches existing clients:
+          </Typography>
+
+          {duplicateConfirmDialog.duplicates.map((duplicate, index) => (
+            <Box
+              key={index}
+              sx={{ mb: 2, p: 2, bgcolor: "warning.light", borderRadius: 1 }}
+            >
+              <Typography variant="subtitle2" gutterBottom>
+                Duplicate{" "}
+                {duplicate.field === "name"
+                  ? "Name"
+                  : duplicate.field.charAt(0).toUpperCase() +
+                    duplicate.field.slice(1)}
+                : {duplicate.value}
+              </Typography>
+
+              {duplicate.matches.map((match: Client, matchIndex: number) => (
+                <Typography key={matchIndex} variant="body2" sx={{ ml: 2 }}>
+                  • {match.firstName} {match.lastName}
+                  {match.phone && ` - ${match.phone}`}
+                  {match.email && ` - ${match.email}`}
+                </Typography>
+              ))}
+            </Box>
+          ))}
+
+          <Typography variant="body1" sx={{ mt: 2, mb: 3 }}>
+            Do you want to create this client anyway?
+          </Typography>
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => handleDuplicateConfirmation(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="warning"
+              onClick={() => handleDuplicateConfirmation(true)}
+            >
+              Create Anyway
             </Button>
           </Box>
         </Box>

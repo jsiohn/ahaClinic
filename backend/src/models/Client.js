@@ -13,10 +13,11 @@ const clientSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
-    unique: true,
+    required: false,
+    unique: false,
     trim: true,
     lowercase: true,
+    sparse: true, // Only enforces uniqueness for non-null values
   },
   phone: {
     type: String,
@@ -28,6 +29,7 @@ const clientSchema = new mongoose.Schema({
     state: String,
     zipCode: String,
     country: String,
+    county: String,
   },
   notes: String,
   isActive: {

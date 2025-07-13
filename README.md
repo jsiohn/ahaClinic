@@ -90,3 +90,45 @@ A comprehensive web application for managing veterinary clinic operations, inclu
 6. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:5000
+
+### Initial Setup Scripts
+
+After starting the application for the first time, you may want to run these setup scripts:
+
+7. **Create initial users** (Optional)
+
+   ```bash
+   node scripts/setup-users.js
+   ```
+
+   This script creates default admin and test users for development. You can modify the script to customize the initial users.
+
+8. **Test RBAC system** (Optional)
+
+   ```bash
+   node scripts/test-rbac.js
+   ```
+
+   This script verifies that the Role-Based Access Control (RBAC) system is working correctly.
+
+> **Note**: Additional utility scripts are available in the `/scripts` directory. See `scripts/README.md` for detailed documentation of all available scripts.
+
+## Project Structure
+
+```
+ahaClinic/
+├── src/                    # Frontend source code
+│   ├── components/         # Reusable React components
+│   ├── pages/             # Main application pages
+│   ├── contexts/          # React contexts
+│   ├── utils/             # Utility functions
+│   └── types/             # TypeScript type definitions
+├── backend/               # Backend source code
+│   ├── src/               # Express server source
+│   ├── models/            # MongoDB models
+│   ├── routes/            # API routes
+│   └── middleware/        # Express middleware
+├── public/                # Static files and PDF templates
+├── scripts/               # Setup and utility scripts
+└── docs/                  # Documentation
+```

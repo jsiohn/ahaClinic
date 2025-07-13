@@ -13,7 +13,17 @@ const animalSchema = new mongoose.Schema({
     trim: true,
   },
   breed: String,
-  age: Number,
+  age: Number, // Keep for backward compatibility
+  ageYears: {
+    type: Number,
+    min: 0,
+    max: 50,
+  },
+  ageMonths: {
+    type: Number,
+    min: 0,
+    max: 11,
+  },
   gender: {
     type: String,
     enum: ["male", "female", "unknown"],
@@ -23,12 +33,22 @@ const animalSchema = new mongoose.Schema({
   microchipNumber: String,
   dateOfBirth: {
     type: Date,
-    required: true,
+    required: false,
   },
   isSpayedNeutered: {
     type: Boolean,
     default: false,
   },
+  spayNeuterDate: {
+    type: Date,
+    required: false,
+  },
+  color: String,
+  vaccineDate: Date,
+  nextVaccineDate: Date,
+  tagNumber: String,
+  vaccineSerial: String,
+  lotExpiration: Date,
   client: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Client",

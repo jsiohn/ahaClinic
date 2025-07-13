@@ -95,6 +95,43 @@ export const generateInvoicePdf = async (
       color: rgb(0.3, 0.3, 0.3),
     });
 
+    // Payment information (right-aligned)
+    if (invoice.status === "paid") {
+      page.drawText("PAID", {
+        x: width - 150,
+        y: height - 140,
+        size: 20,
+        font: boldFont,
+        color: rgb(0, 0.5, 0),
+      });
+
+      if (invoice.paymentDate) {
+        page.drawText(
+          `Payment Date: ${invoice.paymentDate.toLocaleDateString()}`,
+          {
+            x: width - 200,
+            y: height - 170,
+            size: 10,
+            font,
+            color: rgb(0.3, 0.3, 0.3),
+          }
+        );
+      }
+
+      if (invoice.paymentMethod) {
+        const paymentMethodDisplay = invoice.paymentMethod
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+        page.drawText(`Payment Method: ${paymentMethodDisplay}`, {
+          x: width - 200,
+          y: height - 190,
+          size: 10,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+      }
+    }
+
     // Client information
     const clientName =
       "client" in invoice && invoice.client
@@ -332,24 +369,6 @@ export const generateInvoicePdf = async (
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
     });
-
-    // Footer
-    if (invoice.status === "paid") {
-      yPos -= 40;
-      page.drawText("PAID", {
-        size: 24,
-        x: 250,
-        y: yPos,
-        color: rgb(0, 0.5, 0),
-      });
-      if (invoice.paymentDate) {
-        yPos -= 20;
-        page.drawText(
-          `Payment Date: ${invoice.paymentDate.toLocaleDateString()}`,
-          { size: 12, x: 230, y: yPos }
-        );
-      }
-    }
 
     // Add footer
     page.drawText(

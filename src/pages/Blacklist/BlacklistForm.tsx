@@ -108,7 +108,9 @@ export default function BlacklistForm({
 
   const getClientOptionLabel = (option: Client | string) => {
     if (typeof option === "string") return "";
-    return `${option.firstName} ${option.lastName} (${option.email})`;
+    return `${option.firstName} ${option.lastName}${
+      option.email ? ` (${option.email})` : ""
+    }`;
   };
 
   return (
@@ -161,7 +163,7 @@ export default function BlacklistForm({
                 Client: {client.firstName} {client.lastName}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Email: {client.email}
+                Email: {client.email || "Not provided"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Phone: {client.phone}

@@ -48,9 +48,17 @@ router.post(
   validateClient,
   async (req, res) => {
     try {
-      const existingClient = await Client.findOne({ email: req.body.email });
-      if (existingClient) {
-        return res.status(400).json({ message: "Email already exists" });
+      // Convert empty email to null to work with sparse unique index
+      if (req.body.email === "") {
+        req.body.email = null;
+      }
+
+      // Check for duplicate email only if email is provided
+      if (req.body.email) {
+        const existingClient = await Client.findOne({ email: req.body.email });
+        if (existingClient) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
       }
 
       const client = new Client(req.body);
@@ -73,6 +81,11 @@ router.put(
       const client = await Client.findById(req.params.id);
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
+      }
+
+      // Convert empty email to null to work with sparse unique index
+      if (req.body.email === "") {
+        req.body.email = null;
       }
 
       // Check if email is being changed and if it's already taken

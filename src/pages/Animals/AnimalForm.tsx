@@ -12,7 +12,7 @@ import {
   Autocomplete,
   Box,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Animal, Client } from "../../types/models";
@@ -21,14 +21,22 @@ interface AnimalFormData {
   name: string;
   species: "DOG" | "CAT" | "OTHER";
   breed: string;
-  age?: string;
+  age?: string; // Keep for backward compatibility
+  ageYears?: string;
+  ageMonths?: string;
   gender: "MALE" | "FEMALE";
   weight: string | null;
   clientId?: string;
   microchipNumber?: string;
-  dateOfBirth: string;
-  isSpayedNeutered?: string;
+  dateOfBirth?: string;
+  isSpayedNeutered?: "YES" | "NO";
   spayNeuterDate?: string;
+  color?: string;
+  vaccineDate?: string;
+  nextVaccineDate?: string;
+  tagNumber?: string;
+  vaccineSerial?: string;
+  lotExpiration?: string;
 }
 
 interface AnimalFormProps {
@@ -54,6 +62,24 @@ const schema = yup.object().shape({
       const num = parseInt(value);
       return !isNaN(num) && num > 0 && Number.isInteger(num);
     }),
+  ageYears: yup
+    .string()
+    .optional()
+    .transform((curr, orig) => (orig === "" ? undefined : curr))
+    .test("ageYears", "Years must be a non-negative whole number", (value) => {
+      if (!value) return true;
+      const num = parseInt(value);
+      return !isNaN(num) && num >= 0 && Number.isInteger(num);
+    }),
+  ageMonths: yup
+    .string()
+    .optional()
+    .transform((curr, orig) => (orig === "" ? undefined : curr))
+    .test("ageMonths", "Months must be between 0 and 11", (value) => {
+      if (!value) return true;
+      const num = parseInt(value);
+      return !isNaN(num) && num >= 0 && num <= 11 && Number.isInteger(num);
+    }),
   gender: yup.string().oneOf(["MALE", "FEMALE"]).required("Gender is required"),
   weight: yup
     .string()
@@ -71,17 +97,41 @@ const schema = yup.object().shape({
   microchipNumber: yup.string().optional(),
   dateOfBirth: yup
     .string()
-    .required("Date of birth is required")
-    .test("is-date-valid", "Invalid date format. Use YYYY-MM-DD", (value) => {
-      if (!value) return false;
+    .optional()
+    .test("is-date-valid", "Invalid date format. Use MM-DD-YYYY", (value) => {
+      if (!value) return true; // Optional field can be empty
       return !isNaN(Date.parse(value));
     }),
-  isSpayedNeutered: yup.string().optional(),
+  isSpayedNeutered: yup.string().oneOf(["YES", "NO"]).optional(),
   spayNeuterDate: yup
     .string()
     .optional()
     .test("valid-date", "Invalid date format", (value) => {
       if (!value) return true; // Optional field can be empty
+      return !isNaN(Date.parse(value));
+    }),
+  color: yup.string().optional(),
+  vaccineDate: yup
+    .string()
+    .optional()
+    .test("valid-date", "Invalid date format", (value) => {
+      if (!value) return true;
+      return !isNaN(Date.parse(value));
+    }),
+  nextVaccineDate: yup
+    .string()
+    .optional()
+    .test("valid-date", "Invalid date format", (value) => {
+      if (!value) return true;
+      return !isNaN(Date.parse(value));
+    }),
+  tagNumber: yup.string().optional(),
+  vaccineSerial: yup.string().optional(),
+  lotExpiration: yup
+    .string()
+    .optional()
+    .test("valid-date", "Invalid date format", (value) => {
+      if (!value) return true;
       return !isNaN(Date.parse(value));
     }),
 }) satisfies yup.ObjectSchema<AnimalFormData>;
@@ -103,6 +153,8 @@ export default function AnimalForm({
       species: animal?.species || "CAT",
       breed: animal?.breed || "",
       age: animal?.age?.toString() || "",
+      ageYears: animal?.ageYears?.toString() || "",
+      ageMonths: animal?.ageMonths?.toString() || "",
       gender: (animal?.gender?.toUpperCase() as "MALE" | "FEMALE") || "MALE",
       weight: animal?.weight?.toString() || "",
       clientId: animal?.client || "", // Use client instead of clientId
@@ -110,32 +162,68 @@ export default function AnimalForm({
       dateOfBirth: animal?.dateOfBirth
         ? new Date(animal.dateOfBirth).toISOString().split("T")[0]
         : "",
-      isSpayedNeutered: animal?.isSpayedNeutered ? "true" : "false",
-      spayNeuterDate: animal?.isSpayedNeutered
-        ? new Date().toISOString().split("T")[0]
+      isSpayedNeutered: animal?.isSpayedNeutered ? "YES" : "NO",
+      spayNeuterDate: animal?.spayNeuterDate
+        ? new Date(animal.spayNeuterDate).toISOString().split("T")[0]
+        : "",
+      color: animal?.color || "",
+      vaccineDate: animal?.vaccineDate
+        ? new Date(animal.vaccineDate).toISOString().split("T")[0]
+        : "",
+      nextVaccineDate: animal?.nextVaccineDate
+        ? new Date(animal.nextVaccineDate).toISOString().split("T")[0]
+        : "",
+      tagNumber: animal?.tagNumber || "",
+      vaccineSerial: animal?.vaccineSerial || "",
+      lotExpiration: animal?.lotExpiration
+        ? new Date(animal.lotExpiration).toISOString().split("T")[0]
         : "",
     },
   });
-  const onSubmit = (data: AnimalFormData) => {
-    // Set isSpayedNeutered based on whether spayNeuterDate has a value
-    const isSpayedNeutered = !!data.spayNeuterDate;
 
-    onSave({
+  // Watch the spay/neuter status to conditionally enable/disable the date field
+  const watchedSpayNeuterStatus = useWatch({
+    control,
+    name: "isSpayedNeutered",
+  });
+  const onSubmit = (data: AnimalFormData) => {
+    // Set isSpayedNeutered based on the dropdown selection
+    const isSpayedNeutered = data.isSpayedNeutered === "YES";
+
+    const submissionData = {
       name: data.name,
       species: data.species,
       breed: data.breed,
       age: data.age ? parseInt(data.age) : undefined,
+      ageYears: data.ageYears ? parseInt(data.ageYears) : undefined,
+      ageMonths: data.ageMonths ? parseInt(data.ageMonths) : undefined,
       gender: data.gender.toLowerCase() as "male" | "female" | "unknown",
       weight: data.weight ? Number(data.weight) : null,
       client: data.clientId || undefined,
       microchipNumber: data.microchipNumber,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : new Date(),
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
       isSpayedNeutered: isSpayedNeutered,
+      spayNeuterDate:
+        isSpayedNeutered && data.spayNeuterDate
+          ? new Date(data.spayNeuterDate)
+          : undefined,
+      color: data.color,
+      vaccineDate: data.vaccineDate ? new Date(data.vaccineDate) : undefined,
+      nextVaccineDate: data.nextVaccineDate
+        ? new Date(data.nextVaccineDate)
+        : undefined,
+      tagNumber: data.tagNumber,
+      vaccineSerial: data.vaccineSerial,
+      lotExpiration: data.lotExpiration
+        ? new Date(data.lotExpiration)
+        : undefined,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
       updatedAt: new Date(),
-    });
+    };
+
+    onSave(submissionData);
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
@@ -212,19 +300,15 @@ export default function AnimalForm({
             </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
-                name="age"
+                name="color"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Age"
-                    type="number"
+                    label="Color"
                     fullWidth
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value || "")}
-                    error={!!errors.age}
-                    helperText={errors.age?.message}
-                    inputProps={{ min: 0 }}
+                    error={!!errors.color}
+                    helperText={errors.color?.message}
                   />
                 )}
               />
@@ -318,7 +402,8 @@ export default function AnimalForm({
                     fullWidth
                     error={!!errors.dateOfBirth}
                     helperText={
-                      errors.dateOfBirth?.message || "Use format MM-DD-YYYY"
+                      errors.dateOfBirth?.message ||
+                      "Optional - Use format MM-DD-YYYY"
                     }
                     InputLabelProps={{
                       shrink: true,
@@ -327,6 +412,21 @@ export default function AnimalForm({
                 )}
               />
             </Grid>{" "}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.isSpayedNeutered}>
+                <InputLabel>Spayed/Neutered</InputLabel>
+                <Controller
+                  name="isSpayedNeutered"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} label="Spayed/Neutered">
+                      <MenuItem value="NO">No</MenuItem>
+                      <MenuItem value="YES">Yes</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
                 name="spayNeuterDate"
@@ -337,11 +437,139 @@ export default function AnimalForm({
                     label="Spay/Neuter Date"
                     type="date"
                     fullWidth
+                    disabled={watchedSpayNeuterStatus !== "YES"}
                     error={!!errors.spayNeuterDate}
                     helperText={
-                      errors.spayNeuterDate?.message ||
-                      "Leave empty if not spayed/neutered"
+                      watchedSpayNeuterStatus !== "YES"
+                        ? "Select 'Yes' for spayed/neutered to enable this field"
+                        : errors.spayNeuterDate?.message ||
+                          "Enter the date when the animal was spayed/neutered"
                     }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />
+            </Grid>{" "}
+            <Grid item xs={12} sm={3}>
+              <Controller
+                name="ageYears"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Age (Years)"
+                    type="number"
+                    fullWidth
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value || "")}
+                    error={!!errors.ageYears}
+                    helperText={errors.ageYears?.message}
+                    inputProps={{ min: 0, max: 50 }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Controller
+                name="ageMonths"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Age (Months)"
+                    type="number"
+                    fullWidth
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value || "")}
+                    error={!!errors.ageMonths}
+                    helperText={errors.ageMonths?.message || "0-11 months"}
+                    inputProps={{ min: 0, max: 11 }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="vaccineDate"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Vaccine Date"
+                    type="date"
+                    fullWidth
+                    error={!!errors.vaccineDate}
+                    helperText={errors.vaccineDate?.message}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="nextVaccineDate"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Next Vaccine Date"
+                    type="date"
+                    fullWidth
+                    error={!!errors.nextVaccineDate}
+                    helperText={errors.nextVaccineDate?.message}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="tagNumber"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Tag Number"
+                    fullWidth
+                    error={!!errors.tagNumber}
+                    helperText={errors.tagNumber?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="vaccineSerial"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Vaccine Serial #"
+                    fullWidth
+                    error={!!errors.vaccineSerial}
+                    helperText={errors.vaccineSerial?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="lotExpiration"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Lot Expiration"
+                    type="date"
+                    fullWidth
+                    error={!!errors.lotExpiration}
+                    helperText={errors.lotExpiration?.message}
                     InputLabelProps={{
                       shrink: true,
                     }}

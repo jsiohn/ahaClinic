@@ -3,7 +3,7 @@ export interface Client {
   _id?: string; // MongoDB ID
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string | null;
   phone: string;
   address: {
     street: string;
@@ -11,6 +11,7 @@ export interface Client {
     state: string;
     zipCode: string;
     country: string;
+    county?: string; // County field for PDF forms
   };
   isBlacklisted?: boolean;
   blacklistReason?: string;
@@ -41,7 +42,9 @@ export interface Animal {
   name: string;
   species: "DOG" | "CAT" | "OTHER";
   breed?: string;
-  age?: number;
+  age?: number; // Keep for backward compatibility
+  ageYears?: number;
+  ageMonths?: number;
   gender?: "male" | "female" | "unknown";
   weight: number | null;
   client?: string; // Optional reference to a client
@@ -52,14 +55,22 @@ export interface Animal {
   notes?: string;
   isActive?: boolean;
   microchipNumber?: string;
-  dateOfBirth: Date;
+  dateOfBirth?: Date;
   isSpayedNeutered?: boolean;
+  spayNeuterDate?: Date;
+  color?: string; // Animal Color
+  vaccineDate?: Date; // Vaccination Date
+  nextVaccineDate?: Date; // Vaccination Date Next
+  tagNumber?: string; // Tag Number
+  vaccineSerial?: string; // Vaccine Serial
+  lotExpiration?: Date; // Vaccine Lot Expiration
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface MedicalRecord {
   id: string;
+  _id?: string; // MongoDB ID for subdocuments
   animalId: string;
   date: Date;
   procedure: string;

@@ -228,4 +228,86 @@ router.post(
   }
 );
 
+// Update a medical record
+router.put(
+  "/:id/medical-records/:recordId",
+  auth,
+  requirePermission(PERMISSIONS.UPDATE_MEDICAL_RECORDS),
+  async (req, res) => {
+    try {
+      const animal = await Animal.findById(req.params.id);
+      if (!animal) {
+        return res.status(404).json({ message: "Animal not found" });
+      }
+
+      const medicalRecord = animal.medicalHistory.id(req.params.recordId);
+      if (!medicalRecord) {
+        return res.status(404).json({ message: "Medical record not found" });
+      }
+
+      // Update the medical record
+      medicalRecord.date = req.body.date || medicalRecord.date;
+      medicalRecord.procedure = req.body.procedure || medicalRecord.procedure;
+      medicalRecord.notes = req.body.notes || medicalRecord.notes;
+      medicalRecord.veterinarian =
+        req.body.veterinarian || medicalRecord.veterinarian;
+      medicalRecord.updatedAt = new Date();
+
+      const updatedAnimal = await animal.save();
+
+      // Only populate client if it exists
+      if (updatedAnimal.client) {
+        await updatedAnimal.populate("client", "firstName lastName");
+      }
+
+      // Only populate organization if it exists
+      if (updatedAnimal.organization) {
+        await updatedAnimal.populate("organization", "name");
+      }
+
+      res.json(updatedAnimal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+// Delete a medical record
+router.delete(
+  "/:id/medical-records/:recordId",
+  auth,
+  requirePermission(PERMISSIONS.DELETE_MEDICAL_RECORDS),
+  async (req, res) => {
+    try {
+      const animal = await Animal.findById(req.params.id);
+      if (!animal) {
+        return res.status(404).json({ message: "Animal not found" });
+      }
+
+      const medicalRecord = animal.medicalHistory.id(req.params.recordId);
+      if (!medicalRecord) {
+        return res.status(404).json({ message: "Medical record not found" });
+      }
+
+      // Remove the medical record
+      medicalRecord.deleteOne();
+      const updatedAnimal = await animal.save();
+
+      // Only populate client if it exists
+      if (updatedAnimal.client) {
+        await updatedAnimal.populate("client", "firstName lastName");
+      }
+
+      // Only populate organization if it exists
+      if (updatedAnimal.organization) {
+        await updatedAnimal.populate("organization", "name");
+      }
+
+      res.json(updatedAnimal);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 export default router;

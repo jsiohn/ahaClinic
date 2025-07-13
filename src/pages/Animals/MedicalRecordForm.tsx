@@ -14,6 +14,7 @@ import { Animal, MedicalRecord } from "../../types/models";
 
 interface MedicalRecordFormProps {
   animal: Animal | null;
+  medicalRecord?: MedicalRecord | null; // Add optional medical record for editing
   onSave: (data: Partial<MedicalRecord>) => void;
   onCancel: () => void;
 }
@@ -27,6 +28,7 @@ const schema = yup.object().shape({
 
 export default function MedicalRecordForm({
   animal,
+  medicalRecord = null, // Default to null for create mode
   onSave,
   onCancel,
 }: MedicalRecordFormProps) {
@@ -37,23 +39,29 @@ export default function MedicalRecordForm({
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      procedure: "",
-      notes: "",
-      veterinarian: "",
-      date: new Date().toISOString().split("T")[0],
+      procedure: medicalRecord?.procedure || "",
+      notes: medicalRecord?.notes || "",
+      veterinarian: medicalRecord?.veterinarian || "",
+      date: medicalRecord?.date
+        ? new Date(medicalRecord.date).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
     },
   });
 
   const onSubmit = (data: any) => {
     if (!animal) return;
 
-    onSave({
+    const recordData = {
       ...data,
       animalId: animal.id,
       date: new Date(data.date),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      ...(medicalRecord ? { id: medicalRecord._id || medicalRecord.id } : {}), // Include ID if editing
+      ...(medicalRecord
+        ? { updatedAt: new Date() }
+        : { createdAt: new Date(), updatedAt: new Date() }),
+    };
+
+    onSave(recordData);
   };
 
   if (!animal) {
@@ -62,7 +70,9 @@ export default function MedicalRecordForm({
 
   return (
     <>
-      <DialogTitle id="medical-dialog-title">Add Medical Record</DialogTitle>
+      <DialogTitle id="medical-dialog-title">
+        {medicalRecord ? "Edit Medical Record" : "Add Medical Record"}
+      </DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -153,7 +163,7 @@ export default function MedicalRecordForm({
           tabIndex={0}
           type="submit"
         >
-          Add Record
+          {medicalRecord ? "Update Record" : "Add Record"}
         </Button>
       </DialogActions>
     </>

@@ -16,11 +16,7 @@ export const validateAnimal = [
     .withMessage("Species must be DOG, CAT, or OTHER"),
   body("breed").optional().trim(),
 
-  body("dateOfBirth")
-    .notEmpty()
-    .withMessage("Date of Birth is required")
-    .isISO8601()
-    .withMessage("Invalid date format"),
+  body("dateOfBirth").optional().isISO8601().withMessage("Invalid date format"),
 
   body("gender")
     .optional()
@@ -40,6 +36,11 @@ export const validateAnimal = [
     .optional()
     .isBoolean()
     .withMessage("isSpayedNeutered must be a boolean"),
+
+  body("spayNeuterDate")
+    .optional()
+    .isISO8601()
+    .withMessage("Invalid spay/neuter date format"),
 
   body("client").optional().isMongoId().withMessage("Invalid client ID"),
 

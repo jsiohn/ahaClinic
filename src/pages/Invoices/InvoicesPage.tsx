@@ -611,11 +611,19 @@ export default function InvoicesPage() {
                       />
                     </Typography>
                     {selectedInvoice.paymentDate && (
-                      <Typography variant="body1">
+                      <Typography variant="body1" gutterBottom>
                         <strong>Payment Date:</strong>{" "}
                         {new Date(
                           selectedInvoice.paymentDate
                         ).toLocaleDateString()}
+                      </Typography>
+                    )}
+                    {selectedInvoice.paymentMethod && (
+                      <Typography variant="body1">
+                        <strong>Payment Method:</strong>{" "}
+                        {selectedInvoice.paymentMethod
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                       </Typography>
                     )}
                   </CardContent>

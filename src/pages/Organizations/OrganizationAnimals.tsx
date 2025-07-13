@@ -88,6 +88,8 @@ export default function OrganizationAnimals({
             species: animal.species,
             breed: animal.breed,
             age: animal.age,
+            ageYears: animal.ageYears,
+            ageMonths: animal.ageMonths,
             gender: animal.gender,
             weight: animal.weight != null ? parseFloat(animal.weight) : null,
             organization: animal.organization?._id || organization.id,
@@ -96,8 +98,11 @@ export default function OrganizationAnimals({
             microchipNumber: animal.microchipNumber,
             dateOfBirth: animal.dateOfBirth
               ? new Date(animal.dateOfBirth)
-              : new Date(),
+              : undefined,
             isSpayedNeutered: animal.isSpayedNeutered,
+            spayNeuterDate: animal.spayNeuterDate
+              ? new Date(animal.spayNeuterDate)
+              : undefined,
             notes: animal.notes,
             isActive: animal.isActive,
             createdAt: new Date(animal.createdAt),
@@ -207,8 +212,9 @@ export default function OrganizationAnimals({
                 microchipNumber: updatedAnimal.microchipNumber,
                 dateOfBirth: updatedAnimal.dateOfBirth
                   ? new Date(updatedAnimal.dateOfBirth)
-                  : new Date(),
+                  : undefined,
                 isSpayedNeutered: updatedAnimal.isSpayedNeutered,
+                spayNeuterDate: updatedAnimal.spayNeuterDate,
                 notes: updatedAnimal.notes,
                 isActive: updatedAnimal.isActive,
                 createdAt: new Date(updatedAnimal.createdAt),
@@ -228,7 +234,6 @@ export default function OrganizationAnimals({
       );
     }
   };
-
   const handleSaveAnimal = async (animalData: Partial<Animal>) => {
     try {
       if (selectedAnimal) {
@@ -246,6 +251,8 @@ export default function OrganizationAnimals({
           species: responseData.species,
           breed: responseData.breed,
           age: responseData.age,
+          ageYears: responseData.ageYears,
+          ageMonths: responseData.ageMonths,
           gender: responseData.gender,
           weight:
             responseData.weight != null
@@ -258,8 +265,11 @@ export default function OrganizationAnimals({
           microchipNumber: responseData.microchipNumber,
           dateOfBirth: responseData.dateOfBirth
             ? new Date(responseData.dateOfBirth)
-            : new Date(),
+            : undefined,
           isSpayedNeutered: responseData.isSpayedNeutered,
+          spayNeuterDate: responseData.spayNeuterDate
+            ? new Date(responseData.spayNeuterDate)
+            : undefined,
           notes: responseData.notes,
           isActive: responseData.isActive,
           createdAt: new Date(responseData.createdAt),
@@ -283,6 +293,8 @@ export default function OrganizationAnimals({
           species: responseData.species,
           breed: responseData.breed,
           age: responseData.age,
+          ageYears: responseData.ageYears,
+          ageMonths: responseData.ageMonths,
           gender: responseData.gender,
           weight:
             responseData.weight != null
@@ -295,8 +307,11 @@ export default function OrganizationAnimals({
           microchipNumber: responseData.microchipNumber,
           dateOfBirth: responseData.dateOfBirth
             ? new Date(responseData.dateOfBirth)
-            : new Date(),
+            : undefined,
           isSpayedNeutered: responseData.isSpayedNeutered,
+          spayNeuterDate: responseData.spayNeuterDate
+            ? new Date(responseData.spayNeuterDate)
+            : undefined,
           notes: responseData.notes,
           isActive: responseData.isActive,
           createdAt: new Date(responseData.createdAt),
@@ -337,7 +352,18 @@ export default function OrganizationAnimals({
       // Prepare basic form data with animal information
       const formData: Record<string, any> = {
         "Animal Name": animal.name,
-        "Animal Age": animal.age?.toString() || "",
+        "Animal Age": (() => {
+          // Priority: use new ageYears/ageMonths format if available, fallback to old age field
+          if (animal.ageYears !== undefined || animal.ageMonths !== undefined) {
+            const years = animal.ageYears || 0;
+            const months = animal.ageMonths || 0;
+            if (years === 0 && months === 0) return "";
+            if (years === 0) return `${months} months`;
+            if (months === 0) return `${years} years`;
+            return `${years} years, ${months} months`;
+          }
+          return animal.age ? `${animal.age} years` : "";
+        })(),
         Weight: animal.weight?.toString() || "",
         Dog: animal.species === "DOG",
         "Domes. Cat":
@@ -437,9 +463,19 @@ export default function OrganizationAnimals({
     {
       field: "age",
       headerName: "Age",
-      width: 80,
-      valueFormatter: (params: any) => {
-        return params.value ? `${params.value} yrs` : "-";
+      width: 120,
+      renderCell: (params: GridRenderCellParams<Animal>) => {
+        const animal = params.row;
+        // Priority: use new ageYears/ageMonths format if available, fallback to old age field
+        if (animal.ageYears !== undefined || animal.ageMonths !== undefined) {
+          const years = animal.ageYears || 0;
+          const months = animal.ageMonths || 0;
+          if (years === 0 && months === 0) return "Unknown";
+          if (years === 0) return `${months}m`;
+          if (months === 0) return `${years}y`;
+          return `${years}y ${months}m`;
+        }
+        return animal.age ? `${animal.age}y` : "Unknown";
       },
     },
     {
@@ -662,6 +698,21 @@ export default function OrganizationAnimals({
                           selectedAnimal.dateOfBirth
                         ).toLocaleDateString()
                       : "Unknown"}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Spayed/Neutered:</strong>{" "}
+                    {selectedAnimal?.isSpayedNeutered ? "Yes" : "No"}
+                    {selectedAnimal?.isSpayedNeutered &&
+                      selectedAnimal?.spayNeuterDate && (
+                        <span>
+                          {" "}
+                          (
+                          {new Date(
+                            selectedAnimal.spayNeuterDate
+                          ).toLocaleDateString()}
+                          )
+                        </span>
+                      )}
                   </Typography>
                 </CardContent>
               </Card>
