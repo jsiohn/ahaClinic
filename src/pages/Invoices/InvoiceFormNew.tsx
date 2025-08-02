@@ -289,18 +289,12 @@ export default function InvoiceForm({
   // Separate effect to fetch animals when needed
   useEffect(() => {
     const fetchAnimalsData = async () => {
-      if (!selectedClient && !invoice) {
-        // Don't fetch animals until a client is selected or we're editing an invoice
-        return;
-      }
-
       try {
         console.log("Starting animals data fetch...");
         setAnimalsLoading(true);
         const startTime = Date.now();
 
-        // Fetch all animals - we'll filter on the client side for now
-        // In the future, we could optimize this to filter on the server side
+        // Fetch all animals for selection
         const animalResponse = await api.get("/animals");
 
         const fetchTime = Date.now() - startTime;
@@ -339,7 +333,7 @@ export default function InvoiceForm({
     };
 
     fetchAnimalsData();
-  }, [selectedClient, invoice, setValue]);
+  }, [invoice, setValue]);
 
   // Effect to update animal sections when selected animals change
   useEffect(() => {
@@ -393,7 +387,7 @@ export default function InvoiceForm({
 
         return isMatch;
       })
-    : [];
+    : animals; // Show all animals when no client is selected
 
   const getAnimalOptionLabel = (option: Animal) => {
     if (!option) return "";
@@ -528,7 +522,47 @@ export default function InvoiceForm({
     }
   };
 
+  // Validate that selected animals belong to the selected client/organization
+  const validateAnimalClientMatch = (): string | null => {
+    if (!selectedClient || selectedAnimals.length === 0) {
+      return null; // No validation needed if no client or animals selected
+    }
+
+    const invalidAnimals = selectedAnimals.filter((animal) => {
+      const animalClientId =
+        typeof animal.client === "object" && animal.client
+          ? (animal.client as any)._id || (animal.client as any).id
+          : animal.client;
+
+      const animalOrgId =
+        typeof animal.organization === "object" && animal.organization
+          ? (animal.organization as any)._id || (animal.organization as any).id
+          : animal.organization;
+
+      const isMatch =
+        selectedClient.type === "client"
+          ? animalClientId === selectedClient.id
+          : animalOrgId === selectedClient.id;
+
+      return !isMatch;
+    });
+
+    if (invalidAnimals.length > 0) {
+      const animalNames = invalidAnimals.map((a) => a.name).join(", ");
+      return `The following animals don't belong to the selected ${selectedClient.type}: ${animalNames}`;
+    }
+
+    return null;
+  };
+
   const onSubmit = (data: InvoiceFormData) => {
+    // Validate animal-client relationship
+    const validationError = validateAnimalClientMatch();
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
     const { subtotal, total } = calculateTotals();
 
     // Filter out animal sections with no valid items
@@ -649,7 +683,7 @@ export default function InvoiceForm({
                     isOptionEqualToValue={(option, value) =>
                       option?.id === value?.id
                     }
-                    disabled={!!invoice || !selectedClient}
+                    disabled={!!invoice}
                     loading={animalsLoading}
                     renderInput={(params) => (
                       <TextField
@@ -660,11 +694,11 @@ export default function InvoiceForm({
                         helperText={
                           invoice
                             ? "Animals cannot be changed after invoice creation"
-                            : selectedClient
-                            ? animalsLoading
-                              ? "Loading animals..."
-                              : errors.selectedAnimals?.message
-                            : "Please select a client or organization first"
+                            : animalsLoading
+                            ? "Loading animals..."
+                            : !selectedClient
+                            ? "Select a client first to filter animals, or choose from all animals"
+                            : errors.selectedAnimals?.message
                         }
                         inputProps={{
                           ...params.inputProps,
