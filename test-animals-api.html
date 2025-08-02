@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Animals API Performance</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .result {
+        background: #f0f0f0;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .error {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .success {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+      button {
+        background: #1976d2;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #1565c0;
+      }
+      #loading {
+        display: none;
+        color: #1976d2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Animals API Performance Test</h1>
+
+    <div>
+      <button onclick="testAnimalsAPI()">Test /api/animals</button>
+      <button onclick="testAnimalsAPIMultiple()">
+        Test Multiple Requests (5x)
+      </button>
+      <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="loading">Testing... Please wait</div>
+    <div id="results"></div>
+
+    <script>
+      const API_BASE = "http://localhost:5000/api";
+      let testCount = 0;
+
+      function showLoading() {
+        document.getElementById("loading").style.display = "block";
+      }
+
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      }
+
+      function addResult(message, isError = false) {
+        testCount++;
+        const resultsDiv = document.getElementById("results");
+        const resultDiv = document.createElement("div");
+        resultDiv.className = `result ${isError ? "error" : "success"}`;
+        resultDiv.innerHTML = `<strong>Test ${testCount}:</strong> ${message}`;
+        resultsDiv.appendChild(resultDiv);
+      }
+
+      function clearResults() {
+        document.getElementById("results").innerHTML = "";
+        testCount = 0;
+      }
+
+      async function testAnimalsAPI() {
+        showLoading();
+        const startTime = Date.now();
+
+        try {
+          // Note: This test won't work without authentication token
+          // You would need to add proper auth headers in a real test
+          const response = await fetch(`${API_BASE}/animals`);
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+
+          if (response.ok) {
+            const data = await response.json();
+            addResult(
+              `✅ Animals API responded in ${duration}ms - Got ${
+                data.length || "unknown"
+              } animals`
+            );
+          } else {
+            addResult(
+              `❌ Animals API failed with status ${response.status} - ${response.statusText}`,
+              true
+            );
+          }
+        } catch (error) {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          addResult(
+            `❌ Animals API error after ${duration}ms: ${error.message}`,
+            true
+          );
+        }
+
+        hideLoading();
+      }
+
+      async function testAnimalsAPIMultiple() {
+        showLoading();
+        const promises = [];
+        const startTime = Date.now();
+
+        for (let i = 0; i < 5; i++) {
+          promises.push(
+            fetch(`${API_BASE}/animals`)
+              .then((response) => ({ i: i + 1, response, time: Date.now() }))
+              .catch((error) => ({ i: i + 1, error, time: Date.now() }))
+          );
+        }
+
+        try {
+          const results = await Promise.all(promises);
+          const endTime = Date.now();
+          const totalDuration = endTime - startTime;
+
+          let successCount = 0;
+          results.forEach((result) => {
+            if (result.response && result.response.ok) {
+              successCount++;
+              addResult(
+                `✅ Request ${result.i} succeeded in ${
+                  result.time - startTime
+                }ms`
+              );
+            } else if (result.error) {
+              addResult(
+                `❌ Request ${result.i} failed: ${result.error.message}`,
+                true
+              );
+            } else {
+              addResult(
+                `❌ Request ${result.i} failed with status ${result.response.status}`,
+                true
+              );
+            }
+          });
+
+          addResult(
+            `📊 Total: ${successCount}/5 requests succeeded in ${totalDuration}ms`
+          );
+        } catch (error) {
+          addResult(`❌ Multiple requests failed: ${error.message}`, true);
+        }
+
+        hideLoading();
+      }
+
+      // Add some initial guidance
+      addResult(
+        "⚠️ Note: These tests require the backend server to be running on localhost:5000 and may fail due to CORS or authentication requirements. Use the browser developer console for more detailed error information."
+      );
+    </script>
+  </body>
+</html>

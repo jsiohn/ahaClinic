@@ -56,6 +56,11 @@ organizationSchema.pre("save", function (next) {
   next();
 });
 
+// Add indexes for better query performance
+organizationSchema.index({ name: 1 });
+organizationSchema.index({ contactEmail: 1 });
+organizationSchema.index({ contactPhone: 1 });
+
 const Organization = mongoose.model("Organization", organizationSchema);
 
 export default Organization;

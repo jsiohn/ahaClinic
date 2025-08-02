@@ -87,6 +87,15 @@ animalSchema.pre("save", function (next) {
   next();
 });
 
+// Add indexes for better query performance
+animalSchema.index({ client: 1 });
+animalSchema.index({ organization: 1 });
+animalSchema.index({ name: 1 });
+animalSchema.index({ species: 1 });
+animalSchema.index({ isActive: 1 });
+animalSchema.index({ client: 1, isActive: 1 });
+animalSchema.index({ organization: 1, isActive: 1 });
+
 const Animal = mongoose.model("Animal", animalSchema);
 
 export default Animal;

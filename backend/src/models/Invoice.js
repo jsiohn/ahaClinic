@@ -121,6 +121,16 @@ invoiceSchema.pre("save", function (next) {
   next();
 });
 
+// Add indexes for better query performance
+invoiceSchema.index({ client: 1 });
+invoiceSchema.index({ status: 1 });
+invoiceSchema.index({ date: 1 });
+invoiceSchema.index({ dueDate: 1 });
+invoiceSchema.index({ "animalSections.animalId": 1 });
+invoiceSchema.index({ client: 1, status: 1 });
+invoiceSchema.index({ client: 1, date: -1 });
+// Note: invoiceNumber already has unique index defined in schema
+
 const Invoice = mongoose.model("Invoice", invoiceSchema);
 
 export default Invoice;

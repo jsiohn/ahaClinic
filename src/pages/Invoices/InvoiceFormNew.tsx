@@ -190,6 +190,7 @@ export default function InvoiceForm({
   );
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
+  const [animalsLoading, setAnimalsLoading] = useState<boolean>(false);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(
     null
   );
@@ -221,14 +222,21 @@ export default function InvoiceForm({
     },
   });
 
-  // Effect to load data
+  // Effect to load clients and organizations
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchClientData = async () => {
       try {
-        // Fetch clients and organizations for the dropdown
-        const [clientResponse, orgResponse, animalResponse] = await Promise.all(
-          [api.get("/clients"), api.get("/organizations"), api.get("/animals")]
-        );
+        console.log("Starting client/organization data fetch...");
+        const startTime = Date.now();
+
+        // Only fetch clients and organizations initially
+        const [clientResponse, orgResponse] = await Promise.all([
+          api.get("/clients"),
+          api.get("/organizations"),
+        ]);
+
+        const fetchTime = Date.now() - startTime;
+        console.log(`Client/organization fetch completed in ${fetchTime}ms`);
 
         // Transform clients and organizations into a combined options array
         const clients = Array.isArray(clientResponse)
@@ -260,15 +268,6 @@ export default function InvoiceForm({
         const combinedOptions = [...clients, ...organizations];
         setClientOptions(combinedOptions);
 
-        // Transform animals
-        const transformedAnimals = Array.isArray(animalResponse)
-          ? animalResponse.map((animal: any) => ({
-              ...animal,
-              id: animal._id || animal.id,
-            }))
-          : [];
-        setAnimals(transformedAnimals);
-
         // Set selected options if editing an existing invoice
         if (invoice) {
           const matchingClient = combinedOptions.find(
@@ -278,8 +277,46 @@ export default function InvoiceForm({
             setSelectedClient(matchingClient);
             setValue("clientId", matchingClient.id);
           }
+        }
+      } catch (err) {
+        console.error("Error fetching client/organization data:", err);
+      }
+    };
 
-          // Find matching animals
+    fetchClientData();
+  }, [invoice, setValue]);
+
+  // Separate effect to fetch animals when needed
+  useEffect(() => {
+    const fetchAnimalsData = async () => {
+      if (!selectedClient && !invoice) {
+        // Don't fetch animals until a client is selected or we're editing an invoice
+        return;
+      }
+
+      try {
+        console.log("Starting animals data fetch...");
+        setAnimalsLoading(true);
+        const startTime = Date.now();
+
+        // Fetch all animals - we'll filter on the client side for now
+        // In the future, we could optimize this to filter on the server side
+        const animalResponse = await api.get("/animals");
+
+        const fetchTime = Date.now() - startTime;
+        console.log(`Animals fetch completed in ${fetchTime}ms`);
+
+        // Transform animals
+        const transformedAnimals = Array.isArray(animalResponse)
+          ? animalResponse.map((animal: any) => ({
+              ...animal,
+              id: animal._id || animal.id,
+            }))
+          : [];
+        setAnimals(transformedAnimals);
+
+        // Set selected animals if editing an existing invoice
+        if (invoice) {
           const matchingAnimals = transformedAnimals.filter((a) =>
             invoice.animalSections?.some(
               (section) =>
@@ -295,12 +332,14 @@ export default function InvoiceForm({
           }
         }
       } catch (err) {
-        // Silently handle data fetch errors
+        console.error("Error fetching animals data:", err);
+      } finally {
+        setAnimalsLoading(false);
       }
     };
 
-    fetchData();
-  }, [invoice, setValue]);
+    fetchAnimalsData();
+  }, [selectedClient, invoice, setValue]);
 
   // Effect to update animal sections when selected animals change
   useEffect(() => {
@@ -611,6 +650,7 @@ export default function InvoiceForm({
                       option?.id === value?.id
                     }
                     disabled={!!invoice || !selectedClient}
+                    loading={animalsLoading}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -621,7 +661,9 @@ export default function InvoiceForm({
                           invoice
                             ? "Animals cannot be changed after invoice creation"
                             : selectedClient
-                            ? errors.selectedAnimals?.message
+                            ? animalsLoading
+                              ? "Loading animals..."
+                              : errors.selectedAnimals?.message
                             : "Please select a client or organization first"
                         }
                         inputProps={{

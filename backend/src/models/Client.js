@@ -57,6 +57,13 @@ clientSchema.pre("save", function (next) {
   next();
 });
 
+// Add indexes for better query performance
+// Note: email already has sparse index defined in schema
+clientSchema.index({ firstName: 1, lastName: 1 });
+clientSchema.index({ isActive: 1 });
+clientSchema.index({ isBlacklisted: 1 });
+clientSchema.index({ isActive: 1, isBlacklisted: 1 });
+
 const Client = mongoose.model("Client", clientSchema);
 
 export default Client;
