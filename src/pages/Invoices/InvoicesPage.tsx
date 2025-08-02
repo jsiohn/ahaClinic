@@ -26,7 +26,7 @@ import {
   Close as CloseIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
-import { Invoice } from "../../types/models";
+import { Invoice, InvoiceItem } from "../../types/models";
 import InvoiceFormNew from "./InvoiceFormNew";
 import api from "../../utils/api";
 import {
@@ -45,16 +45,27 @@ interface ExtendedInvoice extends Invoice {
     firstName: string;
     lastName: string;
   };
-  animals?: {
-    _id?: string;
-    id?: string;
-    name: string;
-    species: string;
+  // Override animalSections to include populated animal data
+  animalSections: {
+    animalId: string;
+    animal?: {
+      _id?: string;
+      id?: string;
+      name: string;
+      species: string;
+    };
+    items: InvoiceItem[];
+    subtotal: number;
   }[];
+  notes?: string;
 }
 
-interface ApiInvoice extends Omit<Invoice, "id"> {
+interface ApiInvoice {
   _id: string;
+  invoiceNumber: string;
+  clientId: string;
+  date: string; // Date comes as string from API
+  dueDate: string; // Date comes as string from API
   client?:
     | {
         _id: string;
@@ -63,14 +74,32 @@ interface ApiInvoice extends Omit<Invoice, "id"> {
         lastName: string;
       }
     | string;
-  animals?:
-    | {
-        _id: string;
-        id?: string;
-        name: string;
-        species: string;
-      }[]
-    | string[];
+  animalSections: {
+    animalId:
+      | {
+          _id: string;
+          id?: string;
+          name: string;
+          species: string;
+        }
+      | string;
+    items: {
+      description: string;
+      procedure: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }[];
+    subtotal: number;
+  }[];
+  subtotal: number;
+  total: number;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
+  paymentDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function InvoicesPage() {
@@ -125,56 +154,51 @@ export default function InvoicesPage() {
       }
     }
 
-    // Extract animals from animalSections if populated
-    let animals: { _id: string; id?: string; name: string; species: string }[] =
-      [];
-    if (invoice.animalSections) {
-      animals = invoice.animalSections
-        .map((section) => {
-          // Handle both populated objects and string IDs
-          if (section.animalId) {
-            if (
-              typeof section.animalId === "object" &&
-              section.animalId !== null
-            ) {
-              // animalId is populated with animal data
-              const animal = section.animalId as any;
-              return {
-                _id: animal._id || animal.id || "",
-                id: animal.id || animal._id || "",
-                name: animal.name || "Unknown",
-                species: animal.species || "Unknown",
-              };
-            } else if (typeof section.animalId === "string") {
-              // animalId is just a string ID - we'll need to handle this differently
-              // For now, return a placeholder that includes the ID
-              return {
-                _id: section.animalId,
-                id: section.animalId,
-                name: `Animal ${section.animalId}`,
-                species: "Unknown",
-              };
-            }
-          }
-          return null;
-        })
-        .filter((animal) => animal !== null) as {
-        _id: string;
-        id?: string;
-        name: string;
-        species: string;
-      }[];
-    }
+    // Transform animalSections to include populated animal data
+    const animalSections = invoice.animalSections.map((section) => {
+      let animal:
+        | { _id?: string; id?: string; name: string; species: string }
+        | undefined;
+
+      if (typeof section.animalId === "object" && section.animalId !== null) {
+        // animalId is populated with animal data
+        const animalData = section.animalId as any;
+        animal = {
+          _id: animalData._id || animalData.id || "",
+          id: animalData.id || animalData._id || "",
+          name: animalData.name || "Unknown",
+          species: animalData.species || "Unknown",
+        };
+      }
+
+      return {
+        animalId:
+          typeof section.animalId === "string"
+            ? section.animalId
+            : (section.animalId as any)._id || "",
+        animal,
+        items: section.items.map((item) => ({
+          id: item.description, // Use description as id for now
+          procedure: item.procedure,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+        })),
+        subtotal: section.subtotal,
+      };
+    });
 
     return {
-      ...invoice,
       id: invoice._id,
+      invoiceNumber: invoice.invoiceNumber,
       clientId,
       // Preserve the client object for UI display
       client: typeof invoice.client === "object" ? invoice.client : undefined,
-      animals: animals.length > 0 ? animals : undefined,
+      animalSections,
       date: new Date(invoice.date),
       dueDate: new Date(invoice.dueDate),
+      paymentMethod: invoice.paymentMethod,
       paymentDate: invoice.paymentDate
         ? new Date(invoice.paymentDate)
         : undefined,
@@ -182,6 +206,8 @@ export default function InvoicesPage() {
       updatedAt: new Date(invoice.updatedAt),
       subtotal,
       total,
+      status: invoice.status,
+      notes: invoice.notes,
     };
   };
 
@@ -342,10 +368,11 @@ export default function InvoicesPage() {
         ? `${invoice.client.firstName} ${invoice.client.lastName}`.toLowerCase()
         : "";
 
-    // Get animal names from the row data that has been transformed
-    const animalNames = invoice.animals
-      ? invoice.animals.map((animal) => animal.name.toLowerCase()).join(" ")
-      : "";
+    // Get animal names from the animalSections
+    const animalNames = invoice.animalSections
+      .map((section) => section.animal?.name?.toLowerCase() || "")
+      .filter((name) => name)
+      .join(" ");
 
     const status = (invoice.status || "").toLowerCase();
     const total = invoice.total?.toString() || "";
@@ -415,8 +442,11 @@ export default function InvoicesPage() {
       headerName: "Animals",
       width: 200,
       renderCell: (params: GridRenderCellParams) => {
-        const animalNames = params.row.animals
-          ? params.row.animals.map((animal: any) => animal.name).join(", ")
+        const animalNames = params.row.animalSections
+          ? params.row.animalSections
+              .map((section: any) => section.animal?.name)
+              .filter((name: string) => name)
+              .join(", ")
           : "No Animals";
         return <span>{animalNames}</span>;
       },
@@ -701,10 +731,11 @@ export default function InvoicesPage() {
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Animals:</strong>{" "}
-                      {selectedInvoice.animals &&
-                      selectedInvoice.animals.length > 0
-                        ? selectedInvoice.animals
-                            .map((animal) => animal.name)
+                      {selectedInvoice.animalSections &&
+                      selectedInvoice.animalSections.length > 0
+                        ? selectedInvoice.animalSections
+                            .map((section) => section.animal?.name)
+                            .filter((name) => name)
                             .join(", ")
                         : "No animals"}
                     </Typography>

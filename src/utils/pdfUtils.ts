@@ -2,24 +2,41 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { Invoice } from "../types/models";
+import { InvoiceItem } from "../types/models";
 
 /**
  * Generates a PDF from invoice data using pdf-lib
  */
-interface PopulatedInvoice extends Invoice {
+interface PopulatedInvoice {
+  id: string;
+  invoiceNumber: string;
+  clientId: string;
+  date: Date;
+  dueDate: Date;
+  subtotal: number;
+  total: number;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
+  paymentDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
   client?: {
     firstName: string;
     lastName: string;
   };
-  animals?: {
-    name: string;
-    species: string;
+  animalSections: {
+    animalId: string;
+    animal?: {
+      name: string;
+      species: string;
+    };
+    items: InvoiceItem[];
+    subtotal: number;
   }[];
 }
 
 export const generateInvoicePdf = async (
-  invoice: Invoice | PopulatedInvoice
+  invoice: PopulatedInvoice
 ): Promise<Uint8Array> => {
   try {
     const pdfDoc = await PDFDocument.create();
@@ -142,12 +159,14 @@ export const generateInvoicePdf = async (
 
     // Animal information
     const animalInfo =
-      "animals" in invoice && invoice.animals && invoice.animals.length > 0
-        ? invoice.animals
-            .map(
-              (animal) =>
-                `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
-            )
+      invoice.animalSections && invoice.animalSections.length > 0
+        ? invoice.animalSections
+            .map((section) => {
+              const animal = section.animal;
+              return animal
+                ? `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
+                : "Animal information not available";
+            })
             .join(", ")
         : "Animal information not available";
 
