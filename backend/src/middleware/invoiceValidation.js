@@ -16,11 +16,38 @@ export const validateInvoice = [
     .isMongoId()
     .withMessage("Invalid client ID"),
 
-  body("animal")
-    .notEmpty()
-    .withMessage("Animal ID is required")
+  body("animalSections")
+    .isArray({ min: 1 })
+    .withMessage("At least one animal section is required"),
+
+  body("animalSections.*.animalId")
     .isMongoId()
     .withMessage("Invalid animal ID"),
+
+  body("animalSections.*.items")
+    .isArray({ min: 1 })
+    .withMessage("Each animal section must have at least one item"),
+
+  body("animalSections.*.items.*.description")
+    .trim()
+    .notEmpty()
+    .withMessage("Item description is required"),
+
+  body("animalSections.*.items.*.quantity")
+    .isInt({ min: 1 })
+    .withMessage("Quantity must be at least 1"),
+
+  body("animalSections.*.items.*.unitPrice")
+    .isFloat({ min: 0 })
+    .withMessage("Unit price must be a positive number"),
+
+  body("animalSections.*.items.*.total")
+    .isFloat({ min: 0 })
+    .withMessage("Total must be a positive number"),
+
+  body("animalSections.*.subtotal")
+    .isFloat({ min: 0 })
+    .withMessage("Animal section subtotal must be a positive number"),
 
   body("date")
     .notEmpty()
@@ -39,27 +66,6 @@ export const validateInvoice = [
       }
       return true;
     }),
-
-  body("items")
-    .isArray({ min: 1 })
-    .withMessage("At least one item is required"),
-
-  body("items.*.description")
-    .trim()
-    .notEmpty()
-    .withMessage("Item description is required"),
-
-  body("items.*.quantity")
-    .isInt({ min: 1 })
-    .withMessage("Quantity must be at least 1"),
-
-  body("items.*.unitPrice")
-    .isFloat({ min: 0 })
-    .withMessage("Unit price must be a positive number"),
-
-  body("items.*.total")
-    .isFloat({ min: 0 })
-    .withMessage("Total must be a positive number"),
 
   body("subtotal")
     .isFloat({ min: 0 })

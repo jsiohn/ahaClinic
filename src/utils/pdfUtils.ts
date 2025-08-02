@@ -12,10 +12,10 @@ interface PopulatedInvoice extends Invoice {
     firstName: string;
     lastName: string;
   };
-  animal?: {
+  animals?: {
     name: string;
     species: string;
-  };
+  }[];
 }
 
 export const generateInvoicePdf = async (
@@ -23,7 +23,7 @@ export const generateInvoicePdf = async (
 ): Promise<Uint8Array> => {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     const { width, height } = page.getSize();
 
     // Add standard font
@@ -142,10 +142,13 @@ export const generateInvoicePdf = async (
 
     // Animal information
     const animalInfo =
-      "animal" in invoice && invoice.animal
-        ? `${invoice.animal.name || "Unknown"} (${
-            invoice.animal.species || "Unknown"
-          })`
+      "animals" in invoice && invoice.animals && invoice.animals.length > 0
+        ? invoice.animals
+            .map(
+              (animal) =>
+                `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
+            )
+            .join(", ")
         : "Animal information not available";
 
     // Client and Animal details
@@ -237,78 +240,107 @@ export const generateInvoicePdf = async (
     let currentY = itemsY - 40;
     const itemHeight = 40;
 
-    if (invoice.items && invoice.items.length > 0) {
-      invoice.items.forEach((item) => {
-        // Draw item details
-        page.drawText(item.procedure || "", {
-          x: 60,
-          y: currentY,
-          size: 10,
-          font,
-          color: rgb(0.1, 0.1, 0.1),
-        });
+    if (invoice.animalSections && invoice.animalSections.length > 0) {
+      // Iterate through animal sections
+      invoice.animalSections.forEach((section) => {
+        // Draw animal header if animal info is available
+        if (section.animalId && typeof section.animalId === "object") {
+          const animal = section.animalId as any;
+          page.drawText(
+            `Animal: ${animal.name || "Unknown"} (${
+              animal.species || "Unknown"
+            })`,
+            {
+              x: 60,
+              y: currentY,
+              size: 12,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            }
+          );
+          currentY -= 25;
+        }
 
-        // Description with word wrap
-        const description = item.description || "";
-        const descriptionLines = wrapText(description, 25);
-        descriptionLines.forEach((line, i) => {
-          page.drawText(line, {
-            x: 180,
-            y: currentY - i * 12,
-            size: 9,
-            font,
-            color: rgb(0.3, 0.3, 0.3),
-          });
-        });
-
-        page.drawText(item.quantity?.toString() || "1", {
-          x: 350,
-          y: currentY,
-          size: 10,
-          font,
-          color: rgb(0.1, 0.1, 0.1),
-        });
-
-        page.drawText(`$${item.unitPrice?.toFixed(2)}`, {
-          x: 400,
-          y: currentY,
-          size: 10,
-          font,
-          color: rgb(0.1, 0.1, 0.1),
-        });
-
-        page.drawText(`$${(item.quantity * item.unitPrice).toFixed(2)}`, {
-          x: 500,
-          y: currentY,
-          size: 10,
-          font,
-          color: rgb(0.1, 0.1, 0.1),
-        });
-
-        // Adjust y position for next item
-        currentY -= itemHeight;
-
-        // Add a page if we're running out of space
-        if (currentY < 100) {
-          page.drawText("Continued on next page...", {
-            x: width / 2 - 60,
-            y: 50,
+        // Draw items for this animal
+        section.items.forEach((item) => {
+          // Draw item details
+          page.drawText(item.procedure || "", {
+            x: 60,
+            y: currentY,
             size: 10,
-            font: boldFont,
-            color: rgb(0.3, 0.3, 0.3),
-          }); // Add a new page
-          const newPage = pdfDoc.addPage([595.28, 841.89]);
-          currentY = height - 50;
-
-          // Add header to new page
-          newPage.drawText(`INVOICE #${invoice.invoiceNumber} (continued)`, {
-            x: 50,
-            y: height - 50,
-            size: 16,
-            font: boldFont,
+            font,
             color: rgb(0.1, 0.1, 0.1),
           });
-        }
+
+          // Description with word wrap
+          const description = item.description || "";
+          const descriptionLines = wrapText(description, 25);
+          descriptionLines.forEach((line, i) => {
+            page.drawText(line, {
+              x: 180,
+              y: currentY - i * 12,
+              size: 9,
+              font,
+              color: rgb(0.3, 0.3, 0.3),
+            });
+          });
+
+          // Quantity
+          page.drawText(item.quantity?.toString() || "1", {
+            x: 350,
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Unit Price
+          page.drawText(`$${Number(item.unitPrice || 0).toFixed(2)}`, {
+            x: 400,
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Total
+          page.drawText(`$${Number(item.total || 0).toFixed(2)}`, {
+            x: 500,
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Adjust y position for next item
+          currentY -= itemHeight;
+
+          // Add a page if we're running out of space
+          if (currentY < 100) {
+            page.drawText("Continued on next page...", {
+              x: width / 2 - 60,
+              y: 50,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.3, 0.3, 0.3),
+            });
+            // Add a new page
+            page = pdfDoc.addPage([595.28, 841.89]);
+            currentY = height - 50;
+
+            // Add header to new page
+            page.drawText(`INVOICE #${invoice.invoiceNumber} (continued)`, {
+              x: 50,
+              y: height - 50,
+              size: 16,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+          }
+        });
+
+        // Add spacing between animal sections
+        currentY -= 20;
       });
     } else {
       page.drawText("No items in this invoice", {

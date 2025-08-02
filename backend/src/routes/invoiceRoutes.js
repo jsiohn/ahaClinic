@@ -12,11 +12,15 @@ const transformInvoice = (invoice) => {
     ...invoiceObj,
     subtotal: parseFloat(Number(invoiceObj.subtotal).toFixed(2)),
     total: parseFloat(Number(invoiceObj.total).toFixed(2)),
-    items: invoiceObj.items.map((item) => ({
-      ...item,
-      quantity: Math.max(1, parseInt(String(item.quantity))),
-      unitPrice: parseFloat(Number(item.unitPrice).toFixed(2)),
-      total: parseFloat(Number(item.total).toFixed(2)),
+    animalSections: invoiceObj.animalSections.map((section) => ({
+      ...section,
+      subtotal: parseFloat(Number(section.subtotal).toFixed(2)),
+      items: section.items.map((item) => ({
+        ...item,
+        quantity: Math.max(1, parseInt(String(item.quantity))),
+        unitPrice: parseFloat(Number(item.unitPrice).toFixed(2)),
+        total: parseFloat(Number(item.total).toFixed(2)),
+      })),
     })),
   };
 };
@@ -30,7 +34,7 @@ router.get(
     try {
       const invoices = await Invoice.find()
         .populate("client", "firstName lastName")
-        .populate("animal", "name species");
+        .populate("animalSections.animalId", "name species");
 
       const transformedInvoices = invoices.map(transformInvoice);
       res.json(transformedInvoices);
@@ -49,7 +53,7 @@ router.get(
     try {
       const invoices = await Invoice.find({ client: req.params.clientId })
         .populate("client", "firstName lastName")
-        .populate("animal", "name species");
+        .populate("animalSections.animalId", "name species");
 
       const transformedInvoices = invoices.map(transformInvoice);
       res.json(transformedInvoices);
@@ -66,9 +70,11 @@ router.get(
   requirePermission(PERMISSIONS.READ_INVOICES),
   async (req, res) => {
     try {
-      const invoices = await Invoice.find({ animal: req.params.animalId })
+      const invoices = await Invoice.find({
+        "animalSections.animalId": req.params.animalId,
+      })
         .populate("client", "firstName lastName")
-        .populate("animal", "name species");
+        .populate("animalSections.animalId", "name species");
 
       const transformedInvoices = invoices.map(transformInvoice);
       res.json(transformedInvoices);
@@ -87,7 +93,7 @@ router.get(
     try {
       const invoice = await Invoice.findById(req.params.id)
         .populate("client", "firstName lastName")
-        .populate("animal", "name species");
+        .populate("animalSections.animalId", "name species");
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -106,6 +112,11 @@ router.post(
   validateInvoice,
   async (req, res) => {
     try {
+      console.log(
+        "Creating invoice with data:",
+        JSON.stringify(req.body, null, 2)
+      );
+
       // Check if invoice number already exists
       const existingInvoice = await Invoice.findOne({
         invoiceNumber: req.body.invoiceNumber,
@@ -121,18 +132,22 @@ router.post(
         ...req.body,
         subtotal: Number(req.body.subtotal) || 0,
         total: Number(req.body.total) || 0,
-        items: req.body.items.map((item) => ({
-          ...item,
-          quantity: Number(item.quantity) || 1,
-          unitPrice: Number(item.unitPrice) || 0,
-          total: Number(item.total) || 0,
+        animalSections: req.body.animalSections.map((section) => ({
+          ...section,
+          subtotal: Number(section.subtotal) || 0,
+          items: section.items.map((item) => ({
+            ...item,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unitPrice) || 0,
+            total: Number(item.total) || 0,
+          })),
         })),
       };
 
       const invoice = new Invoice(invoiceData);
       const newInvoice = await invoice.save();
       await newInvoice.populate("client", "firstName lastName");
-      await newInvoice.populate("animal", "name species");
+      await newInvoice.populate("animalSections.animalId", "name species");
       res.status(201).json(transformInvoice(newInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -173,18 +188,22 @@ router.put(
         ...req.body,
         subtotal: Number(req.body.subtotal) || 0,
         total: Number(req.body.total) || 0,
-        items: req.body.items.map((item) => ({
-          ...item,
-          quantity: Number(item.quantity) || 1,
-          unitPrice: Number(item.unitPrice) || 0,
-          total: Number(item.total) || 0,
+        animalSections: req.body.animalSections.map((section) => ({
+          ...section,
+          subtotal: Number(section.subtotal) || 0,
+          items: section.items.map((item) => ({
+            ...item,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unitPrice) || 0,
+            total: Number(item.total) || 0,
+          })),
         })),
       };
 
       Object.assign(invoice, updateData);
       const updatedInvoice = await invoice.save();
       await updatedInvoice.populate("client", "firstName lastName");
-      await updatedInvoice.populate("animal", "name species");
+      await updatedInvoice.populate("animalSections.animalId", "name species");
       res.json(transformInvoice(updatedInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -216,7 +235,7 @@ router.patch(
 
       const updatedInvoice = await invoice.save();
       await updatedInvoice.populate("client", "firstName lastName");
-      await updatedInvoice.populate("animal", "name species");
+      await updatedInvoice.populate("animalSections.animalId", "name species");
       res.json(transformInvoice(updatedInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });

@@ -78,6 +78,10 @@ export default function AnimalsPage() {
     { file: "clinicIntakeForm.pdf", title: "Intake Form" },
     { file: "clinicRabiesCert.pdf", title: "Rabies Certificate" },
     { file: "clinicTakehomeForm.pdf", title: "Take-home Form" },
+    {
+      file: "clinicVaxForm.pdf",
+      title: "VAX Check In Form",
+    },
   ];
 
   const fetchClients = async () => {

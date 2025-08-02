@@ -27,7 +27,7 @@ import {
   Search as SearchIcon,
 } from "@mui/icons-material";
 import { Invoice } from "../../types/models";
-import InvoiceForm from "./InvoiceForm";
+import InvoiceFormNew from "./InvoiceFormNew";
 import api from "../../utils/api";
 import {
   generateInvoicePdf,
@@ -45,12 +45,12 @@ interface ExtendedInvoice extends Invoice {
     firstName: string;
     lastName: string;
   };
-  animal?: {
+  animals?: {
     _id?: string;
     id?: string;
     name: string;
     species: string;
-  };
+  }[];
 }
 
 interface ApiInvoice extends Omit<Invoice, "id"> {
@@ -63,14 +63,14 @@ interface ApiInvoice extends Omit<Invoice, "id"> {
         lastName: string;
       }
     | string;
-  animal?:
+  animals?:
     | {
         _id: string;
         id?: string;
         name: string;
         species: string;
-      }
-    | string;
+      }[]
+    | string[];
 }
 
 export default function InvoicesPage() {
@@ -82,6 +82,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [detailAnimals, setDetailAnimals] = useState<any[]>([]);
 
   useEffect(() => {
     fetchInvoices();
@@ -114,7 +115,7 @@ export default function InvoicesPage() {
         ? invoice.total
         : subtotal; // Default total to subtotal when no tax
 
-    // Extract client and animal IDs properly with type checking
+    // Extract client ID properly with type checking
     let clientId: string = "";
     if (invoice.client) {
       if (typeof invoice.client === "object" && invoice.client !== null) {
@@ -124,23 +125,54 @@ export default function InvoicesPage() {
       }
     }
 
-    let animalId: string = "";
-    if (invoice.animal) {
-      if (typeof invoice.animal === "object" && invoice.animal !== null) {
-        animalId = invoice.animal._id || invoice.animal.id || "";
-      } else if (typeof invoice.animal === "string") {
-        animalId = invoice.animal;
-      }
+    // Extract animals from animalSections if populated
+    let animals: { _id: string; id?: string; name: string; species: string }[] =
+      [];
+    if (invoice.animalSections) {
+      animals = invoice.animalSections
+        .map((section) => {
+          // Handle both populated objects and string IDs
+          if (section.animalId) {
+            if (
+              typeof section.animalId === "object" &&
+              section.animalId !== null
+            ) {
+              // animalId is populated with animal data
+              const animal = section.animalId as any;
+              return {
+                _id: animal._id || animal.id || "",
+                id: animal.id || animal._id || "",
+                name: animal.name || "Unknown",
+                species: animal.species || "Unknown",
+              };
+            } else if (typeof section.animalId === "string") {
+              // animalId is just a string ID - we'll need to handle this differently
+              // For now, return a placeholder that includes the ID
+              return {
+                _id: section.animalId,
+                id: section.animalId,
+                name: `Animal ${section.animalId}`,
+                species: "Unknown",
+              };
+            }
+          }
+          return null;
+        })
+        .filter((animal) => animal !== null) as {
+        _id: string;
+        id?: string;
+        name: string;
+        species: string;
+      }[];
     }
+
     return {
       ...invoice,
       id: invoice._id,
-      // Make sure we set the clientId and animalId correctly
       clientId,
-      animalId,
-      // Preserve the client and animal objects for UI display
+      // Preserve the client object for UI display
       client: typeof invoice.client === "object" ? invoice.client : undefined,
-      animal: typeof invoice.animal === "object" ? invoice.animal : undefined,
+      animals: animals.length > 0 ? animals : undefined,
       date: new Date(invoice.date),
       dueDate: new Date(invoice.dueDate),
       paymentDate: invoice.paymentDate
@@ -150,22 +182,6 @@ export default function InvoicesPage() {
       updatedAt: new Date(invoice.updatedAt),
       subtotal,
       total,
-      items: invoice.items.map((item) => ({
-        ...item,
-        quantity: Math.max(1, parseInt(String(item.quantity || 1))),
-        unitPrice:
-          typeof item.unitPrice === "string"
-            ? parseFloat(item.unitPrice)
-            : typeof item.unitPrice === "number"
-            ? item.unitPrice
-            : 0,
-        total:
-          typeof item.total === "string"
-            ? parseFloat(item.total)
-            : typeof item.total === "number"
-            ? item.total
-            : 0,
-      })),
     };
   };
 
@@ -249,13 +265,42 @@ export default function InvoicesPage() {
     setOpenDialog(false);
     setSelectedInvoice(null);
   };
-  const handleRowClick = (params: any) => {
+  const handleRowClick = async (params: any) => {
     // Check if the click target is a button or icon
     const isActionButton = (params.event?.target as HTMLElement)?.closest(
       ".MuiIconButton-root"
     );
     if (!isActionButton) {
       setSelectedInvoice(params.row);
+
+      // Fetch animal details for the invoice
+      try {
+        if (params.row.animalSections && params.row.animalSections.length > 0) {
+          const animalIds = params.row.animalSections.map((section: any) => {
+            // Handle both populated objects and string IDs
+            if (typeof section.animalId === "object" && section.animalId) {
+              return section.animalId._id || section.animalId.id;
+            }
+            return section.animalId;
+          });
+
+          const animalResponse = await api.get("/animals");
+
+          const allAnimals = Array.isArray(animalResponse)
+            ? animalResponse
+            : [];
+
+          const invoiceAnimals = allAnimals.filter((animal: any) =>
+            animalIds.includes(animal._id || animal.id)
+          );
+
+          setDetailAnimals(invoiceAnimals);
+        }
+      } catch (error) {
+        console.error("Failed to fetch animal details:", error);
+        setDetailAnimals([]);
+      }
+
       setOpenDetailDialog(true);
     }
   };
@@ -297,9 +342,9 @@ export default function InvoicesPage() {
         ? `${invoice.client.firstName} ${invoice.client.lastName}`.toLowerCase()
         : "";
 
-    // Get animal name from the row data that has been transformed
-    const animalName = invoice.animal?.name
-      ? invoice.animal.name.toLowerCase()
+    // Get animal names from the row data that has been transformed
+    const animalNames = invoice.animals
+      ? invoice.animals.map((animal) => animal.name.toLowerCase()).join(" ")
       : "";
 
     const status = (invoice.status || "").toLowerCase();
@@ -308,7 +353,7 @@ export default function InvoicesPage() {
     return (
       invoiceNumber.includes(searchStr) ||
       clientName.includes(searchStr) ||
-      animalName.includes(searchStr) ||
+      animalNames.includes(searchStr) ||
       status.includes(searchStr) ||
       total.includes(searchStr)
     );
@@ -363,6 +408,17 @@ export default function InvoicesPage() {
             ? `${params.row.client.firstName} ${params.row.client.lastName}`
             : "Unknown Client";
         return <span>{clientName}</span>;
+      },
+    },
+    {
+      field: "animals",
+      headerName: "Animals",
+      width: 200,
+      renderCell: (params: GridRenderCellParams) => {
+        const animalNames = params.row.animals
+          ? params.row.animals.map((animal: any) => animal.name).join(", ")
+          : "No Animals";
+        return <span>{animalNames}</span>;
       },
     },
     {
@@ -553,7 +609,7 @@ export default function InvoicesPage() {
         aria-labelledby="invoice-dialog-title"
         disableRestoreFocus
       >
-        <InvoiceForm
+        <InvoiceFormNew
           invoice={selectedInvoice}
           onSave={handleSaveInvoice}
           onCancel={handleCloseDialog}
@@ -632,6 +688,32 @@ export default function InvoicesPage() {
 
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Client & Animals
+                </Typography>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Client:</strong>{" "}
+                      {selectedInvoice.client?.firstName &&
+                      selectedInvoice.client?.lastName
+                        ? `${selectedInvoice.client.firstName} ${selectedInvoice.client.lastName}`
+                        : "Unknown Client"}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Animals:</strong>{" "}
+                      {selectedInvoice.animals &&
+                      selectedInvoice.animals.length > 0
+                        ? selectedInvoice.animals
+                            .map((animal) => animal.name)
+                            .join(", ")
+                        : "No animals"}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Financial Details
                 </Typography>
                 <Card variant="outlined" sx={{ mb: 2 }}>
@@ -650,58 +732,131 @@ export default function InvoicesPage() {
 
               <Grid item xs={12}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Invoice Items
+                  Animal Services
                 </Typography>
                 <Card variant="outlined">
                   <CardContent>
-                    {selectedInvoice.items &&
-                    selectedInvoice.items.length > 0 ? (
+                    {selectedInvoice.animalSections &&
+                    selectedInvoice.animalSections.length > 0 ? (
                       <Box>
-                        {selectedInvoice.items.map((item, index) => (
-                          <Box
-                            key={item.id || index}
-                            sx={{
-                              mb: 2,
-                              p: 2,
-                              border: "1px solid #e0e0e0",
-                              borderRadius: 1,
-                            }}
-                          >
-                            <Typography variant="subtitle2" gutterBottom>
-                              {item.procedure}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              gutterBottom
-                            >
-                              {item.description}
-                            </Typography>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                mt: 1,
-                              }}
-                            >
-                              <Typography variant="body2">
-                                <strong>Quantity:</strong> {item.quantity}
-                              </Typography>
-                              <Typography variant="body2">
-                                <strong>Unit Price:</strong>{" "}
-                                {formatCurrency(item.unitPrice)}
-                              </Typography>
-                              <Typography variant="body2">
-                                <strong>Total:</strong>{" "}
-                                {formatCurrency(item.quantity * item.unitPrice)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        ))}
+                        {selectedInvoice.animalSections.map(
+                          (section, sectionIndex) => {
+                            // First try to use the animal data if it's already populated in the section
+                            let animal = null;
+                            if (
+                              typeof section.animalId === "object" &&
+                              section.animalId
+                            ) {
+                              animal = section.animalId; // Use the populated animal data directly
+                            } else {
+                              // Fall back to looking it up in detailAnimals
+                              animal = detailAnimals.find(
+                                (a) =>
+                                  a.id === section.animalId ||
+                                  a._id === section.animalId
+                              );
+                            }
+
+                            return (
+                              <Box
+                                key={`animal-section-${section.animalId}-${sectionIndex}`}
+                                sx={{
+                                  mb: 3,
+                                  p: 2,
+                                  border: "2px solid #e0e0e0",
+                                  borderRadius: 1,
+                                  backgroundColor: "#f9f9f9",
+                                }}
+                              >
+                                <Typography
+                                  variant="h6"
+                                  gutterBottom
+                                  sx={{ color: "primary.main" }}
+                                >
+                                  {animal
+                                    ? `${animal.name} (${animal.species})`
+                                    : "Unknown Animal"}
+                                </Typography>
+
+                                {section.items && section.items.length > 0 ? (
+                                  section.items.map((item, itemIndex) => (
+                                    <Box
+                                      key={`item-${
+                                        section.animalId
+                                      }-${itemIndex}-${
+                                        typeof item.id === "string"
+                                          ? item.id
+                                          : itemIndex
+                                      }`}
+                                      sx={{
+                                        mb: 1,
+                                        p: 1.5,
+                                        border: "1px solid #d0d0d0",
+                                        borderRadius: 1,
+                                        backgroundColor: "white",
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="subtitle2"
+                                        gutterBottom
+                                      >
+                                        {item.procedure}
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        gutterBottom
+                                      >
+                                        {item.description}
+                                      </Typography>
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          mt: 1,
+                                        }}
+                                      >
+                                        <Typography variant="body2">
+                                          <strong>Quantity:</strong>{" "}
+                                          {item.quantity}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          <strong>Unit Price:</strong> $
+                                          {Number(item.unitPrice).toFixed(2)}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          <strong>Total:</strong> $
+                                          {Number(item.total).toFixed(2)}
+                                        </Typography>
+                                      </Box>
+                                    </Box>
+                                  ))
+                                ) : (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    No items for this animal
+                                  </Typography>
+                                )}
+
+                                <Box sx={{ mt: 2, textAlign: "right" }}>
+                                  <Typography
+                                    variant="subtitle1"
+                                    fontWeight="bold"
+                                  >
+                                    Animal Subtotal: $
+                                    {Number(section.subtotal).toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            );
+                          }
+                        )}
                       </Box>
                     ) : (
                       <Typography variant="body1">
-                        No items in this invoice
+                        No animal services in this invoice
                       </Typography>
                     )}
                   </CardContent>

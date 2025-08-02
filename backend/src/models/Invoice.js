@@ -39,11 +39,6 @@ const invoiceSchema = new mongoose.Schema({
     ref: "Client",
     required: true,
   },
-  animal: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Animal",
-    required: true,
-  },
   date: {
     type: Date,
     required: true,
@@ -53,18 +48,33 @@ const invoiceSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  items: [
+  animalSections: [
     {
-      description: { type: String, required: true },
-      procedure: { type: String, required: true },
-      quantity: { type: Number, required: true },
-      unitPrice: {
-        type: Number,
+      animalId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Animal",
         required: true,
-        get: (v) => parseFloat(v.toFixed(2)),
-        set: (v) => parseFloat(v.toFixed(2)),
       },
-      total: {
+      items: [
+        {
+          description: { type: String, required: true },
+          procedure: { type: String, required: true },
+          quantity: { type: Number, required: true },
+          unitPrice: {
+            type: Number,
+            required: true,
+            get: (v) => parseFloat(v.toFixed(2)),
+            set: (v) => parseFloat(v.toFixed(2)),
+          },
+          total: {
+            type: Number,
+            required: true,
+            get: (v) => parseFloat(v.toFixed(2)),
+            set: (v) => parseFloat(v.toFixed(2)),
+          },
+        },
+      ],
+      subtotal: {
         type: Number,
         required: true,
         get: (v) => parseFloat(v.toFixed(2)),

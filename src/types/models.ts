@@ -105,14 +105,19 @@ export interface Organization {
   updatedAt: Date;
 }
 
+export interface InvoiceAnimalSection {
+  animalId: string;
+  items: InvoiceItem[];
+  subtotal: number;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
   clientId: string;
-  animalId: string;
   date: Date;
   dueDate: Date;
-  items: InvoiceItem[];
+  animalSections: InvoiceAnimalSection[];
   subtotal: number;
   total: number;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
@@ -124,7 +129,6 @@ export interface Invoice {
 
 export interface InvoiceItem {
   id: string;
-  invoiceId: string;
   procedure: string;
   description: string;
   quantity: number;

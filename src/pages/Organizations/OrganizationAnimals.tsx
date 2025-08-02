@@ -67,9 +67,12 @@ export default function OrganizationAnimals({
   // Define available PDF forms
   const pdfForms = [
     { file: "clinicIntakeForm.pdf", title: "Intake Form" },
-    { file: "clinicDoaReg.pdf", title: "DOA Registration" },
     { file: "clinicRabiesCert.pdf", title: "Rabies Certificate" },
     { file: "clinicTakehomeForm.pdf", title: "Take-home Form" },
+    {
+      file: "clinicVaxForm.pdf",
+      title: "VAX Check In Form",
+    },
   ];
 
   const fetchOrganizationAnimals = async () => {
