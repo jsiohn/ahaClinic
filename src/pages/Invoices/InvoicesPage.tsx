@@ -227,11 +227,23 @@ export default function InvoicesPage() {
   };
 
   const handleCreateClick = () => {
+    // Clear any active focus before opening dialog
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && typeof activeElement.blur === "function") {
+      activeElement.blur();
+    }
+
     setSelectedInvoice(null);
     setOpenDialog(true);
   };
   const handleEditClick = async (invoice: ExtendedInvoice) => {
     try {
+      // Clear any active DataGrid focus before opening dialog
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && typeof activeElement.blur === "function") {
+        activeElement.blur();
+      }
+
       // Fetch fresh invoice data to ensure we have complete information
       const response = await api.get<ApiInvoice>(`/invoices/${invoice.id}`);
       if (response) {
@@ -297,6 +309,12 @@ export default function InvoicesPage() {
       ".MuiIconButton-root"
     );
     if (!isActionButton) {
+      // Clear any active DataGrid focus before opening dialog
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && typeof activeElement.blur === "function") {
+        activeElement.blur();
+      }
+
       setSelectedInvoice(params.row);
 
       // Fetch animal details for the invoice
@@ -638,6 +656,8 @@ export default function InvoicesPage() {
         fullWidth
         aria-labelledby="invoice-dialog-title"
         disableRestoreFocus
+        disableAutoFocus
+        disableEnforceFocus={false}
       >
         <InvoiceFormNew
           invoice={selectedInvoice}
@@ -650,6 +670,9 @@ export default function InvoicesPage() {
         onClose={handleCloseDetailDialog}
         maxWidth="md"
         fullWidth
+        disableRestoreFocus
+        disableAutoFocus
+        disableEnforceFocus={false}
       >
         <Box sx={{ p: 3 }}>
           <Box

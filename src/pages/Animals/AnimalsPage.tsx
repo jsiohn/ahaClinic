@@ -38,6 +38,7 @@ import {
   Close as CloseIcon,
   PictureAsPdf as PdfIcon,
   ArrowDropDown as ArrowDropDownIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import { Animal, MedicalRecord, Client } from "../../types/models";
 import AnimalForm from "./AnimalForm";
@@ -386,6 +387,29 @@ export default function AnimalsPage() {
       handleViewPdfForm(selectedAnimal, formFile, formTitle);
     }
     handlePdfMenuClose();
+  };
+
+  const handlePrintMedicalHistory = async (animal: Animal) => {
+    try {
+      setPdfLoading(true);
+
+      // Generate the medical history PDF
+      const pdfBytes = await pdfUtils.generateMedicalHistoryPdf(animal);
+
+      // Create URL and print
+      const url = pdfUtils.createPdfUrl(pdfBytes);
+      pdfUtils.printPdf(url);
+
+      // Clean up the URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 5000);
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to print medical history";
+      setError(errorMessage);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const columns: GridColDef[] = [
@@ -1248,6 +1272,19 @@ export default function AnimalsPage() {
               startIcon={<MedicalIcon />}
             >
               Add Medical Record
+            </Button>{" "}
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => {
+                if (selectedAnimal) {
+                  handlePrintMedicalHistory(selectedAnimal);
+                }
+              }}
+              startIcon={<PrintIcon />}
+              disabled={pdfLoading}
+            >
+              Print Medical History
             </Button>{" "}
             <Button
               variant="contained"

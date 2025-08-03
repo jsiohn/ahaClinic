@@ -215,7 +215,7 @@ export const generateInvoicePdf = async (
       color: rgb(0.95, 0.95, 0.95),
     });
 
-    page.drawText("Item", {
+    page.drawText("Procedure", {
       x: 60,
       y: itemsY - 5,
       size: 10,
@@ -232,7 +232,7 @@ export const generateInvoicePdf = async (
     });
 
     page.drawText("Qty", {
-      x: 350,
+      x: 360,
       y: itemsY - 5,
       size: 10,
       font: boldFont,
@@ -240,7 +240,7 @@ export const generateInvoicePdf = async (
     });
 
     page.drawText("Unit Price", {
-      x: 400,
+      x: 410,
       y: itemsY - 5,
       size: 10,
       font: boldFont,
@@ -257,7 +257,6 @@ export const generateInvoicePdf = async (
 
     // Draw items
     let currentY = itemsY - 40;
-    const itemHeight = 40;
 
     if (invoice.animalSections && invoice.animalSections.length > 0) {
       // Iterate through animal sections
@@ -282,22 +281,25 @@ export const generateInvoicePdf = async (
 
         // Draw items for this animal
         section.items.forEach((item) => {
-          // Draw item details
-          page.drawText(item.procedure || "", {
-            x: 60,
-            y: currentY,
-            size: 10,
-            font,
-            color: rgb(0.1, 0.1, 0.1),
+          // Draw item procedure
+          const procedureLines = wrapText(item.procedure || "", 20);
+          procedureLines.forEach((line, i) => {
+            page.drawText(line, {
+              x: 60,
+              y: currentY - i * 14,
+              size: 10,
+              font,
+              color: rgb(0.1, 0.1, 0.1),
+            });
           });
 
-          // Description with word wrap
+          // Description with word wrap - increased character limit and line spacing
           const description = item.description || "";
-          const descriptionLines = wrapText(description, 25);
+          const descriptionLines = wrapText(description, 30);
           descriptionLines.forEach((line, i) => {
             page.drawText(line, {
               x: 180,
-              y: currentY - i * 12,
+              y: currentY - i * 14,
               size: 9,
               font,
               color: rgb(0.3, 0.3, 0.3),
@@ -306,7 +308,7 @@ export const generateInvoicePdf = async (
 
           // Quantity
           page.drawText(item.quantity?.toString() || "1", {
-            x: 350,
+            x: 360,
             y: currentY,
             size: 10,
             font,
@@ -315,7 +317,7 @@ export const generateInvoicePdf = async (
 
           // Unit Price
           page.drawText(`$${Number(item.unitPrice || 0).toFixed(2)}`, {
-            x: 400,
+            x: 410,
             y: currentY,
             size: 10,
             font,
@@ -331,8 +333,15 @@ export const generateInvoicePdf = async (
             color: rgb(0.1, 0.1, 0.1),
           });
 
+          // Calculate dynamic item height based on the maximum lines in procedure or description
+          const maxLines = Math.max(
+            procedureLines.length,
+            descriptionLines.length
+          );
+          const dynamicItemHeight = Math.max(40, maxLines * 14 + 10); // 14px per line + 10px padding
+
           // Adjust y position for next item
-          currentY -= itemHeight;
+          currentY -= dynamicItemHeight;
 
           // Add a page if we're running out of space
           if (currentY < 100) {
@@ -376,14 +385,14 @@ export const generateInvoicePdf = async (
     const totalsY = Math.max(100, currentY - 60);
 
     page.drawLine({
-      start: { x: 350, y: totalsY + 20 },
+      start: { x: 360, y: totalsY + 20 },
       end: { x: width - 50, y: totalsY + 20 },
       thickness: 1,
       color: rgb(0.8, 0.8, 0.8),
     });
 
     page.drawText("Subtotal:", {
-      x: 400,
+      x: 410,
       y: totalsY,
       size: 10,
       font: boldFont,
@@ -399,14 +408,14 @@ export const generateInvoicePdf = async (
     });
 
     page.drawLine({
-      start: { x: 350, y: totalsY - 10 },
+      start: { x: 360, y: totalsY - 10 },
       end: { x: width - 50, y: totalsY - 10 },
       thickness: 1,
       color: rgb(0.8, 0.8, 0.8),
     });
 
     page.drawText("Total:", {
-      x: 400,
+      x: 410,
       y: totalsY - 30,
       size: 12,
       font: boldFont,
@@ -445,21 +454,51 @@ export const generateInvoicePdf = async (
 };
 
 /**
- * Helper function to wrap text
+ * Helper function to wrap text intelligently
  */
 function wrapText(text: string, maxChars: number): string[] {
+  if (!text || text.trim().length === 0) {
+    return [""];
+  }
+
   const lines: string[] = [];
   let currentLine = "";
 
-  const words = text.split(" ");
-  for (const word of words) {
-    if (currentLine.length + word.length + 1 <= maxChars) {
-      currentLine += (currentLine ? " " : "") + word;
-    } else {
+  // Split by existing line breaks first
+  const paragraphs = text.split(/\n|\r\n/);
+
+  paragraphs.forEach((paragraph, paragraphIndex) => {
+    if (paragraphIndex > 0 && currentLine) {
       lines.push(currentLine);
-      currentLine = word;
+      currentLine = "";
     }
-  }
+
+    const words = paragraph.trim().split(/\s+/);
+
+    for (const word of words) {
+      // Handle very long words that exceed maxChars
+      if (word.length > maxChars) {
+        // If we have a current line, push it first
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = "";
+        }
+
+        // Break the long word into chunks
+        for (let i = 0; i < word.length; i += maxChars - 1) {
+          const chunk = word.slice(i, i + maxChars - 1);
+          lines.push(chunk + (i + maxChars - 1 < word.length ? "-" : ""));
+        }
+      } else if (currentLine.length + word.length + 1 <= maxChars) {
+        currentLine += (currentLine ? " " : "") + word;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+        currentLine = word;
+      }
+    }
+  });
 
   if (currentLine) {
     lines.push(currentLine);
@@ -809,4 +848,315 @@ const downloadPdf = (pdfUrl: string): void => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+/**
+ * Generate a medical history PDF for an animal
+ */
+export const generateMedicalHistoryPdf = async (animal: {
+  name: string;
+  species: string;
+  breed?: string;
+  ageYears?: number;
+  ageMonths?: number;
+  age?: number;
+  gender?: string;
+  weight: number | null;
+  microchipNumber?: string;
+  clientName?: string;
+  medicalHistory?: Array<{
+    date: Date;
+    procedure: string;
+    notes: string;
+    veterinarian: string;
+  }>;
+}): Promise<Uint8Array> => {
+  try {
+    const pdfDoc = await PDFDocument.create();
+    pdfDoc.registerFontkit(fontkit);
+
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const { width, height } = page.getSize();
+
+    // Add fonts
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Header
+    page.drawText("Medical History Report", {
+      x: 50,
+      y: height - 50,
+      size: 20,
+      font: boldFont,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+
+    page.drawText("AHA Spay/Neuter Clinic", {
+      x: 50,
+      y: height - 75,
+      size: 12,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+
+    page.drawText(`Generated on: ${new Date().toLocaleDateString()}`, {
+      x: width - 200,
+      y: height - 75,
+      size: 10,
+      font: font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+
+    // Animal Information Section
+    let yPos = height - 120;
+    page.drawText("Animal Information", {
+      x: 50,
+      y: yPos,
+      size: 14,
+      font: boldFont,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+
+    // Draw line under section title
+    page.drawLine({
+      start: { x: 50, y: yPos - 5 },
+      end: { x: width - 50, y: yPos - 5 },
+      thickness: 1,
+      color: rgb(0.8, 0.8, 0.8),
+    });
+
+    yPos -= 25;
+
+    // Animal details
+    page.drawText(`Name: ${animal.name}`, {
+      x: 70,
+      y: yPos,
+      size: 10,
+      font: font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+
+    yPos -= 15;
+    page.drawText(
+      `Species: ${animal.species}${animal.breed ? ` - ${animal.breed}` : ""}`,
+      {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.1, 0.1, 0.1),
+      }
+    );
+
+    yPos -= 15;
+    // Age formatting
+    let ageText = "Age: ";
+    if (animal.ageYears !== undefined || animal.ageMonths !== undefined) {
+      const years = animal.ageYears || 0;
+      const months = animal.ageMonths || 0;
+      if (years === 0 && months === 0) {
+        ageText += "Unknown";
+      } else if (years === 0) {
+        ageText += `${months} months`;
+      } else if (months === 0) {
+        ageText += `${years} years`;
+      } else {
+        ageText += `${years} years, ${months} months`;
+      }
+    } else if (animal.age) {
+      ageText += `${animal.age} years`;
+    } else {
+      ageText += "Unknown";
+    }
+
+    page.drawText(ageText, {
+      x: 70,
+      y: yPos,
+      size: 10,
+      font: font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+
+    yPos -= 15;
+    page.drawText(
+      `Gender: ${
+        animal.gender
+          ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
+          : "Unknown"
+      }`,
+      {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.1, 0.1, 0.1),
+      }
+    );
+
+    yPos -= 15;
+    page.drawText(
+      `Weight: ${animal.weight != null ? `${animal.weight} lbs` : "Unknown"}`,
+      {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.1, 0.1, 0.1),
+      }
+    );
+
+    yPos -= 15;
+    page.drawText(
+      `Microchip: ${animal.microchipNumber || "Not microchipped"}`,
+      {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.1, 0.1, 0.1),
+      }
+    );
+
+    if (animal.clientName) {
+      yPos -= 15;
+      page.drawText(`Owner: ${animal.clientName}`, {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+    }
+
+    // Medical History Section
+    yPos -= 40;
+    page.drawText("Medical History", {
+      x: 50,
+      y: yPos,
+      size: 14,
+      font: boldFont,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+
+    // Draw line under section title
+    page.drawLine({
+      start: { x: 50, y: yPos - 5 },
+      end: { x: width - 50, y: yPos - 5 },
+      thickness: 1,
+      color: rgb(0.8, 0.8, 0.8),
+    });
+
+    yPos -= 25;
+
+    if (animal.medicalHistory && animal.medicalHistory.length > 0) {
+      for (const record of animal.medicalHistory) {
+        // Check if we need a new page
+        if (yPos < 100) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          yPos = height - 50;
+        }
+
+        // Record date and procedure
+        page.drawText(
+          `${new Date(record.date).toLocaleDateString()} - ${record.procedure}`,
+          {
+            x: 70,
+            y: yPos,
+            size: 11,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          }
+        );
+
+        yPos -= 15;
+
+        // Veterinarian
+        page.drawText(`Veterinarian: ${record.veterinarian}`, {
+          x: 90,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+
+        yPos -= 15;
+
+        // Notes - wrap text if needed
+        const notes = record.notes || "";
+        const maxCharsPerLine = 65;
+        const noteLines = wrapText(notes, maxCharsPerLine);
+
+        page.drawText("Notes:", {
+          x: 90,
+          y: yPos,
+          size: 9,
+          font: font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+
+        yPos -= 12;
+
+        for (const line of noteLines) {
+          if (yPos < 50) {
+            page = pdfDoc.addPage([595.28, 841.89]);
+            yPos = height - 50;
+          }
+
+          page.drawText(line, {
+            x: 110,
+            y: yPos,
+            size: 9,
+            font: font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          yPos -= 12;
+        }
+
+        yPos -= 10; // Space between records
+
+        // Draw a light separator line between records
+        if (yPos > 50) {
+          page.drawLine({
+            start: { x: 70, y: yPos },
+            end: { x: width - 50, y: yPos },
+            thickness: 0.5,
+            color: rgb(0.9, 0.9, 0.9),
+          });
+          yPos -= 15;
+        }
+      }
+    } else {
+      page.drawText("No medical history available", {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    }
+
+    // Footer
+    const footerY = 30;
+    page.drawText(
+      "This report was generated by AHA Spay/Neuter Clinic Management System",
+      {
+        x: 50,
+        y: footerY,
+        size: 8,
+        font: font,
+        color: rgb(0.6, 0.6, 0.6),
+      }
+    );
+
+    // Serialize the PDF document to bytes
+    const pdfBytes = await pdfDoc.save();
+    return pdfBytes;
+  } catch (error) {
+    throw new Error(
+      `Failed to generate medical history PDF: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 };

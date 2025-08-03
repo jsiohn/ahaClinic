@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Button,
@@ -196,6 +196,60 @@ export default function InvoiceForm({
   );
   const [selectedAnimals, setSelectedAnimals] = useState<Animal[]>([]);
 
+  // Create dynamic service options including custom procedures from current invoice
+  const dynamicServiceOptions = useMemo((): ServiceOption[] => {
+    const customProcedures: ServiceOption[] = [];
+    const addedProcedures = new Set<string>();
+
+    // Add custom procedures from current invoice when editing
+    if (invoice?.animalSections) {
+      invoice.animalSections.forEach((section) => {
+        section.items.forEach((item) => {
+          const foundInAvailable = availableServices.find(
+            (s) => s.name === item.procedure
+          );
+
+          if (
+            item.procedure &&
+            !foundInAvailable &&
+            !addedProcedures.has(item.procedure)
+          ) {
+            customProcedures.push({
+              id: `custom-${item.procedure}`,
+              name: item.procedure,
+              price: item.unitPrice || 0,
+              category: "Custom/Previous",
+              priceDisplay: `$${item.unitPrice || 0}`,
+            });
+            addedProcedures.add(item.procedure);
+          }
+        });
+      });
+    }
+
+    // Also add custom procedures from current animalSections state
+    animalSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (
+          item.procedure &&
+          !availableServices.find((s) => s.name === item.procedure) &&
+          !addedProcedures.has(item.procedure)
+        ) {
+          customProcedures.push({
+            id: `custom-${item.procedure}`,
+            name: item.procedure,
+            price: item.unitPrice || 0,
+            category: "Custom/Previous",
+            priceDisplay: `$${item.unitPrice || 0}`,
+          });
+          addedProcedures.add(item.procedure);
+        }
+      });
+    });
+
+    return [...availableServices, ...customProcedures];
+  }, [invoice, animalSections]);
+
   const {
     control,
     handleSubmit,
@@ -226,17 +280,11 @@ export default function InvoiceForm({
   useEffect(() => {
     const fetchClientData = async () => {
       try {
-        console.log("Starting client/organization data fetch...");
-        const startTime = Date.now();
-
         // Only fetch clients and organizations initially
         const [clientResponse, orgResponse] = await Promise.all([
           api.get("/clients"),
           api.get("/organizations"),
         ]);
-
-        const fetchTime = Date.now() - startTime;
-        console.log(`Client/organization fetch completed in ${fetchTime}ms`);
 
         // Transform clients and organizations into a combined options array
         const clients = Array.isArray(clientResponse)
@@ -290,15 +338,10 @@ export default function InvoiceForm({
   useEffect(() => {
     const fetchAnimalsData = async () => {
       try {
-        console.log("Starting animals data fetch...");
         setAnimalsLoading(true);
-        const startTime = Date.now();
 
         // Fetch all animals for selection
         const animalResponse = await api.get("/animals");
-
-        const fetchTime = Date.now() - startTime;
-        console.log(`Animals fetch completed in ${fetchTime}ms`);
 
         // Transform animals
         const transformedAnimals = Array.isArray(animalResponse)
@@ -337,6 +380,15 @@ export default function InvoiceForm({
 
   // Effect to update animal sections when selected animals change
   useEffect(() => {
+    // Don't override existing invoice data during initial load
+    if (
+      invoice &&
+      animalSections.length > 0 &&
+      animalSections[0].items[0].procedure !== ""
+    ) {
+      return;
+    }
+
     const currentAnimalIds = animalSections.map((section) => section.animalId);
     const selectedAnimalIds = selectedAnimals.map((animal) => animal.id);
 
@@ -616,7 +668,7 @@ export default function InvoiceForm({
       <DialogTitle>
         {invoice ? "Edit Invoice" : "Create New Invoice"}
       </DialogTitle>
-      <DialogContent sx={{ minWidth: 800, maxHeight: "80vh" }}>
+      <DialogContent sx={{ minWidth: 800, maxHeight: "80vh", pt: 3 }}>
         <Box
           component="form"
           onSubmit={(e) => {
@@ -625,7 +677,7 @@ export default function InvoiceForm({
           }}
         >
           {/* Basic Invoice Information */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
             <Grid item xs={12} sm={4}>
               <Controller
                 name="clientId"
@@ -832,16 +884,18 @@ export default function InvoiceForm({
                             >
                               <TableCell sx={{ width: 300 }}>
                                 <Autocomplete<ServiceOption>
-                                  options={availableServices}
+                                  options={dynamicServiceOptions}
                                   getOptionLabel={(option) =>
                                     option?.name || ""
                                   }
                                   groupBy={(option) => option.category}
                                   value={
-                                    availableServices.find(
-                                      (service) =>
-                                        service.name === item.procedure
-                                    ) || null
+                                    item.procedure
+                                      ? dynamicServiceOptions.find(
+                                          (service) =>
+                                            service.name === item.procedure
+                                        ) || null
+                                      : null
                                   }
                                   onChange={(_, selectedService) => {
                                     if (selectedService) {
