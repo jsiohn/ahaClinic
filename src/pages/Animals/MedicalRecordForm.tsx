@@ -11,6 +11,11 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Animal, MedicalRecord } from "../../types/models";
+import {
+  createLocalDate,
+  formatDateForInput,
+  getTodayForInput,
+} from "../../utils/dateUtils";
 
 interface MedicalRecordFormProps {
   animal: Animal | null;
@@ -43,8 +48,8 @@ export default function MedicalRecordForm({
       notes: medicalRecord?.notes || "",
       veterinarian: medicalRecord?.veterinarian || "",
       date: medicalRecord?.date
-        ? new Date(medicalRecord.date).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
+        ? formatDateForInput(medicalRecord.date)
+        : getTodayForInput(),
     },
   });
 
@@ -54,7 +59,7 @@ export default function MedicalRecordForm({
     const recordData = {
       ...data,
       animalId: animal.id,
-      date: new Date(data.date),
+      date: createLocalDate(data.date),
       ...(medicalRecord ? { id: medicalRecord._id || medicalRecord.id } : {}), // Include ID if editing
       ...(medicalRecord
         ? { updatedAt: new Date() }

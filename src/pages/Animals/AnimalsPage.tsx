@@ -45,6 +45,7 @@ import AnimalForm from "./AnimalForm";
 import MedicalRecordForm from "./MedicalRecordForm";
 import api from "../../utils/api";
 import * as pdfUtils from "../../utils/pdfUtils";
+import { formatDateForDisplay } from "../../utils/dateUtils";
 import { PermissionGuard } from "../../components/PermissionGuard";
 import { PERMISSIONS } from "../../utils/auth";
 
@@ -320,13 +321,13 @@ export default function AnimalsPage() {
         "Animal Color": animal.color || "",
         "Microchip Number": animal.microchipNumber || "N/A",
         "Date of Birth": animal.dateOfBirth
-          ? new Date(animal.dateOfBirth).toLocaleDateString()
+          ? formatDateForDisplay(animal.dateOfBirth)
           : "",
         "Vaccination Date": animal.vaccineDate
-          ? new Date(animal.vaccineDate).toLocaleDateString()
+          ? formatDateForDisplay(animal.vaccineDate)
           : "",
         "Vaccination Date Next": animal.nextVaccineDate
-          ? new Date(animal.nextVaccineDate).toLocaleDateString()
+          ? formatDateForDisplay(animal.nextVaccineDate)
           : "",
         "Tag Number": animal.tagNumber || "",
         "Vaccine Serial": animal.vaccineSerial || "",

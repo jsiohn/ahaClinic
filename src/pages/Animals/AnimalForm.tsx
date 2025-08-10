@@ -16,6 +16,7 @@ import { useForm, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Animal, Client } from "../../types/models";
+import { formatDateForInput, createLocalDate } from "../../utils/dateUtils";
 
 interface AnimalFormData {
   name: string;
@@ -160,23 +161,23 @@ export default function AnimalForm({
       clientId: animal?.client || "", // Use client instead of clientId
       microchipNumber: animal?.microchipNumber || "",
       dateOfBirth: animal?.dateOfBirth
-        ? new Date(animal.dateOfBirth).toISOString().split("T")[0]
+        ? formatDateForInput(animal.dateOfBirth)
         : "",
       isSpayedNeutered: animal?.isSpayedNeutered ? "YES" : "NO",
       spayNeuterDate: animal?.spayNeuterDate
-        ? new Date(animal.spayNeuterDate).toISOString().split("T")[0]
+        ? formatDateForInput(animal.spayNeuterDate)
         : "",
       color: animal?.color || "",
       vaccineDate: animal?.vaccineDate
-        ? new Date(animal.vaccineDate).toISOString().split("T")[0]
+        ? formatDateForInput(animal.vaccineDate)
         : "",
       nextVaccineDate: animal?.nextVaccineDate
-        ? new Date(animal.nextVaccineDate).toISOString().split("T")[0]
+        ? formatDateForInput(animal.nextVaccineDate)
         : "",
       tagNumber: animal?.tagNumber || "",
       vaccineSerial: animal?.vaccineSerial || "",
       lotExpiration: animal?.lotExpiration
-        ? new Date(animal.lotExpiration).toISOString().split("T")[0]
+        ? formatDateForInput(animal.lotExpiration)
         : "",
     },
   });
@@ -201,21 +202,25 @@ export default function AnimalForm({
       weight: data.weight ? Number(data.weight) : null,
       client: data.clientId || undefined,
       microchipNumber: data.microchipNumber,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+      dateOfBirth: data.dateOfBirth
+        ? createLocalDate(data.dateOfBirth)
+        : undefined,
       isSpayedNeutered: isSpayedNeutered,
       spayNeuterDate:
         isSpayedNeutered && data.spayNeuterDate
-          ? new Date(data.spayNeuterDate)
+          ? createLocalDate(data.spayNeuterDate)
           : undefined,
       color: data.color,
-      vaccineDate: data.vaccineDate ? new Date(data.vaccineDate) : undefined,
+      vaccineDate: data.vaccineDate
+        ? createLocalDate(data.vaccineDate)
+        : undefined,
       nextVaccineDate: data.nextVaccineDate
-        ? new Date(data.nextVaccineDate)
+        ? createLocalDate(data.nextVaccineDate)
         : undefined,
       tagNumber: data.tagNumber,
       vaccineSerial: data.vaccineSerial,
       lotExpiration: data.lotExpiration
-        ? new Date(data.lotExpiration)
+        ? createLocalDate(data.lotExpiration)
         : undefined,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],

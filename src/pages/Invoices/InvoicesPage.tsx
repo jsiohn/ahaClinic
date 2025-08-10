@@ -34,6 +34,7 @@ import {
   createPdfUrl,
   printPdf,
 } from "../../utils/pdfUtils";
+import { formatDateForDisplay } from "../../utils/dateUtils";
 import { PermissionGuard } from "../../components/PermissionGuard";
 import { PERMISSIONS } from "../../utils/auth";
 
@@ -427,7 +428,7 @@ export default function InvoicesPage() {
       width: 120,
       renderCell: (params: GridRenderCellParams) => {
         if (params.row.date) {
-          return <span>{new Date(params.row.date).toLocaleDateString()}</span>;
+          return <span>{formatDateForDisplay(params.row.date)}</span>;
         }
         return <span></span>;
       },
@@ -705,11 +706,11 @@ export default function InvoicesPage() {
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Date:</strong>{" "}
-                      {new Date(selectedInvoice.date).toLocaleDateString()}
+                      {formatDateForDisplay(selectedInvoice.date)}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Due Date:</strong>{" "}
-                      {new Date(selectedInvoice.dueDate).toLocaleDateString()}
+                      {formatDateForDisplay(selectedInvoice.dueDate)}
                     </Typography>{" "}
                     <Typography variant="body1" gutterBottom component="div">
                       <strong>Status:</strong>{" "}
@@ -722,9 +723,7 @@ export default function InvoicesPage() {
                     {selectedInvoice.paymentDate && (
                       <Typography variant="body1" gutterBottom>
                         <strong>Payment Date:</strong>{" "}
-                        {new Date(
-                          selectedInvoice.paymentDate
-                        ).toLocaleDateString()}
+                        {formatDateForDisplay(selectedInvoice.paymentDate)}
                       </Typography>
                     )}
                     {selectedInvoice.paymentMethod && (

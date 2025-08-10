@@ -43,6 +43,12 @@ import {
 } from "../../types/models";
 import api from "../../utils/api";
 import clinicServicesData from "../../data/clinicServices.json";
+import {
+  createLocalDate,
+  formatDateForInput,
+  getTodayForInput,
+  getDateDaysFromNow,
+} from "../../utils/dateUtils";
 
 // Combined interface for clients and organizations in the dropdown
 interface ClientOption {
@@ -261,18 +267,18 @@ export default function InvoiceForm({
       clientId: invoice?.clientId || "",
       selectedAnimals:
         invoice?.animalSections?.map((section) => section.animalId) || [],
-      date:
-        invoice?.date.toISOString().split("T")[0] ||
-        new Date().toISOString().split("T")[0],
-      dueDate:
-        invoice?.dueDate?.toISOString().split("T")[0] ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
+      date: invoice?.date
+        ? formatDateForInput(invoice.date)
+        : getTodayForInput(),
+      dueDate: invoice?.dueDate
+        ? formatDateForInput(invoice.dueDate)
+        : formatDateForInput(getDateDaysFromNow(30)),
       invoiceNumber: invoice?.invoiceNumber || generateInvoiceNumber(),
       status: invoice?.status || "draft",
       paymentMethod: invoice?.paymentMethod || null,
-      paymentDate: invoice?.paymentDate?.toISOString().split("T")[0] || null,
+      paymentDate: invoice?.paymentDate
+        ? formatDateForInput(invoice.paymentDate)
+        : null,
     },
   });
 
@@ -651,11 +657,13 @@ export default function InvoiceForm({
         subtotal: parseFloat(section.subtotal.toFixed(2)),
       })),
       invoiceNumber: data.invoiceNumber,
-      date: new Date(data.date),
-      dueDate: new Date(data.dueDate),
+      date: createLocalDate(data.date),
+      dueDate: createLocalDate(data.dueDate),
       status: data.status,
       paymentMethod: data.paymentMethod === "" ? null : data.paymentMethod,
-      paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
+      paymentDate: data.paymentDate
+        ? createLocalDate(data.paymentDate)
+        : undefined,
       subtotal: parseFloat(subtotal.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
     };
