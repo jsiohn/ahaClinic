@@ -63,6 +63,7 @@ export interface Animal {
   nextVaccineDate?: Date; // Vaccination Date Next
   tagNumber?: string; // Tag Number
   vaccineSerial?: string; // Vaccine Serial
+  vaccineManufacturer?: string; // Vaccine Manufacturer
   lotExpiration?: Date; // Vaccine Lot Expiration
   createdAt: Date;
   updatedAt: Date;

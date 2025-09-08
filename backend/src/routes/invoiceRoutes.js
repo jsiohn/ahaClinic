@@ -1,13 +1,59 @@
 import express from "express";
 import Invoice from "../models/Invoice.js";
+import Client from "../models/Client.js";
+import Organization from "../models/Organization.js";
 import { validateInvoice } from "../middleware/invoiceValidation.js";
 import { auth, requirePermission } from "../middleware/auth.js";
 import { PERMISSIONS } from "../config/roles.js";
 
 const router = express.Router();
 
+// Helper function to populate client/organization data - supports both clients and organizations
+const populateClientOrOrganization = async (invoice) => {
+  try {
+    // First, try to find it as a Client
+    const client = await Client.findById(invoice.client).select(
+      "firstName lastName address.street address.city address.state address.zipCode address.country address.county"
+    );
+
+    if (client) {
+      // It's a client - create a new invoice object with the client data
+      const invoiceObj = invoice.toObject();
+      invoiceObj.client = client.toObject();
+      return invoiceObj;
+    }
+
+    // If not found as client, try to find as organization
+    const organization = await Organization.findById(invoice.client).select(
+      "name address.street address.city address.state address.zipCode address.country address.county"
+    );
+
+    if (organization) {
+      // It's an organization - format it like a client object for consistency
+      const invoiceObj = invoice.toObject();
+      invoiceObj.client = {
+        name: organization.name,
+        address: organization.address,
+        _id: organization._id,
+      };
+      return invoiceObj;
+    }
+
+    // If neither found, return with null client
+    const invoiceObj = invoice.toObject();
+    invoiceObj.client = null;
+    return invoiceObj;
+  } catch (error) {
+    console.error("Error populating client/organization:", error);
+    return invoice.toObject();
+  }
+};
+
 const transformInvoice = (invoice) => {
-  const invoiceObj = invoice.toObject({ getters: true }); // Include getters to use schema formatting
+  // invoice is now already a plain object from populateClientOrOrganization
+  const invoiceObj = invoice.toObject
+    ? invoice.toObject({ getters: true })
+    : invoice;
   return {
     ...invoiceObj,
     subtotal: parseFloat(Number(invoiceObj.subtotal).toFixed(2)),
@@ -32,13 +78,23 @@ router.get(
   requirePermission(PERMISSIONS.READ_INVOICES),
   async (req, res) => {
     try {
-      const invoices = await Invoice.find()
-        .populate("client", "firstName lastName")
-        .populate("animalSections.animalId", "name species");
+      const invoices = await Invoice.find().populate(
+        "animalSections.animalId",
+        "name species"
+      );
 
-      const transformedInvoices = invoices.map(transformInvoice);
+      // Populate client/organization data for each invoice
+      const populatedInvoices = await Promise.all(
+        invoices.map(async (invoice) => {
+          return await populateClientOrOrganization(invoice);
+        })
+      );
+
+      const transformedInvoices = populatedInvoices.map(transformInvoice);
+
       res.json(transformedInvoices);
     } catch (error) {
+      console.error("Error fetching invoices:", error);
       res.status(500).json({ message: error.message });
     }
   }
@@ -51,11 +107,18 @@ router.get(
   requirePermission(PERMISSIONS.READ_INVOICES),
   async (req, res) => {
     try {
-      const invoices = await Invoice.find({ client: req.params.clientId })
-        .populate("client", "firstName lastName")
-        .populate("animalSections.animalId", "name species");
+      const invoices = await Invoice.find({
+        client: req.params.clientId,
+      }).populate("animalSections.animalId", "name species");
 
-      const transformedInvoices = invoices.map(transformInvoice);
+      // Populate client/organization data for each invoice
+      const populatedInvoices = await Promise.all(
+        invoices.map(async (invoice) => {
+          return await populateClientOrOrganization(invoice);
+        })
+      );
+
+      const transformedInvoices = populatedInvoices.map(transformInvoice);
       res.json(transformedInvoices);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -91,13 +154,17 @@ router.get(
   requirePermission(PERMISSIONS.READ_INVOICES),
   async (req, res) => {
     try {
-      const invoice = await Invoice.findById(req.params.id)
-        .populate("client", "firstName lastName")
-        .populate("animalSections.animalId", "name species");
+      const invoice = await Invoice.findById(req.params.id).populate(
+        "animalSections.animalId",
+        "name species"
+      );
+
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      res.json(transformInvoice(invoice));
+
+      const populatedInvoice = await populateClientOrOrganization(invoice);
+      res.json(transformInvoice(populatedInvoice));
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -146,9 +213,10 @@ router.post(
 
       const invoice = new Invoice(invoiceData);
       const newInvoice = await invoice.save();
-      await newInvoice.populate("client", "firstName lastName");
       await newInvoice.populate("animalSections.animalId", "name species");
-      res.status(201).json(transformInvoice(newInvoice));
+
+      const populatedInvoice = await populateClientOrOrganization(newInvoice);
+      res.status(201).json(transformInvoice(populatedInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -202,9 +270,12 @@ router.put(
 
       Object.assign(invoice, updateData);
       const updatedInvoice = await invoice.save();
-      await updatedInvoice.populate("client", "firstName lastName");
       await updatedInvoice.populate("animalSections.animalId", "name species");
-      res.json(transformInvoice(updatedInvoice));
+
+      const populatedInvoice = await populateClientOrOrganization(
+        updatedInvoice
+      );
+      res.json(transformInvoice(populatedInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -234,9 +305,12 @@ router.patch(
       }
 
       const updatedInvoice = await invoice.save();
-      await updatedInvoice.populate("client", "firstName lastName");
       await updatedInvoice.populate("animalSections.animalId", "name species");
-      res.json(transformInvoice(updatedInvoice));
+
+      const populatedInvoice = await populateClientOrOrganization(
+        updatedInvoice
+      );
+      res.json(transformInvoice(populatedInvoice));
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

@@ -21,8 +21,17 @@ interface PopulatedInvoice {
   createdAt: Date;
   updatedAt: Date;
   client?: {
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string; // For organizations
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      county?: string;
+    };
   };
   animalSections: {
     animalId: string;
@@ -149,12 +158,12 @@ export const generateInvoicePdf = async (
       }
     }
 
-    // Client information
+    // Client information - handle both clients and organizations
     const clientName =
       "client" in invoice && invoice.client
-        ? `${invoice.client.firstName || ""} ${
-            invoice.client.lastName || ""
-          }`.trim()
+        ? invoice.client.firstName && invoice.client.lastName
+          ? `${invoice.client.firstName} ${invoice.client.lastName}`.trim()
+          : invoice.client.name || "Unknown Client"
         : "Client information not available";
 
     // Animal information
@@ -188,7 +197,48 @@ export const generateInvoicePdf = async (
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    yPos -= 40;
+    // Add client address if available
+    if ("client" in invoice && invoice.client?.address) {
+      const address = invoice.client.address;
+      yPos -= 15;
+
+      // Build address lines
+      const addressLines: string[] = [];
+
+      if (address.street) {
+        addressLines.push(address.street);
+      }
+
+      const cityStateZip = [address.city, address.state, address.zipCode]
+        .filter(Boolean)
+        .join(", ");
+
+      if (cityStateZip) {
+        addressLines.push(cityStateZip);
+      }
+
+      if (
+        address.country &&
+        address.country !== "US" &&
+        address.country !== "USA"
+      ) {
+        addressLines.push(address.country);
+      }
+
+      // Draw each address line
+      addressLines.forEach((line) => {
+        page.drawText(line, {
+          size: 10,
+          x: 70,
+          y: yPos,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        yPos -= 15;
+      });
+    }
+
+    yPos -= 10; // Add some extra spacing before animal info
     page.drawText("Animal Information:", {
       size: 12,
       x: 50,
@@ -205,19 +255,32 @@ export const generateInvoicePdf = async (
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    // Draw items header
-    const itemsY = height - 350;
+    // Calculate dynamic items start position based on current yPos
+    yPos -= 40; // Add spacing before items table
+    const itemsY = Math.min(yPos, height - 180); // Ensure minimum space from top
+
+    // Draw items header background
     page.drawRectangle({
       x: 50,
       y: itemsY - 20,
       width: width - 100,
-      height: 20,
+      height: 25,
       color: rgb(0.95, 0.95, 0.95),
+    });
+
+    // Draw table header border
+    page.drawRectangle({
+      x: 50,
+      y: itemsY - 20,
+      width: width - 100,
+      height: 25,
+      borderWidth: 1,
+      borderColor: rgb(0.8, 0.8, 0.8),
     });
 
     page.drawText("Procedure", {
       x: 60,
-      y: itemsY - 5,
+      y: itemsY - 8,
       size: 10,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
@@ -225,7 +288,7 @@ export const generateInvoicePdf = async (
 
     page.drawText("Description", {
       x: 180,
-      y: itemsY - 5,
+      y: itemsY - 8,
       size: 10,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
@@ -233,7 +296,7 @@ export const generateInvoicePdf = async (
 
     page.drawText("Qty", {
       x: 360,
-      y: itemsY - 5,
+      y: itemsY - 8,
       size: 10,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
@@ -241,7 +304,7 @@ export const generateInvoicePdf = async (
 
     page.drawText("Unit Price", {
       x: 410,
-      y: itemsY - 5,
+      y: itemsY - 8,
       size: 10,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
@@ -249,18 +312,90 @@ export const generateInvoicePdf = async (
 
     page.drawText("Total", {
       x: 500,
-      y: itemsY - 5,
+      y: itemsY - 8,
       size: 10,
       font: boldFont,
       color: rgb(0.1, 0.1, 0.1),
     });
 
     // Draw items
-    let currentY = itemsY - 40;
+    let currentY = itemsY - 35; // Start below header
 
     if (invoice.animalSections && invoice.animalSections.length > 0) {
       // Iterate through animal sections
       invoice.animalSections.forEach((section) => {
+        // Check if we need a new page for animal header
+        if (currentY < 120) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          currentY = height - 50;
+
+          // Add header to new page
+          page.drawText(`INVOICE #${invoice.invoiceNumber} (continued)`, {
+            x: 50,
+            y: height - 50,
+            size: 16,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          currentY -= 40;
+
+          // Redraw table header on new page
+          page.drawRectangle({
+            x: 50,
+            y: currentY - 20,
+            width: width - 100,
+            height: 25,
+            color: rgb(0.95, 0.95, 0.95),
+          });
+
+          page.drawRectangle({
+            x: 50,
+            y: currentY - 20,
+            width: width - 100,
+            height: 25,
+            borderWidth: 1,
+            borderColor: rgb(0.8, 0.8, 0.8),
+          });
+
+          page.drawText("Procedure", {
+            x: 60,
+            y: currentY - 8,
+            size: 10,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          page.drawText("Description", {
+            x: 180,
+            y: currentY - 8,
+            size: 10,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          page.drawText("Qty", {
+            x: 360,
+            y: currentY - 8,
+            size: 10,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          page.drawText("Unit Price", {
+            x: 410,
+            y: currentY - 8,
+            size: 10,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+          page.drawText("Total", {
+            x: 500,
+            y: currentY - 8,
+            size: 10,
+            font: boldFont,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          currentY -= 35;
+        }
+
         // Draw animal header if animal info is available
         if (section.animalId && typeof section.animalId === "object") {
           const animal = section.animalId as any;
@@ -281,78 +416,17 @@ export const generateInvoicePdf = async (
 
         // Draw items for this animal
         section.items.forEach((item) => {
-          // Draw item procedure
+          // Calculate dynamic item height first
           const procedureLines = wrapText(item.procedure || "", 20);
-          procedureLines.forEach((line, i) => {
-            page.drawText(line, {
-              x: 60,
-              y: currentY - i * 14,
-              size: 10,
-              font,
-              color: rgb(0.1, 0.1, 0.1),
-            });
-          });
-
-          // Description with word wrap - increased character limit and line spacing
-          const description = item.description || "";
-          const descriptionLines = wrapText(description, 30);
-          descriptionLines.forEach((line, i) => {
-            page.drawText(line, {
-              x: 180,
-              y: currentY - i * 14,
-              size: 9,
-              font,
-              color: rgb(0.3, 0.3, 0.3),
-            });
-          });
-
-          // Quantity
-          page.drawText(item.quantity?.toString() || "1", {
-            x: 360,
-            y: currentY,
-            size: 10,
-            font,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-
-          // Unit Price
-          page.drawText(`$${Number(item.unitPrice || 0).toFixed(2)}`, {
-            x: 410,
-            y: currentY,
-            size: 10,
-            font,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-
-          // Total
-          page.drawText(`$${Number(item.total || 0).toFixed(2)}`, {
-            x: 500,
-            y: currentY,
-            size: 10,
-            font,
-            color: rgb(0.1, 0.1, 0.1),
-          });
-
-          // Calculate dynamic item height based on the maximum lines in procedure or description
+          const descriptionLines = wrapText(item.description || "", 30);
           const maxLines = Math.max(
             procedureLines.length,
             descriptionLines.length
           );
-          const dynamicItemHeight = Math.max(40, maxLines * 14 + 10); // 14px per line + 10px padding
+          const dynamicItemHeight = Math.max(25, maxLines * 14 + 10); // 14px per line + 10px padding
 
-          // Adjust y position for next item
-          currentY -= dynamicItemHeight;
-
-          // Add a page if we're running out of space
-          if (currentY < 100) {
-            page.drawText("Continued on next page...", {
-              x: width / 2 - 60,
-              y: 50,
-              size: 10,
-              font: boldFont,
-              color: rgb(0.3, 0.3, 0.3),
-            });
-            // Add a new page
+          // Check if we need a new page for this item
+          if (currentY - dynamicItemHeight < 100) {
             page = pdfDoc.addPage([595.28, 841.89]);
             currentY = height - 50;
 
@@ -364,7 +438,119 @@ export const generateInvoicePdf = async (
               font: boldFont,
               color: rgb(0.1, 0.1, 0.1),
             });
+            currentY -= 40;
+
+            // Redraw table header on new page
+            page.drawRectangle({
+              x: 50,
+              y: currentY - 20,
+              width: width - 100,
+              height: 25,
+              color: rgb(0.95, 0.95, 0.95),
+            });
+
+            page.drawRectangle({
+              x: 50,
+              y: currentY - 20,
+              width: width - 100,
+              height: 25,
+              borderWidth: 1,
+              borderColor: rgb(0.8, 0.8, 0.8),
+            });
+
+            page.drawText("Procedure", {
+              x: 60,
+              y: currentY - 8,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            page.drawText("Description", {
+              x: 180,
+              y: currentY - 8,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            page.drawText("Qty", {
+              x: 360,
+              y: currentY - 8,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            page.drawText("Unit Price", {
+              x: 410,
+              y: currentY - 8,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+            page.drawText("Total", {
+              x: 500,
+              y: currentY - 8,
+              size: 10,
+              font: boldFont,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+
+            currentY -= 35;
           }
+
+          // Draw item procedure
+          procedureLines.forEach((line, i) => {
+            page.drawText(line, {
+              x: 60,
+              y: currentY - i * 14,
+              size: 10,
+              font,
+              color: rgb(0.1, 0.1, 0.1),
+            });
+          });
+
+          // Description with word wrap
+          descriptionLines.forEach((line, i) => {
+            page.drawText(line, {
+              x: 180,
+              y: currentY - i * 14,
+              size: 9,
+              font,
+              color: rgb(0.3, 0.3, 0.3),
+            });
+          });
+
+          // Quantity (right-aligned)
+          const qtyText = item.quantity?.toString() || "1";
+          page.drawText(qtyText, {
+            x: 375 - qtyText.length * 6, // Right-align in column
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Unit Price (right-aligned)
+          const unitPriceText = `$${Number(item.unitPrice || 0).toFixed(2)}`;
+          page.drawText(unitPriceText, {
+            x: 480 - unitPriceText.length * 6, // Right-align in column
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Total (right-aligned)
+          const totalText = `$${Number(item.total || 0).toFixed(2)}`;
+          page.drawText(totalText, {
+            x: 545 - totalText.length * 6, // Right-align in column
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0.1, 0.1, 0.1),
+          });
+
+          // Adjust y position for next item
+          currentY -= dynamicItemHeight;
         });
 
         // Add spacing between animal sections
@@ -381,54 +567,121 @@ export const generateInvoicePdf = async (
       currentY -= 20;
     }
 
-    // Draw totals
-    const totalsY = Math.max(100, currentY - 60);
+    // Draw totals - ensure they're positioned properly
+    const totalsY = Math.max(120, currentY - 60); // Ensure totals don't overlap with items
 
-    page.drawLine({
-      start: { x: 360, y: totalsY + 20 },
-      end: { x: width - 50, y: totalsY + 20 },
-      thickness: 1,
-      color: rgb(0.8, 0.8, 0.8),
-    });
+    // Check if we need a new page for totals
+    if (totalsY < 150) {
+      page = pdfDoc.addPage([595.28, 841.89]);
+      const newTotalsY = height - 100;
 
-    page.drawText("Subtotal:", {
-      x: 410,
-      y: totalsY,
-      size: 10,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
+      // Add header to new page
+      page.drawText(`INVOICE #${invoice.invoiceNumber} (continued)`, {
+        x: 50,
+        y: height - 50,
+        size: 16,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
 
-    page.drawText(`$${invoice.subtotal?.toFixed(2)}`, {
-      x: 500,
-      y: totalsY,
-      size: 10,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
+      // Draw totals on new page
+      page.drawLine({
+        start: { x: 360, y: newTotalsY + 20 },
+        end: { x: width - 50, y: newTotalsY + 20 },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8),
+      });
 
-    page.drawLine({
-      start: { x: 360, y: totalsY - 10 },
-      end: { x: width - 50, y: totalsY - 10 },
-      thickness: 1,
-      color: rgb(0.8, 0.8, 0.8),
-    });
+      page.drawText("Subtotal:", {
+        x: 410,
+        y: newTotalsY,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
 
-    page.drawText("Total:", {
-      x: 410,
-      y: totalsY - 30,
-      size: 12,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
+      const subtotalText = `$${invoice.subtotal?.toFixed(2)}`;
+      page.drawText(subtotalText, {
+        x: 545 - subtotalText.length * 6,
+        y: newTotalsY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
 
-    page.drawText(`$${invoice.total?.toFixed(2)}`, {
-      x: 500,
-      y: totalsY - 30,
-      size: 12,
-      font: boldFont,
-      color: rgb(0.1, 0.1, 0.1),
-    });
+      page.drawLine({
+        start: { x: 360, y: newTotalsY - 10 },
+        end: { x: width - 50, y: newTotalsY - 10 },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+
+      page.drawText("Total:", {
+        x: 410,
+        y: newTotalsY - 30,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      const totalText = `$${invoice.total?.toFixed(2)}`;
+      page.drawText(totalText, {
+        x: 545 - totalText.length * 7,
+        y: newTotalsY - 30,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+    } else {
+      // Draw totals on current page
+      page.drawLine({
+        start: { x: 360, y: totalsY + 20 },
+        end: { x: width - 50, y: totalsY + 20 },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+
+      page.drawText("Subtotal:", {
+        x: 410,
+        y: totalsY,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      const subtotalText = `$${invoice.subtotal?.toFixed(2)}`;
+      page.drawText(subtotalText, {
+        x: 545 - subtotalText.length * 6,
+        y: totalsY,
+        size: 10,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      page.drawLine({
+        start: { x: 360, y: totalsY - 10 },
+        end: { x: width - 50, y: totalsY - 10 },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+
+      page.drawText("Total:", {
+        x: 410,
+        y: totalsY - 30,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      const totalText = `$${invoice.total?.toFixed(2)}`;
+      page.drawText(totalText, {
+        x: 545 - totalText.length * 7,
+        y: totalsY - 30,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+    }
 
     // Add footer
     page.drawText(
@@ -751,7 +1004,7 @@ export const makeEditable = async (bytes: Uint8Array): Promise<Uint8Array> => {
  * Convert PDF bytes to a Blob object
  */
 export const pdfBytesToBlob = (bytes: Uint8Array): Blob => {
-  return new Blob([bytes], { type: "application/pdf" });
+  return new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
 };
 
 /**

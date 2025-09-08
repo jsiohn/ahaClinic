@@ -94,9 +94,23 @@ const transformServicesData = (): ServiceOption[] => {
     });
   });
 
-  // Sort by category first, then by name to prevent duplicate headers in grouped autocomplete
+  // Sort by category first, prioritizing clinic's own services, then by name
   return services.sort((a, b) => {
     if (a.category !== b.category) {
+      // Define clinic's own service categories (to be listed first)
+      const clinicCategories = [
+        "Surgery Days - General Services",
+        "Vaccine Clinic",
+      ];
+
+      const aIsClinic = clinicCategories.includes(a.category);
+      const bIsClinic = clinicCategories.includes(b.category);
+
+      // If one is clinic service and other is not, prioritize clinic service
+      if (aIsClinic && !bIsClinic) return -1;
+      if (!aIsClinic && bIsClinic) return 1;
+
+      // If both are clinic services or both are external, sort alphabetically
       return a.category.localeCompare(b.category);
     }
     return a.name.localeCompare(b.name);
@@ -847,6 +861,68 @@ export default function InvoiceForm({
                       <MenuItem value="cancelled">Cancelled</MenuItem>
                     </Select>
                   </FormControl>
+                )}
+              />
+            </Grid>
+          </Grid>
+
+          {/* Payment Information Section */}
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Payment Information
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="paymentMethod"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!!errors.paymentMethod}>
+                    <InputLabel>Payment Method</InputLabel>
+                    <Select
+                      {...field}
+                      label="Payment Method"
+                      value={field.value || ""}
+                    >
+                      <MenuItem value="">None</MenuItem>
+                      <MenuItem value="cash">Cash</MenuItem>
+                      <MenuItem value="check">Check</MenuItem>
+                      <MenuItem value="credit_card">Credit/Debit Card</MenuItem>
+                      <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+                    </Select>
+                    {errors.paymentMethod && (
+                      <Typography
+                        variant="caption"
+                        color="error"
+                        sx={{ ml: 2 }}
+                      >
+                        {errors.paymentMethod.message}
+                      </Typography>
+                    )}
+                  </FormControl>
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="paymentDate"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Payment Date"
+                    type="date"
+                    fullWidth
+                    value={field.value || ""}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    error={!!errors.paymentDate}
+                    helperText={errors.paymentDate?.message}
+                  />
                 )}
               />
             </Grid>

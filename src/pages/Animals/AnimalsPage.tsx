@@ -331,6 +331,7 @@ export default function AnimalsPage() {
           : "",
         "Tag Number": animal.tagNumber || "",
         "Vaccine Serial": animal.vaccineSerial || "",
+        "Vaccine Manufacturer": animal.vaccineManufacturer || "",
         "Vaccine Lot Expiration": animal.lotExpiration
           ? new Date(animal.lotExpiration).toLocaleDateString()
           : "",
@@ -1123,6 +1124,10 @@ export default function AnimalsPage() {
                     <Typography variant="body1" gutterBottom>
                       <strong>Vaccine Serial #:</strong>{" "}
                       {selectedAnimal.vaccineSerial || "Not specified"}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Vaccine Manufacturer:</strong>{" "}
+                      {selectedAnimal.vaccineManufacturer || "Not specified"}
                     </Typography>
                     <Typography variant="body1">
                       <strong>Lot Expiration:</strong>{" "}

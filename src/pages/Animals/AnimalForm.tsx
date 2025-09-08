@@ -37,6 +37,7 @@ interface AnimalFormData {
   nextVaccineDate?: string;
   tagNumber?: string;
   vaccineSerial?: string;
+  vaccineManufacturer?: string;
   lotExpiration?: string;
 }
 
@@ -128,6 +129,7 @@ const schema = yup.object().shape({
     }),
   tagNumber: yup.string().optional(),
   vaccineSerial: yup.string().optional(),
+  vaccineManufacturer: yup.string().optional(),
   lotExpiration: yup
     .string()
     .optional()
@@ -176,6 +178,7 @@ export default function AnimalForm({
         : "",
       tagNumber: animal?.tagNumber || "",
       vaccineSerial: animal?.vaccineSerial || "",
+      vaccineManufacturer: animal?.vaccineManufacturer || "",
       lotExpiration: animal?.lotExpiration
         ? formatDateForInput(animal.lotExpiration)
         : "",
@@ -219,6 +222,7 @@ export default function AnimalForm({
         : undefined,
       tagNumber: data.tagNumber,
       vaccineSerial: data.vaccineSerial,
+      vaccineManufacturer: data.vaccineManufacturer,
       lotExpiration: data.lotExpiration
         ? createLocalDate(data.lotExpiration)
         : undefined,
@@ -559,6 +563,21 @@ export default function AnimalForm({
                     fullWidth
                     error={!!errors.vaccineSerial}
                     helperText={errors.vaccineSerial?.message}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="vaccineManufacturer"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Vaccine Manufacturer"
+                    fullWidth
+                    error={!!errors.vaccineManufacturer}
+                    helperText={errors.vaccineManufacturer?.message}
                   />
                 )}
               />

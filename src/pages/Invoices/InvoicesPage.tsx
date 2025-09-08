@@ -43,8 +43,17 @@ interface ExtendedInvoice extends Invoice {
   client?: {
     _id?: string;
     id?: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string; // For organizations
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      county?: string;
+    };
   };
   // Override animalSections to include populated animal data
   animalSections: {
@@ -71,8 +80,17 @@ interface ApiInvoice {
     | {
         _id: string;
         id?: string;
-        firstName: string;
-        lastName: string;
+        firstName?: string;
+        lastName?: string;
+        name?: string; // For organizations
+        address?: {
+          street?: string;
+          city?: string;
+          state?: string;
+          zipCode?: string;
+          country?: string;
+          county?: string;
+        };
       }
     | string;
   animalSections: {
@@ -452,7 +470,7 @@ export default function InvoicesPage() {
         const clientName =
           params.row.client?.firstName && params.row.client?.lastName
             ? `${params.row.client.firstName} ${params.row.client.lastName}`
-            : "Unknown Client";
+            : params.row.client?.name || "Unknown Client";
         return <span>{clientName}</span>;
       },
     },
@@ -749,7 +767,7 @@ export default function InvoicesPage() {
                       {selectedInvoice.client?.firstName &&
                       selectedInvoice.client?.lastName
                         ? `${selectedInvoice.client.firstName} ${selectedInvoice.client.lastName}`
-                        : "Unknown Client"}
+                        : selectedInvoice.client?.name || "Unknown Client"}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Animals:</strong>{" "}

@@ -48,6 +48,7 @@ const animalSchema = new mongoose.Schema({
   nextVaccineDate: Date,
   tagNumber: String,
   vaccineSerial: String,
+  vaccineManufacturer: String,
   lotExpiration: Date,
   client: {
     type: mongoose.Schema.Types.ObjectId,

@@ -19,8 +19,7 @@ export const validateClient = [
     .optional({ checkFalsy: true })
     .trim()
     .isEmail()
-    .withMessage("Invalid email format")
-    .normalizeEmail(),
+    .withMessage("Invalid email format"),
 
   body("phone")
     .trim()
