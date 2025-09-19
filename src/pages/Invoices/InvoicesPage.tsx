@@ -140,6 +140,16 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, []);
 
+  // Debug useEffect to track state changes
+  useEffect(() => {
+    console.log("🎯 Invoices state changed:", {
+      count: invoices.length,
+      loading,
+      error,
+      invoices: invoices.slice(0, 2), // Log first 2 for debugging
+    });
+  }, [invoices, loading, error]);
+
   const formatCurrency = (amount: number | null | undefined) => {
     // Handle null, undefined, or NaN values
     const validAmount =
@@ -153,6 +163,12 @@ export default function InvoicesPage() {
   };
   const transformInvoiceData = (invoice: ApiInvoice): ExtendedInvoice => {
     try {
+      console.log(
+        "🔄 Transforming invoice:",
+        invoice._id,
+        invoice.invoiceNumber
+      );
+
       // Ensure monetary values are properly converted to numbers
       const subtotal =
         typeof invoice.subtotal === "string"
@@ -179,43 +195,63 @@ export default function InvoicesPage() {
       }
 
       // Transform animalSections to include populated animal data
-      const animalSections = invoice.animalSections.map((section) => {
-        let animal:
-          | { _id?: string; id?: string; name: string; species: string }
-          | undefined;
+      const animalSections = (invoice.animalSections || [])
+        .map((section, index) => {
+          console.log(
+            `🐾 Processing animal section ${index}:`,
+            section?.animalId
+          );
 
-        if (typeof section.animalId === "object" && section.animalId !== null) {
-          // animalId is populated with animal data
-          const animalData = section.animalId as any;
-          animal = {
-            _id: animalData._id || animalData.id || "",
-            id: animalData.id || animalData._id || "",
-            name: animalData.name || "Unknown",
-            species: animalData.species || "Unknown",
+          if (!section) {
+            console.warn("⚠️ Empty section found");
+            return null;
+          }
+
+          let animal:
+            | { _id?: string; id?: string; name: string; species: string }
+            | undefined;
+
+          if (
+            typeof section.animalId === "object" &&
+            section.animalId !== null
+          ) {
+            // animalId is populated with animal data
+            const animalData = section.animalId as any;
+            animal = {
+              _id: animalData._id || animalData.id || "",
+              id: animalData.id || animalData._id || "",
+              name: animalData.name || "Unknown",
+              species: animalData.species || "Unknown",
+            };
+            console.log(`✅ Populated animal:`, animal.name);
+          } else {
+            console.log(`⚠️ Animal not populated, ID:`, section.animalId);
+          }
+
+          return {
+            animalId:
+              typeof section.animalId === "string"
+                ? section.animalId
+                : (section.animalId as any)?._id || "",
+            animal,
+            items: (section.items || []).map((item) => ({
+              id: item.description || `item-${Date.now()}`, // Ensure unique ID
+              procedure: item.procedure || "",
+              description: item.description || "",
+              quantity: Number(item.quantity) || 1,
+              unitPrice: Number(item.unitPrice) || 0,
+              total: Number(item.total) || 0,
+            })),
+            subtotal: Number(section.subtotal) || 0,
           };
-        }
-
-        return {
-          animalId:
-            typeof section.animalId === "string"
-              ? section.animalId
-              : (section.animalId as any)._id || "",
-          animal,
-          items: section.items.map((item) => ({
-            id: item.description, // Use description as id for now
-            procedure: item.procedure,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            total: item.total,
-          })),
-          subtotal: section.subtotal,
-        };
-      });
+        })
+        .filter(
+          (section): section is NonNullable<typeof section> => section !== null
+        ); // Type-safe filter
 
       const result = {
         id: invoice._id,
-        invoiceNumber: invoice.invoiceNumber,
+        invoiceNumber: invoice.invoiceNumber || "",
         clientId,
         // Preserve the client object for UI display
         client: typeof invoice.client === "object" ? invoice.client : undefined,
@@ -230,10 +266,14 @@ export default function InvoicesPage() {
         updatedAt: new Date(invoice.updatedAt),
         subtotal,
         total,
-        status: invoice.status,
+        status: invoice.status || "draft",
         notes: invoice.notes,
       };
 
+      console.log(
+        "✅ Successfully transformed invoice:",
+        invoice.invoiceNumber
+      );
       return result;
     } catch (error) {
       console.error(
@@ -251,19 +291,54 @@ export default function InvoicesPage() {
       setLoading(true);
       setError(null);
 
+      console.log("🔄 Fetching invoices from API...");
       const response = await api.get<ApiInvoice[]>("/invoices");
+      console.log("📥 Raw API response:", response);
+      console.log("📥 Response type:", typeof response);
+      console.log("📥 Is array:", Array.isArray(response));
 
-      // response is already the data because of the axios interceptor
+      // The axios interceptor returns response.data directly, so response IS the data
       const invoiceData = Array.isArray(response) ? response : [];
+      console.log("📊 Invoice data length:", invoiceData.length);
 
       if (invoiceData.length === 0) {
-        console.log("ℹ️ No invoices found in database");
+        console.log("⚠️ No invoices found - checking response structure...");
+        if (
+          response &&
+          typeof response === "object" &&
+          !Array.isArray(response)
+        ) {
+          console.log("Response keys:", Object.keys(response));
+          console.log("Full response:", JSON.stringify(response, null, 2));
+        }
       } else {
         console.log(`✅ Successfully loaded ${invoiceData.length} invoices`);
+        console.log("📋 First invoice:", invoiceData[0]);
       }
 
-      const transformedInvoices = invoiceData.map(transformInvoiceData);
+      console.log("🔄 Starting transformation...");
+      const transformedInvoices = invoiceData.map((invoice, index) => {
+        try {
+          const result = transformInvoiceData(invoice);
+          console.log(
+            `✅ Transformed invoice ${index + 1}/${invoiceData.length}`
+          );
+          return result;
+        } catch (error) {
+          console.error(`❌ Failed to transform invoice ${index + 1}:`, error);
+          console.error("Problem invoice:", invoice);
+          throw error;
+        }
+      });
+
+      console.log(
+        "🎯 Setting invoices state with",
+        transformedInvoices.length,
+        "items"
+      );
       setInvoices(transformedInvoices);
+
+      console.log("✅ Fetch complete, state should be updated");
     } catch (error) {
       console.error("❌ Error fetching invoices:", error);
       setError(
@@ -685,7 +760,29 @@ export default function InvoicesPage() {
         >
           Refresh Debug Info
         </Button>
-
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => {
+            console.log("🔍 Manual invoice state check:");
+            console.log("Invoices state:", invoices);
+            console.log("Loading:", loading);
+            console.log("Error:", error);
+            console.log("Filtered invoices:", filteredInvoices);
+          }}
+          sx={{ ml: 1 }}
+        >
+          Log State
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={fetchInvoices}
+          disabled={loading}
+          sx={{ ml: 1 }}
+        >
+          Retry Fetch
+        </Button>{" "}
         {showDebug && (
           <Card sx={{ mt: 2, p: 2, bgcolor: "grey.100" }}>
             <Typography variant="h6" gutterBottom>
