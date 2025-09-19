@@ -71,6 +71,88 @@ const transformInvoice = (invoice) => {
   };
 };
 
+// Debug endpoint for production troubleshooting
+router.get(
+  "/debug",
+  auth,
+  requirePermission(PERMISSIONS.READ_INVOICES),
+  async (req, res) => {
+    try {
+      const start = Date.now();
+
+      // Basic database connection check
+      const dbStatus = await Invoice.db.db.admin().ping();
+
+      // Count invoices
+      const totalInvoices = await Invoice.countDocuments();
+
+      // Get sample invoice if any exist
+      let sampleInvoice = null;
+      if (totalInvoices > 0) {
+        sampleInvoice = await Invoice.findOne()
+          .populate("client", "firstName lastName")
+          .populate("animalSections.animalId", "name species");
+      }
+
+      // Check different data formats
+      const formats = {
+        withAnimalSections: await Invoice.countDocuments({
+          animalSections: { $exists: true },
+        }),
+        withOldAnimal: await Invoice.countDocuments({
+          animal: { $exists: true },
+        }),
+        withAnimalsArray: await Invoice.countDocuments({
+          animals: { $exists: true },
+        }),
+        withoutClient: await Invoice.countDocuments({
+          client: { $exists: false },
+        }),
+        withEmptyAnimalSections: await Invoice.countDocuments({
+          animalSections: { $size: 0 },
+        }),
+      };
+
+      const responseTime = Date.now() - start;
+
+      res.json({
+        timestamp: new Date().toISOString(),
+        database: {
+          connected: !!dbStatus,
+          responseTime: `${responseTime}ms`,
+        },
+        invoices: {
+          total: totalInvoices,
+          formats,
+          sample: sampleInvoice
+            ? {
+                id: sampleInvoice._id,
+                invoiceNumber: sampleInvoice.invoiceNumber,
+                hasClient: !!sampleInvoice.client,
+                clientPopulated: typeof sampleInvoice.client === "object",
+                animalSectionsCount: sampleInvoice.animalSections?.length || 0,
+                firstAnimalPopulated: sampleInvoice.animalSections?.[0]
+                  ?.animalId
+                  ? typeof sampleInvoice.animalSections[0].animalId === "object"
+                  : false,
+              }
+            : null,
+        },
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          mongoUri: process.env.MONGODB_URI ? "SET" : "NOT_SET",
+        },
+      });
+    } catch (error) {
+      console.error("Debug endpoint error:", error);
+      res.status(500).json({
+        error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      });
+    }
+  }
+);
+
 // Get all invoices
 router.get(
   "/",

@@ -132,6 +132,10 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [detailAnimals, setDetailAnimals] = useState<any[]>([]);
 
+  // Debug state - remove in production
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
+
   useEffect(() => {
     fetchInvoices();
   }, []);
@@ -148,100 +152,137 @@ export default function InvoicesPage() {
     }).format(validAmount);
   };
   const transformInvoiceData = (invoice: ApiInvoice): ExtendedInvoice => {
-    // Ensure monetary values are properly converted to numbers
-    const subtotal =
-      typeof invoice.subtotal === "string"
-        ? parseFloat(invoice.subtotal)
-        : typeof invoice.subtotal === "number"
-        ? invoice.subtotal
-        : 0;
+    try {
+      // Ensure monetary values are properly converted to numbers
+      const subtotal =
+        typeof invoice.subtotal === "string"
+          ? parseFloat(invoice.subtotal)
+          : typeof invoice.subtotal === "number"
+          ? invoice.subtotal
+          : 0;
 
-    const total =
-      typeof invoice.total === "string"
-        ? parseFloat(invoice.total)
-        : typeof invoice.total === "number"
-        ? invoice.total
-        : subtotal; // Default total to subtotal when no tax
+      const total =
+        typeof invoice.total === "string"
+          ? parseFloat(invoice.total)
+          : typeof invoice.total === "number"
+          ? invoice.total
+          : subtotal; // Default total to subtotal when no tax
 
-    // Extract client ID properly with type checking
-    let clientId: string = "";
-    if (invoice.client) {
-      if (typeof invoice.client === "object" && invoice.client !== null) {
-        clientId = invoice.client._id || invoice.client.id || "";
-      } else if (typeof invoice.client === "string") {
-        clientId = invoice.client;
+      // Extract client ID properly with type checking
+      let clientId: string = "";
+      if (invoice.client) {
+        if (typeof invoice.client === "object" && invoice.client !== null) {
+          clientId = invoice.client._id || invoice.client.id || "";
+        } else if (typeof invoice.client === "string") {
+          clientId = invoice.client;
+        }
       }
-    }
 
-    // Transform animalSections to include populated animal data
-    const animalSections = invoice.animalSections.map((section) => {
-      let animal:
-        | { _id?: string; id?: string; name: string; species: string }
-        | undefined;
+      // Transform animalSections to include populated animal data
+      const animalSections = invoice.animalSections.map((section) => {
+        let animal:
+          | { _id?: string; id?: string; name: string; species: string }
+          | undefined;
 
-      if (typeof section.animalId === "object" && section.animalId !== null) {
-        // animalId is populated with animal data
-        const animalData = section.animalId as any;
-        animal = {
-          _id: animalData._id || animalData.id || "",
-          id: animalData.id || animalData._id || "",
-          name: animalData.name || "Unknown",
-          species: animalData.species || "Unknown",
+        if (typeof section.animalId === "object" && section.animalId !== null) {
+          // animalId is populated with animal data
+          const animalData = section.animalId as any;
+          animal = {
+            _id: animalData._id || animalData.id || "",
+            id: animalData.id || animalData._id || "",
+            name: animalData.name || "Unknown",
+            species: animalData.species || "Unknown",
+          };
+        }
+
+        return {
+          animalId:
+            typeof section.animalId === "string"
+              ? section.animalId
+              : (section.animalId as any)._id || "",
+          animal,
+          items: section.items.map((item) => ({
+            id: item.description, // Use description as id for now
+            procedure: item.procedure,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          })),
+          subtotal: section.subtotal,
         };
-      }
+      });
 
-      return {
-        animalId:
-          typeof section.animalId === "string"
-            ? section.animalId
-            : (section.animalId as any)._id || "",
-        animal,
-        items: section.items.map((item) => ({
-          id: item.description, // Use description as id for now
-          procedure: item.procedure,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          total: item.total,
-        })),
-        subtotal: section.subtotal,
+      const result = {
+        id: invoice._id,
+        invoiceNumber: invoice.invoiceNumber,
+        clientId,
+        // Preserve the client object for UI display
+        client: typeof invoice.client === "object" ? invoice.client : undefined,
+        animalSections,
+        date: new Date(invoice.date),
+        dueDate: new Date(invoice.dueDate),
+        paymentMethod: invoice.paymentMethod,
+        paymentDate: invoice.paymentDate
+          ? new Date(invoice.paymentDate)
+          : undefined,
+        createdAt: new Date(invoice.createdAt),
+        updatedAt: new Date(invoice.updatedAt),
+        subtotal,
+        total,
+        status: invoice.status,
+        notes: invoice.notes,
       };
-    });
 
-    return {
-      id: invoice._id,
-      invoiceNumber: invoice.invoiceNumber,
-      clientId,
-      // Preserve the client object for UI display
-      client: typeof invoice.client === "object" ? invoice.client : undefined,
-      animalSections,
-      date: new Date(invoice.date),
-      dueDate: new Date(invoice.dueDate),
-      paymentMethod: invoice.paymentMethod,
-      paymentDate: invoice.paymentDate
-        ? new Date(invoice.paymentDate)
-        : undefined,
-      createdAt: new Date(invoice.createdAt),
-      updatedAt: new Date(invoice.updatedAt),
-      subtotal,
-      total,
-      status: invoice.status,
-      notes: invoice.notes,
-    };
+      return result;
+    } catch (error) {
+      console.error(
+        "❌ Error transforming invoice:",
+        error,
+        "Raw invoice:",
+        invoice
+      );
+      throw error;
+    }
   };
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const response = await api.get<ApiInvoice[]>("/invoices");
+
       // response is already the data because of the axios interceptor
       const invoiceData = Array.isArray(response) ? response : [];
+
+      if (invoiceData.length === 0) {
+        console.log("ℹ️ No invoices found in database");
+      } else {
+        console.log(`✅ Successfully loaded ${invoiceData.length} invoices`);
+      }
+
       const transformedInvoices = invoiceData.map(transformInvoiceData);
       setInvoices(transformedInvoices);
     } catch (error) {
-      setError("Failed to fetch invoices");
+      console.error("❌ Error fetching invoices:", error);
+      setError(
+        "Failed to fetch invoices. Please check your connection and try again."
+      );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Debug function to get backend debug info
+  const fetchDebugInfo = async () => {
+    try {
+      const response = await api.get("/invoices/debug");
+      setDebugInfo(response);
+      console.log("🔍 Debug info:", response);
+    } catch (error) {
+      console.error("❌ Debug fetch failed:", error);
+      setDebugInfo({ error: "Failed to fetch debug info" });
     }
   };
 
@@ -626,10 +667,67 @@ export default function InvoicesPage() {
           </PermissionGuard>
         </Box>
       </Box>{" "}
+      {/* Debug Panel - Remove in production */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => setShowDebug(!showDebug)}
+          sx={{ mr: 1 }}
+        >
+          {showDebug ? "Hide Debug" : "Show Debug"}
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={fetchDebugInfo}
+          disabled={loading}
+        >
+          Refresh Debug Info
+        </Button>
+
+        {showDebug && (
+          <Card sx={{ mt: 2, p: 2, bgcolor: "grey.100" }}>
+            <Typography variant="h6" gutterBottom>
+              Debug Information
+            </Typography>
+            <Box
+              component="pre"
+              sx={{ fontSize: "0.8rem", overflow: "auto", maxHeight: 300 }}
+            >
+              {debugInfo
+                ? JSON.stringify(debugInfo, null, 2)
+                : "No debug data yet"}
+            </Box>
+          </Card>
+        )}
+      </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
+      )}
+      {/* Empty state when no invoices */}
+      {!loading && !error && invoices.length === 0 && (
+        <Card sx={{ p: 4, textAlign: "center", mb: 2 }}>
+          <ReceiptIcon sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No Invoices Found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            You haven't created any invoices yet. Get started by creating your
+            first invoice.
+          </Typography>
+          <PermissionGuard permission={PERMISSIONS.CREATE_INVOICES}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateClick}
+            >
+              Create Your First Invoice
+            </Button>
+          </PermissionGuard>
+        </Card>
       )}
       <Box sx={{ flex: 1, width: "100%", minHeight: 0 }}>
         <DataGrid
