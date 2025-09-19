@@ -149,12 +149,6 @@ export default function InvoicesPage() {
   };
   const transformInvoiceData = (invoice: ApiInvoice): ExtendedInvoice => {
     try {
-      console.log(
-        "🔄 Transforming invoice:",
-        invoice._id,
-        invoice.invoiceNumber
-      );
-
       // Ensure monetary values are properly converted to numbers
       const subtotal =
         typeof invoice.subtotal === "string"
@@ -182,14 +176,8 @@ export default function InvoicesPage() {
 
       // Transform animalSections to include populated animal data
       const animalSections = (invoice.animalSections || [])
-        .map((section, index) => {
-          console.log(
-            `🐾 Processing animal section ${index}:`,
-            section?.animalId
-          );
-
+        .map((section) => {
           if (!section) {
-            console.warn("⚠️ Empty section found");
             return null;
           }
 
@@ -209,9 +197,6 @@ export default function InvoicesPage() {
               name: animalData.name || "Unknown",
               species: animalData.species || "Unknown",
             };
-            console.log(`✅ Populated animal:`, animal.name);
-          } else {
-            console.log(`⚠️ Animal not populated, ID:`, section.animalId);
           }
 
           return {
@@ -256,10 +241,6 @@ export default function InvoicesPage() {
         notes: invoice.notes,
       };
 
-      console.log(
-        "✅ Successfully transformed invoice:",
-        invoice.invoiceNumber
-      );
       return result;
     } catch (error) {
       console.error(
@@ -277,54 +258,25 @@ export default function InvoicesPage() {
       setLoading(true);
       setError(null);
 
-      console.log("🔄 Fetching invoices from API...");
       const response = await api.get<ApiInvoice[]>("/invoices");
-      console.log("📥 Raw API response:", response);
-      console.log("📥 Response type:", typeof response);
-      console.log("📥 Is array:", Array.isArray(response));
 
       // The axios interceptor returns response.data directly, so response IS the data
       const invoiceData = Array.isArray(response) ? response : [];
-      console.log("📊 Invoice data length:", invoiceData.length);
 
       if (invoiceData.length === 0) {
-        console.log("⚠️ No invoices found - checking response structure...");
-        if (
-          response &&
-          typeof response === "object" &&
-          !Array.isArray(response)
-        ) {
-          console.log("Response keys:", Object.keys(response));
-          console.log("Full response:", JSON.stringify(response, null, 2));
-        }
-      } else {
-        console.log(`✅ Successfully loaded ${invoiceData.length} invoices`);
-        console.log("📋 First invoice:", invoiceData[0]);
+        console.log("ℹ️ No invoices found in database");
       }
 
-      console.log("🔄 Starting transformation...");
       const transformedInvoices = invoiceData.map((invoice, index) => {
         try {
-          const result = transformInvoiceData(invoice);
-          console.log(
-            `✅ Transformed invoice ${index + 1}/${invoiceData.length}`
-          );
-          return result;
+          return transformInvoiceData(invoice);
         } catch (error) {
           console.error(`❌ Failed to transform invoice ${index + 1}:`, error);
-          console.error("Problem invoice:", invoice);
           throw error;
         }
       });
 
-      console.log(
-        "🎯 Setting invoices state with",
-        transformedInvoices.length,
-        "items"
-      );
       setInvoices(transformedInvoices);
-
-      console.log("✅ Fetch complete, state should be updated");
     } catch (error) {
       console.error("❌ Error fetching invoices:", error);
       setError(
