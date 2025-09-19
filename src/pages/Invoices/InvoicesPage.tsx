@@ -132,23 +132,9 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [detailAnimals, setDetailAnimals] = useState<any[]>([]);
 
-  // Debug state - remove in production
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [showDebug, setShowDebug] = useState(false);
-
   useEffect(() => {
     fetchInvoices();
   }, []);
-
-  // Debug useEffect to track state changes
-  useEffect(() => {
-    console.log("🎯 Invoices state changed:", {
-      count: invoices.length,
-      loading,
-      error,
-      invoices: invoices.slice(0, 2), // Log first 2 for debugging
-    });
-  }, [invoices, loading, error]);
 
   const formatCurrency = (amount: number | null | undefined) => {
     // Handle null, undefined, or NaN values
@@ -346,18 +332,6 @@ export default function InvoicesPage() {
       );
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Debug function to get backend debug info
-  const fetchDebugInfo = async () => {
-    try {
-      const response = await api.get("/invoices/debug");
-      setDebugInfo(response);
-      console.log("🔍 Debug info:", response);
-    } catch (error) {
-      console.error("❌ Debug fetch failed:", error);
-      setDebugInfo({ error: "Failed to fetch debug info" });
     }
   };
 
@@ -742,63 +716,6 @@ export default function InvoicesPage() {
           </PermissionGuard>
         </Box>
       </Box>{" "}
-      {/* Debug Panel - Remove in production */}
-      <Box sx={{ mb: 2 }}>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => setShowDebug(!showDebug)}
-          sx={{ mr: 1 }}
-        >
-          {showDebug ? "Hide Debug" : "Show Debug"}
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={fetchDebugInfo}
-          disabled={loading}
-        >
-          Refresh Debug Info
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => {
-            console.log("🔍 Manual invoice state check:");
-            console.log("Invoices state:", invoices);
-            console.log("Loading:", loading);
-            console.log("Error:", error);
-            console.log("Filtered invoices:", filteredInvoices);
-          }}
-          sx={{ ml: 1 }}
-        >
-          Log State
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={fetchInvoices}
-          disabled={loading}
-          sx={{ ml: 1 }}
-        >
-          Retry Fetch
-        </Button>{" "}
-        {showDebug && (
-          <Card sx={{ mt: 2, p: 2, bgcolor: "grey.100" }}>
-            <Typography variant="h6" gutterBottom>
-              Debug Information
-            </Typography>
-            <Box
-              component="pre"
-              sx={{ fontSize: "0.8rem", overflow: "auto", maxHeight: 300 }}
-            >
-              {debugInfo
-                ? JSON.stringify(debugInfo, null, 2)
-                : "No debug data yet"}
-            </Box>
-          </Card>
-        )}
-      </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
