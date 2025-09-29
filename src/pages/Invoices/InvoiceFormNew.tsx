@@ -42,7 +42,6 @@ import {
   Animal,
 } from "../../types/models";
 import api from "../../utils/api";
-import clinicServicesData from "../../data/clinicServices.json";
 import {
   createLocalDate,
   formatDateForInput,
@@ -69,10 +68,27 @@ interface ServiceOption {
   priceDisplay: string;
 }
 
-const transformServicesData = (): ServiceOption[] => {
+interface ServiceCategory {
+  category: string;
+  services: { name: string; price: string }[];
+}
+
+const transformServicesData = (
+  servicesData: ServiceCategory[]
+): ServiceOption[] => {
   const services: ServiceOption[] = [];
 
-  clinicServicesData.forEach((category) => {
+  // Defensive check to ensure servicesData is an array
+  if (!Array.isArray(servicesData)) {
+    return services;
+  }
+
+  servicesData.forEach((category) => {
+    // Ensure category.services is also an array
+    if (!Array.isArray(category.services)) {
+      return;
+    }
+
     category.services.forEach((service, index) => {
       // Parse price - handle various formats like "$140", "Free with microchip", "$10 per dose"
       let price = 0;
@@ -128,8 +144,6 @@ const filterOptions = (options: ServiceOption[], { inputValue }: any) => {
       option.category.toLowerCase().includes(searchTerm)
   );
 };
-
-const availableServices = transformServicesData();
 
 // Generate a unique invoice number
 const generateInvoiceNumber = () => {
@@ -215,9 +229,17 @@ export default function InvoiceForm({
     null
   );
   const [selectedAnimals, setSelectedAnimals] = useState<Animal[]>([]);
+  const [servicesData, setServicesData] = useState<ServiceCategory[]>([]);
+  const [, setServicesLoading] = useState<boolean>(true);
 
   // Create dynamic service options including custom procedures from current invoice
   const dynamicServiceOptions = useMemo((): ServiceOption[] => {
+    // Early return if services data is not ready
+    if (!servicesData || !Array.isArray(servicesData)) {
+      return [];
+    }
+
+    const availableServices = transformServicesData(servicesData);
     const customProcedures: ServiceOption[] = [];
     const addedProcedures = new Set<string>();
 
@@ -268,7 +290,7 @@ export default function InvoiceForm({
     });
 
     return [...availableServices, ...customProcedures];
-  }, [invoice, animalSections]);
+  }, [invoice, animalSections, servicesData]);
 
   const {
     control,
@@ -353,6 +375,26 @@ export default function InvoiceForm({
 
     fetchClientData();
   }, [invoice, setValue]);
+
+  // Effect to load services data
+  useEffect(() => {
+    const fetchServicesData = async () => {
+      try {
+        setServicesLoading(true);
+        const response = await api.get("/services");
+        // The api utility already extracts response.data, so response IS the data
+        setServicesData(Array.isArray(response) ? response : []);
+      } catch (err) {
+        console.error("Error fetching services data:", err);
+        // Fallback to empty array if services can't be loaded
+        setServicesData([]);
+      } finally {
+        setServicesLoading(false);
+      }
+    };
+
+    fetchServicesData();
+  }, []);
 
   // Separate effect to fetch animals when needed
   useEffect(() => {

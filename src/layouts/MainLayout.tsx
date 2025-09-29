@@ -34,6 +34,7 @@ import {
   Logout as LogoutIcon,
   People as PeopleIcon,
   ManageAccounts as ManageAccountsIcon,
+  Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
@@ -93,7 +94,7 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   justifyContent: "flex-end",
 }));
 
-const menuItems = [
+const baseMenuItems = [
   { text: "Clients", icon: <PeopleIcon />, path: "/clients" },
   { text: "Animals", icon: <PetsIcon />, path: "/animals" },
   { text: "Invoices", icon: <ReceiptIcon />, path: "/invoices" },
@@ -103,6 +104,16 @@ const menuItems = [
     path: "/organizations",
   },
   { text: "Blacklist", icon: <BlockIcon />, path: "/blacklist" },
+];
+
+// Admin-only menu items
+const adminMenuItems = [
+  {
+    text: "Services",
+    icon: <SettingsIcon />,
+    path: "/services",
+    permission: PERMISSIONS.MANAGE_SYSTEM_SETTINGS,
+  },
 ];
 
 export default function MainLayout() {
@@ -274,7 +285,7 @@ export default function MainLayout() {
         </DrawerHeader>
         <Divider />
         <List>
-          {menuItems.map((item) => (
+          {baseMenuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
               <ListItemButton onClick={() => navigate(item.path)}>
                 <ListItemIcon>{item.icon}</ListItemIcon>
@@ -282,6 +293,18 @@ export default function MainLayout() {
               </ListItemButton>
             </ListItem>
           ))}
+
+          {/* Admin-only menu items */}
+          {adminMenuItems.map((item) =>
+            hasPermission(item.permission) ? (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton onClick={() => navigate(item.path)}>
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ) : null
+          )}
         </List>
       </Drawer>{" "}
       <Main open={open}>

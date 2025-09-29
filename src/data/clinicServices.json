@@ -2,101 +2,272 @@
   {
     "category": "Surgery Days - General Services",
     "services": [
-      { "name": "Spay Package", "price": "$140" },
-      { "name": "Neuter Package", "price": "$140" },
-      { "name": "Revolution", "price": "$15" },
-      { "name": "Microchip", "price": "$35" },
-      { "name": "Ear Tip", "price": "Free with microchip" },
-      { "name": "E-Collar", "price": "$10" },
-      { "name": "Pyometra", "price": "$55" },
-      { "name": "Hernia Repair", "price": "$55" },
-      { "name": "Cryptorchid", "price": "$55" },
-      { "name": "FeLV/FIV Snap test", "price": "$35" },
-      { "name": "Lake County Rabies Tag (1 Yr)", "price": "$10" },
-      { "name": "McHenry Rabies Tag (1 Yr, No Chip)", "price": "$6" },
-      { "name": "McHenry Rabies Tag (1 Yr, w/ Chip)", "price": "$4" },
-      { "name": "Pyrantel", "price": "$15" },
-      { "name": "Onsior 6mg", "price": "$10 per dose" },
-      { "name": "Ostilox Liquid", "price": "$10 per dose" },
-      { "name": "Fluids (LRS)", "price": "$15" },
-      { "name": "Clavamox 62.5mg (14 tablets)", "price": "$15" },
-      { "name": "Clavamox 62.5mg (7 tablets)", "price": "$15" },
-      { "name": "NeoPolyBac w/o steroid", "price": "$15" },
-      { "name": "NeoPolyBac with steroid", "price": "$15" },
-      { "name": "Pen-G Injection", "price": "$15" },
-      { "name": "Convenia Injection", "price": "$35" },
-      { "name": "Ear Cleaning", "price": "$10" },
-      { "name": "Enucleation", "price": "$90" },
-      { "name": "Cardboard Carrier", "price": "$10" },
-      { "name": "Donated Carrier", "price": "$10" }
+      {
+        "name": "Spay Package",
+        "price": "$140"
+      },
+      {
+        "name": "Neuter Package",
+        "price": "$140"
+      },
+      {
+        "name": "Revolution",
+        "price": "$15"
+      },
+      {
+        "name": "Microchip",
+        "price": "$35"
+      },
+      {
+        "name": "Ear Tip",
+        "price": "Free with microchip"
+      },
+      {
+        "name": "E-Collar",
+        "price": "$10"
+      },
+      {
+        "name": "Pyometra",
+        "price": "$55"
+      },
+      {
+        "name": "Hernia Repair",
+        "price": "$55"
+      },
+      {
+        "name": "Cryptorchid",
+        "price": "$55"
+      },
+      {
+        "name": "FeLV/FIV Snap test",
+        "price": "$35"
+      },
+      {
+        "name": "Lake County Rabies Tag (1 Yr)",
+        "price": "$10"
+      },
+      {
+        "name": "McHenry Rabies Tag (1 Yr, No Chip)",
+        "price": "$6"
+      },
+      {
+        "name": "McHenry Rabies Tag (1 Yr, w/ Chip)",
+        "price": "$4"
+      },
+      {
+        "name": "Pyrantel",
+        "price": "$15"
+      },
+      {
+        "name": "Onsior 6mg",
+        "price": "$10 per dose"
+      },
+      {
+        "name": "Ostilox Liquid",
+        "price": "$10 per dose"
+      },
+      {
+        "name": "Fluids (LRS)",
+        "price": "$15"
+      },
+      {
+        "name": "Clavamox 62.5mg (14 tablets)",
+        "price": "$15"
+      },
+      {
+        "name": "Clavamox 62.5mg (7 tablets)",
+        "price": "$15"
+      },
+      {
+        "name": "NeoPolyBac w/o steroid",
+        "price": "$15"
+      },
+      {
+        "name": "NeoPolyBac with steroid",
+        "price": "$15"
+      },
+      {
+        "name": "Pen-G Injection",
+        "price": "$15"
+      },
+      {
+        "name": "Convenia Injection",
+        "price": "$35"
+      },
+      {
+        "name": "Ear Cleaning",
+        "price": "$10"
+      },
+      {
+        "name": "Enucleation",
+        "price": "$90"
+      },
+      {
+        "name": "Cardboard Carrier",
+        "price": "$10"
+      },
+      {
+        "name": "Donated Carrier",
+        "price": "$10"
+      }
     ]
   },
   {
     "category": "McHenry County Animal Control",
     "services": [
-      { "name": "MCAC Spay Package", "price": "$80" },
-      { "name": "MCAC Neuter Package", "price": "$50" },
-      { "name": "MCAC Pyometra", "price": "$55" },
-      { "name": "MCAC Cryptorchid", "price": "$55" },
-      { "name": "MCAC Hernia Repair", "price": "$55" }
+      {
+        "name": "MCAC Spay Package",
+        "price": "$80"
+      },
+      {
+        "name": "MCAC Neuter Package",
+        "price": "$50"
+      },
+      {
+        "name": "MCAC Pyometra",
+        "price": "$55"
+      },
+      {
+        "name": "MCAC Cryptorchid",
+        "price": "$55"
+      },
+      {
+        "name": "MCAC Hernia Repair",
+        "price": "$55"
+      }
     ]
   },
   {
     "category": "Purrfect Cat Rescue",
     "services": [
-      { "name": "Spay", "price": "$60" },
-      { "name": "Neuter Package", "price": "$40" },
-      { "name": "Blood Draw", "price": "$10" },
-      { "name": "Onsior 6mg", "price": "$5" },
-      { "name": "Ostilox", "price": "$5" },
-      { "name": "Blood Draw for Snap Test (Rescue)", "price": "$10" }
+      {
+        "name": "Spay",
+        "price": "$60"
+      },
+      {
+        "name": "Neuter Package",
+        "price": "$40"
+      },
+      {
+        "name": "Blood Draw",
+        "price": "$10"
+      },
+      {
+        "name": "Onsior 6mg",
+        "price": "$5"
+      },
+      {
+        "name": "Ostilox",
+        "price": "$5"
+      },
+      {
+        "name": "Blood Draw for Snap Test (Rescue)",
+        "price": "$10"
+      }
     ]
   },
   {
     "category": "Alive Rescue",
     "services": [
-      { "name": "Neuter Package", "price": "$50" },
-      { "name": "Spay Package", "price": "$70" },
-      { "name": "Snap Test", "price": "$35" },
-      { "name": "Rabies", "price": "$10" },
-      { "name": "FVRCP", "price": "$10" },
-      { "name": "Revolution", "price": "$15" }
+      {
+        "name": "Neuter Package",
+        "price": "$50"
+      },
+      {
+        "name": "Spay Package",
+        "price": "$70"
+      },
+      {
+        "name": "Snap Test",
+        "price": "$35"
+      },
+      {
+        "name": "Rabies",
+        "price": "$10"
+      },
+      {
+        "name": "FVRCP",
+        "price": "$10"
+      },
+      {
+        "name": "Revolution",
+        "price": "$15"
+      }
     ]
   },
   {
     "category": "Animal Outreach Society",
     "services": [
-      { "name": "Spay Package", "price": "$70" },
-      { "name": "Neuter Package", "price": "$50" }
+      {
+        "name": "Spay Package",
+        "price": "$70"
+      },
+      {
+        "name": "Neuter Package",
+        "price": "$50"
+      }
     ]
   },
   {
     "category": "Adopt-A-Pet",
     "services": [
-      { "name": "Spay Package", "price": "$60" },
-      { "name": "Neuter Package", "price": "$40" },
-      { "name": "Rabies", "price": "$10" },
-      { "name": "FVRCP", "price": "$10" }
+      {
+        "name": "Spay Package",
+        "price": "$60"
+      },
+      {
+        "name": "Neuter Package",
+        "price": "$40"
+      },
+      {
+        "name": "Rabies",
+        "price": "$10"
+      },
+      {
+        "name": "FVRCP",
+        "price": "$10"
+      }
     ]
   },
   {
     "category": "Vaccine Clinic",
     "services": [
-      { "name": "Rabies Vaccine (1 Year)", "price": "$20" },
+      {
+        "name": "Rabies Vaccine (1 Year)",
+        "price": "$20"
+      },
       {
         "name": "MCAC Tag Feline (Fixed or under 6 mo, Microchipped)",
         "price": "$4"
       },
-      { "name": "MCAC Tag Feline (Fixed only or under 6 mo)", "price": "$6" },
-      { "name": "MCAC Tag Feline (Unaltered)", "price": "$20" },
-      { "name": "MCAC Tag Feline (Intact w/ Microchip)", "price": "$18" },
+      {
+        "name": "MCAC Tag Feline (Fixed only or under 6 mo)",
+        "price": "$6"
+      },
+      {
+        "name": "MCAC Tag Feline (Unaltered)",
+        "price": "$20"
+      },
+      {
+        "name": "MCAC Tag Feline (Intact w/ Microchip)",
+        "price": "$18"
+      },
       {
         "name": "MCAC Tag Feline (Altered w/ Microchip, Senior)",
         "price": "$2"
       },
-      { "name": "MCAC Tag Feline (Altered, Senior, No Chip)", "price": "$4" },
-      { "name": "MCAC Tag Feline (Intact, Senior, No Chip)", "price": "$18" },
-      { "name": "MCAC Tag Feline (Intact, Senior, w/ Chip)", "price": "$16" },
+      {
+        "name": "MCAC Tag Feline (Altered, Senior, No Chip)",
+        "price": "$4"
+      },
+      {
+        "name": "MCAC Tag Feline (Intact, Senior, No Chip)",
+        "price": "$18"
+      },
+      {
+        "name": "MCAC Tag Feline (Intact, Senior, w/ Chip)",
+        "price": "$16"
+      },
       {
         "name": "MCAC Tag Canine (Altered or under 6 mo w/ Microchip)",
         "price": "$10"
@@ -105,31 +276,70 @@
         "name": "MCAC Tag Canine (Altered or under 6 mo, No Chip)",
         "price": "$15"
       },
-      { "name": "MCAC Tag Canine (Intact w/ Microchip)", "price": "$45" },
-      { "name": "MCAC Tag Canine (Intact w/o Microchip)", "price": "$50" },
+      {
+        "name": "MCAC Tag Canine (Intact w/ Microchip)",
+        "price": "$45"
+      },
+      {
+        "name": "MCAC Tag Canine (Intact w/o Microchip)",
+        "price": "$50"
+      },
       {
         "name": "MCAC Tag Canine (Senior, Altered, w/ Microchip)",
         "price": "$5"
       },
-      { "name": "MCAC Tag Canine (Senior, Altered, No Chip)", "price": "$10" },
+      {
+        "name": "MCAC Tag Canine (Senior, Altered, No Chip)",
+        "price": "$10"
+      },
       {
         "name": "MCAC Tag Canine (Senior, Intact, w/ Microchip)",
         "price": "$40"
       },
-      { "name": "MCAC Tag Canine (Senior, Intact, No Chip)", "price": "$45" },
-      { "name": "LCAC Tag Canine (Altered or under 9 months)", "price": "$10" },
+      {
+        "name": "MCAC Tag Canine (Senior, Intact, No Chip)",
+        "price": "$45"
+      },
+      {
+        "name": "LCAC Tag Canine (Altered or under 9 months)",
+        "price": "$10"
+      },
       {
         "name": "LCAC Tag Canine (Unaltered or over 9 months)",
         "price": "$50"
       },
-      { "name": "Bordetella", "price": "$25" },
-      { "name": "FVRCP", "price": "$25" },
-      { "name": "Feline Nail Trim", "price": "$15" },
-      { "name": "Feline Pyrantel", "price": "$15" },
-      { "name": "Canine Distemper", "price": "$25" },
-      { "name": "Canine Distemper with Lepto", "price": "$30" },
-      { "name": "Canine Heartworm Test", "price": "$30" },
-      { "name": "Canine Nail Trim", "price": "$20" }
+      {
+        "name": "Bordetella",
+        "price": "$25"
+      },
+      {
+        "name": "FVRCP",
+        "price": "$25"
+      },
+      {
+        "name": "Feline Nail Trim",
+        "price": "$15"
+      },
+      {
+        "name": "Feline Pyrantel",
+        "price": "$15"
+      },
+      {
+        "name": "Canine Distemper",
+        "price": "$25"
+      },
+      {
+        "name": "Canine Distemper with Lepto",
+        "price": "$30"
+      },
+      {
+        "name": "Canine Heartworm Test",
+        "price": "$30"
+      },
+      {
+        "name": "Canine Nail Trim",
+        "price": "$20"
+      }
     ]
   }
 ]

@@ -15,6 +15,7 @@ import InvoicesPage from "../../pages/Invoices/InvoicesPage";
 import OrganizationsPage from "../../pages/Organizations/OrganizationsPage";
 import BlacklistPage from "../../pages/Blacklist/BlacklistPage";
 import DocumentsPage from "../../pages/Documents/DocumentsPage";
+import ServicesPage from "../../pages/Services/ServicesPage";
 import Landing from "../../pages/Auth/Landing";
 import AuthModal from "./AuthModal";
 import { isLoggedIn } from "../../utils/auth";
@@ -88,6 +89,7 @@ function App() {
               <Route path="documents" element={<DocumentsPage />} />
               <Route path="organizations" element={<OrganizationsPage />} />
               <Route path="blacklist" element={<BlacklistPage />} />
+              <Route path="services" element={<ServicesPage />} />
             </Route>
           </Routes>
 
