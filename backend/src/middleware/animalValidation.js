@@ -12,8 +12,8 @@ export const validateAnimal = [
     .trim()
     .notEmpty()
     .withMessage("Species is required")
-    .isIn(["DOG", "CAT", "OTHER"])
-    .withMessage("Species must be DOG, CAT, or OTHER"),
+    .isIn(["CANINE", "FELINE", "OTHER"])
+    .withMessage("Species must be CANINE, FELINE, or OTHER"),
   body("breed").optional().trim(),
 
   body("dateOfBirth").optional().isISO8601().withMessage("Invalid date format"),

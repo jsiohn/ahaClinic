@@ -40,7 +40,7 @@ export interface Animal {
   id: string;
   _id?: string;
   name: string;
-  species: "DOG" | "CAT" | "OTHER";
+  species: "CANINE" | "FELINE" | "OTHER";
   breed?: string;
   age?: number; // Keep for backward compatibility
   ageYears?: number;

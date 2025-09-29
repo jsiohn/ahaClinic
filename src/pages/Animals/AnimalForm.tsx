@@ -20,7 +20,7 @@ import { formatDateForInput, createLocalDate } from "../../utils/dateUtils";
 
 interface AnimalFormData {
   name: string;
-  species: "DOG" | "CAT" | "OTHER";
+  species: "CANINE" | "FELINE" | "OTHER";
   breed: string;
   age?: string; // Keep for backward compatibility
   ageYears?: string;
@@ -52,7 +52,7 @@ const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   species: yup
     .string()
-    .oneOf(["DOG", "CAT", "OTHER"])
+    .oneOf(["CANINE", "FELINE", "OTHER"])
     .required("Species is required"),
   breed: yup.string().required(),
   age: yup
@@ -153,7 +153,7 @@ export default function AnimalForm({
     resolver: yupResolver(schema),
     defaultValues: {
       name: animal?.name || "",
-      species: animal?.species || "CAT",
+      species: animal?.species || "FELINE",
       breed: animal?.breed || "",
       age: animal?.age?.toString() || "",
       ageYears: animal?.ageYears?.toString() || "",
@@ -284,8 +284,8 @@ export default function AnimalForm({
                   control={control}
                   render={({ field }) => (
                     <Select {...field} label="Species">
-                      <MenuItem value="DOG">Dog</MenuItem>
-                      <MenuItem value="CAT">Cat</MenuItem>
+                      <MenuItem value="CANINE">Canine</MenuItem>
+                      <MenuItem value="FELINE">Feline</MenuItem>
                       <MenuItem value="OTHER">Other</MenuItem>
                     </Select>
                   )}

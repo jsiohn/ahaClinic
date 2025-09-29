@@ -43,7 +43,7 @@ async function createSampleInvoice() {
       console.log("🐕 Creating test animal...");
       animal = await Animal.create({
         name: "Buddy",
-        species: "DOG",
+        species: "CANINE",
         breed: "Golden Retriever",
         ageYears: 3,
         weight: 65,

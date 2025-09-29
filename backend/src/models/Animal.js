@@ -9,7 +9,7 @@ const animalSchema = new mongoose.Schema({
   species: {
     type: String,
     required: true,
-    enum: ["DOG", "CAT", "OTHER"],
+    enum: ["CANINE", "FELINE", "OTHER"],
     trim: true,
   },
   breed: String,

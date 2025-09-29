@@ -36,7 +36,7 @@ async function createTestData() {
     const animals = [
       {
         name: "Buddy",
-        species: "DOG",
+        species: "CANINE",
         breed: "Golden Retriever",
         ageYears: 3,
         weight: 65,
@@ -44,7 +44,7 @@ async function createTestData() {
       },
       {
         name: "Whiskers",
-        species: "CAT",
+        species: "FELINE",
         breed: "Siamese",
         ageYears: 2,
         weight: 12,

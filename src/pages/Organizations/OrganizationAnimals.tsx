@@ -561,12 +561,12 @@ export default function OrganizationAnimals({
         "Animal Gender": animal.gender
           ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
           : "",
-        Dog: animal.species === "DOG",
-        "Domes. Cat":
-          animal.species === "CAT" &&
+        Canine: animal.species === "CANINE",
+        "Domes. Feline":
+          animal.species === "FELINE" &&
           !(animal.breed || "").toLowerCase().includes("feral"),
-        "Feral Cat":
-          animal.species === "CAT" &&
+        "Feral Feline":
+          animal.species === "FELINE" &&
           (animal.breed || "").toLowerCase().includes("feral"),
         Male: animal.gender?.toUpperCase() === "MALE",
         Female: animal.gender?.toUpperCase() === "FEMALE",
@@ -657,7 +657,7 @@ export default function OrganizationAnimals({
         <Chip
           icon={<PetsIcon />}
           label={params.value}
-          color={params.value === "DOG" ? "primary" : "secondary"}
+          color={params.value === "CANINE" ? "primary" : "secondary"}
           size="small"
         />
       ),
@@ -890,7 +890,7 @@ export default function OrganizationAnimals({
                         icon={<PetsIcon />}
                         label={selectedAnimal.species}
                         color={
-                          selectedAnimal.species === "DOG"
+                          selectedAnimal.species === "CANINE"
                             ? "primary"
                             : "secondary"
                         }

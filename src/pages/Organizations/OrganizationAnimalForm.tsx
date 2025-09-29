@@ -17,16 +17,15 @@ import * as yup from "yup";
 import { Animal, Organization } from "../../types/models";
 import { formatDateForInput, createLocalDate } from "../../utils/dateUtils";
 
-interface OrganizationAnimalFormData {
+interface AnimalFormData {
   name: string;
-  species: "DOG" | "CAT" | "OTHER";
+  species: "CANINE" | "FELINE" | "OTHER";
   breed: string;
   age?: string; // Keep for backward compatibility
   ageYears?: string;
   ageMonths?: string;
   gender: "MALE" | "FEMALE";
   weight: string | null;
-  organizationId?: string;
   microchipNumber?: string;
   dateOfBirth?: string;
   isSpayedNeutered?: "YES" | "NO";
@@ -36,6 +35,7 @@ interface OrganizationAnimalFormData {
   nextVaccineDate?: string;
   tagNumber?: string;
   vaccineSerial?: string;
+  vaccineManufacturer?: string;
   lotExpiration?: string;
 }
 
@@ -50,7 +50,7 @@ const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   species: yup
     .string()
-    .oneOf(["DOG", "CAT", "OTHER"])
+    .oneOf(["CANINE", "FELINE", "OTHER"])
     .required("Species is required"),
   breed: yup.string().required(),
   age: yup
@@ -134,7 +134,7 @@ const schema = yup.object().shape({
       if (!value) return true;
       return !isNaN(Date.parse(value));
     }),
-}) satisfies yup.ObjectSchema<OrganizationAnimalFormData>;
+});
 
 export default function OrganizationAnimalForm({
   animal,
@@ -146,18 +146,17 @@ export default function OrganizationAnimalForm({
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<OrganizationAnimalFormData>({
+  } = useForm<AnimalFormData>({
     resolver: yupResolver(schema),
     defaultValues: {
       name: animal?.name || "",
-      species: animal?.species || "CAT",
+      species: animal?.species || "FELINE",
       breed: animal?.breed || "",
       age: animal?.age?.toString() || "",
       ageYears: animal?.ageYears?.toString() || "",
       ageMonths: animal?.ageMonths?.toString() || "",
       gender: (animal?.gender?.toUpperCase() as "MALE" | "FEMALE") || "MALE",
       weight: animal?.weight?.toString() || "",
-      organizationId: organization.id,
       microchipNumber: animal?.microchipNumber || "",
       dateOfBirth: animal?.dateOfBirth
         ? formatDateForInput(animal.dateOfBirth)
@@ -186,7 +185,7 @@ export default function OrganizationAnimalForm({
     control,
     name: "isSpayedNeutered",
   });
-  const onSubmit = (data: OrganizationAnimalFormData) => {
+  const onSubmit = (data: AnimalFormData) => {
     // Set isSpayedNeutered based on the dropdown selection
     const isSpayedNeutered = data.isSpayedNeutered === "YES";
 
@@ -274,8 +273,8 @@ export default function OrganizationAnimalForm({
                   control={control}
                   render={({ field }) => (
                     <Select {...field} label="Species">
-                      <MenuItem value="DOG">Dog</MenuItem>
-                      <MenuItem value="CAT">Cat</MenuItem>
+                      <MenuItem value="CANINE">Canine</MenuItem>
+                      <MenuItem value="FELINE">Feline</MenuItem>
                       <MenuItem value="OTHER">Other</MenuItem>
                     </Select>
                   )}
