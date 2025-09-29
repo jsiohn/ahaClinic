@@ -8,6 +8,7 @@ import invoiceRoutes from "./routes/invoiceRoutes.js";
 import organizationRoutes from "./routes/organizationRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import serviceRoutes from "./routes/serviceRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/animals", animalRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/organizations", organizationRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/services", serviceRoutes);
 
 // Basic route
 app.get("/", (req, res) => {
@@ -54,5 +56,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-console.log('Forcing restart...');
+console.log("Forcing restart...");
 // Clean restart
