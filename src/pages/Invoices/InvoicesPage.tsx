@@ -25,6 +25,7 @@ import {
   LocalPrintshop as PrintIcon,
   Close as CloseIcon,
   Search as SearchIcon,
+  Email as EmailIcon,
 } from "@mui/icons-material";
 import { Invoice, InvoiceItem } from "../../types/models";
 import InvoiceFormNew from "./InvoiceFormNew";
@@ -46,6 +47,7 @@ interface ExtendedInvoice extends Invoice {
     firstName?: string;
     lastName?: string;
     name?: string; // For organizations
+    email?: string;
     address?: {
       street?: string;
       city?: string;
@@ -83,6 +85,7 @@ interface ApiInvoice {
         firstName?: string;
         lastName?: string;
         name?: string; // For organizations
+        email?: string;
         address?: {
           street?: string;
           city?: string;
@@ -131,6 +134,15 @@ export default function InvoicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [detailAnimals, setDetailAnimals] = useState<any[]>([]);
+
+  // Email dialog state
+  const [openEmailDialog, setOpenEmailDialog] = useState(false);
+  const [emailToSend, setEmailToSend] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -413,6 +425,8 @@ export default function InvoicesPage() {
   const handleCloseDetailDialog = () => {
     setOpenDetailDialog(false);
     setSelectedInvoice(null);
+    setOpenEmailDialog(false);
+    setEmailStatus(null);
   };
   const handleSaveInvoice = async (invoiceData: Partial<ExtendedInvoice>) => {
     try {
@@ -432,6 +446,70 @@ export default function InvoicesPage() {
 
   const handleCloseSnackbar = () => {
     setError(null);
+  };
+
+  // Email sending functions
+  const handleSendEmailClick = async () => {
+    if (selectedInvoice && selectedInvoice.client) {
+      let clientEmail = selectedInvoice.client.email || "";
+
+      // If no email is available in the current client data, try to fetch full client details
+      if (!clientEmail && selectedInvoice.clientId) {
+        try {
+          const clientData = (await api.get(
+            `/clients/${selectedInvoice.clientId}`
+          )) as any;
+          if (clientData && clientData.email) {
+            clientEmail = clientData.email;
+          }
+        } catch (error) {
+          console.warn("Could not fetch client details for email:", error);
+        }
+      }
+
+      setEmailToSend(clientEmail);
+      setOpenEmailDialog(true);
+    }
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!emailToSend || !selectedInvoice) return;
+
+    setSendingEmail(true);
+    setEmailStatus(null);
+
+    try {
+      // Generate PDF
+      const pdfBytes = await generateInvoicePdf(selectedInvoice);
+
+      // Convert PDF bytes to base64 for API transmission
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+
+      // Send to backend API to email
+      await api.post("/invoices/send-email", {
+        invoiceId: selectedInvoice.id,
+        email: emailToSend,
+        pdfBase64: pdfBase64,
+      });
+
+      setEmailStatus({
+        type: "success",
+        message: "Invoice PDF sent successfully!",
+      });
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to send email. Please try again.";
+      setEmailStatus({ type: "error", message });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleCloseEmailDialog = () => {
+    setOpenEmailDialog(false);
+    setEmailStatus(null);
   };
 
   // Filter invoices based on search term
@@ -1030,6 +1108,19 @@ export default function InvoicesPage() {
               Print Invoice
             </Button>
             <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleSendEmailClick}
+              startIcon={<EmailIcon />}
+              // disabled={
+              //   !selectedInvoice?.client?.email && !selectedInvoice?.client
+              // }
+              disabled={true}
+              title="Email functionality temporarily disabled - awaiting email configuration"
+            >
+              Send PDF to Email
+            </Button>
+            <Button
               variant="contained"
               color="primary"
               onClick={handleCloseDetailDialog}
@@ -1037,6 +1128,93 @@ export default function InvoicesPage() {
               Close
             </Button>
           </Box>{" "}
+        </Box>
+      </Dialog>
+      {/* Email Confirmation Dialog */}
+      <Dialog
+        open={openEmailDialog}
+        onClose={handleCloseEmailDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ p: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6">Send Invoice PDF to Email</Typography>
+            <IconButton onClick={handleCloseEmailDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            The invoice PDF will be sent to the following email address:
+          </Typography>
+
+          <Box
+            sx={{
+              p: 2,
+              border: "1px solid #e0e0e0",
+              borderRadius: 1,
+              backgroundColor: "#f5f5f5",
+              mb: 2,
+            }}
+          >
+            <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+              {emailToSend || "No email address available"}
+            </Typography>
+          </Box>
+
+          {!emailToSend && (
+            <TextField
+              label="Client Email"
+              type="email"
+              value={emailToSend}
+              onChange={(e) => setEmailToSend(e.target.value)}
+              fullWidth
+              sx={{ mb: 2 }}
+              placeholder="Enter client email address"
+              helperText="Please enter the client's email address"
+            />
+          )}
+
+          {emailStatus && (
+            <Alert
+              severity={emailStatus.type}
+              sx={{ mb: 2 }}
+              onClose={() => setEmailStatus(null)}
+            >
+              {emailStatus.message}
+            </Alert>
+          )}
+
+          <Box
+            sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
+          >
+            <Button
+              onClick={handleCloseEmailDialog}
+              color="primary"
+              variant="outlined"
+              disabled={sendingEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmSendEmail}
+              color="primary"
+              variant="contained"
+              disabled={sendingEmail || !emailToSend.trim()}
+              startIcon={sendingEmail ? undefined : <EmailIcon />}
+            >
+              {sendingEmail ? "Sending..." : "Send Email"}
+            </Button>
+          </Box>
         </Box>
       </Dialog>
       <Snackbar

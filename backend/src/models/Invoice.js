@@ -14,7 +14,6 @@ const invoiceItemSchema = new mongoose.Schema({
   unitPrice: {
     type: Number,
     required: true,
-    min: 0,
     default: 0,
     get: (v) => parseFloat(v.toFixed(2)),
     set: (v) => parseFloat(parseFloat(v).toFixed(2)),

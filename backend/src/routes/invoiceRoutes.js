@@ -13,7 +13,7 @@ const populateClientOrOrganization = async (invoice) => {
   try {
     // First, try to find it as a Client
     const client = await Client.findById(invoice.client).select(
-      "firstName lastName address.street address.city address.state address.zipCode address.country address.county"
+      "firstName lastName email address.street address.city address.state address.zipCode address.country address.county"
     );
 
     if (client) {
@@ -413,6 +413,146 @@ router.delete(
       res.json({ message: "Invoice deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Send invoice PDF via email
+router.post(
+  "/send-email",
+  auth,
+  requirePermission(PERMISSIONS.READ_INVOICES),
+  async (req, res) => {
+    try {
+      const { invoiceId, email, pdfBase64 } = req.body;
+
+      // Validate required fields
+      if (!invoiceId || !email || !pdfBase64) {
+        return res.status(400).json({
+          message: "Missing required fields: invoiceId, email, and pdfBase64",
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          message: "Invalid email address format",
+        });
+      }
+
+      // Find the invoice
+      const invoice = await Invoice.findById(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Check if email is configured
+      if (
+        !process.env.EMAIL_USER ||
+        !process.env.EMAIL_APP_PASSWORD ||
+        process.env.EMAIL_USER === "your-email@gmail.com" ||
+        process.env.EMAIL_APP_PASSWORD === "your-app-specific-password"
+      ) {
+        return res.status(500).json({
+          message:
+            "Email service not configured. Please set EMAIL_USER and EMAIL_APP_PASSWORD in environment variables.",
+          error: "Email configuration missing",
+        });
+      }
+
+      // Import nodemailer
+      const nodemailer = await import("nodemailer");
+
+      // Create transporter - auto-detect service or use custom SMTP
+      let transporterConfig;
+
+      if (process.env.EMAIL_SERVICE) {
+        // Use specific service (gmail, outlook, etc.)
+        transporterConfig = {
+          service: process.env.EMAIL_SERVICE,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_APP_PASSWORD,
+          },
+        };
+      } else if (process.env.EMAIL_HOST) {
+        // Use custom SMTP settings
+        transporterConfig = {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT || 587,
+          secure: process.env.EMAIL_SECURE === "true", // true for 465, false for other ports
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_APP_PASSWORD,
+          },
+        };
+      } else {
+        // Default to Gmail
+        transporterConfig = {
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_APP_PASSWORD,
+          },
+        };
+      }
+
+      const transporter =
+        nodemailer.default.createTransporter(transporterConfig);
+
+      // Convert base64 back to buffer
+      const pdfBuffer = Buffer.from(pdfBase64, "base64");
+
+      // Email options
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: `Invoice ${invoice.invoiceNumber} - AHA Clinic`,
+        text: `Please find attached your invoice #${invoice.invoiceNumber}.
+
+Thank you for your business!
+
+AHA Clinic`,
+        html: `
+          <h2>Invoice #${invoice.invoiceNumber}</h2>
+          <p>Dear Valued Client,</p>
+          <p>Please find attached your invoice #${invoice.invoiceNumber}.</p>
+          <p>Thank you for your business!</p>
+          <br>
+          <p>Best regards,<br>AHA Clinic</p>
+        `,
+        attachments: [
+          {
+            filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
+      };
+
+      // Send email
+      console.log(`Attempting to send email to: ${email}`);
+      const result = await transporter.sendMail(mailOptions);
+      console.log("Email sent successfully:", result.messageId);
+
+      res.json({
+        message: `Invoice PDF sent successfully to ${email}`,
+        invoiceNumber: invoice.invoiceNumber,
+        messageId: result.messageId,
+      });
+    } catch (error) {
+      console.error("Email sending error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+      });
+      res.status(500).json({
+        message: "Failed to send email",
+        error: error.message,
+        details: error.code || "Unknown error code",
+      });
     }
   }
 );

@@ -90,12 +90,12 @@ const transformServicesData = (
     }
 
     category.services.forEach((service, index) => {
-      // Parse price - handle various formats like "$140", "Free with microchip", "$10 per dose"
+      // Parse price - handle various formats like "$140", "$-50", "Free with microchip", "$10 per dose"
       let price = 0;
       let priceDisplay = service.price;
 
-      // Extract numeric value from price string
-      const priceMatch = service.price.match(/\$(\d+(?:\.\d{2})?)/);
+      // Extract numeric value from price string (including negative values)
+      const priceMatch = service.price.match(/\$(-?\d+(?:\.\d{2})?)/);
       if (priceMatch) {
         price = parseFloat(priceMatch[1]);
       }
@@ -535,8 +535,13 @@ export default function InvoiceForm({
     );
 
     const subtotal = validItems.reduce((sum, item) => {
-      const itemTotal = Number(item.quantity) * Number(item.unitPrice);
-      return sum + itemTotal;
+      const qty = Number(item.quantity);
+      const price = Number(item.unitPrice);
+      // Only include in calculation if both are valid numbers
+      if (!isNaN(qty) && !isNaN(price)) {
+        return sum + qty * price;
+      }
+      return sum;
     }, 0);
 
     return { subtotal };
@@ -571,7 +576,13 @@ export default function InvoiceForm({
       const updatedItem = { ...section.items[itemIndex] };
 
       if (field === "quantity" || field === "unitPrice") {
-        (updatedItem[field] as number) = Number(value) || 0;
+        // Handle partial input like "-" during typing
+        if (value === "" || value === "-") {
+          (updatedItem[field] as number) = value as any; // Keep the string for partial input
+        } else {
+          const numValue = Number(value);
+          (updatedItem[field] as number) = isNaN(numValue) ? 0 : numValue;
+        }
       } else if (
         field === "id" ||
         field === "procedure" ||
@@ -584,11 +595,12 @@ export default function InvoiceForm({
 
       // Recalculate item total
       if (field === "quantity" || field === "unitPrice") {
-        updatedItem.total = parseFloat(
-          (
-            Number(updatedItem.quantity) * Number(updatedItem.unitPrice)
-          ).toFixed(2)
-        );
+        const qty = Number(updatedItem.quantity);
+        const price = Number(updatedItem.unitPrice);
+        // Only calculate if both values are valid numbers
+        if (!isNaN(qty) && !isNaN(price)) {
+          updatedItem.total = parseFloat((qty * price).toFixed(2));
+        }
       }
 
       section.items[itemIndex] = updatedItem;
@@ -1163,7 +1175,7 @@ export default function InvoiceForm({
                                       e.target.value
                                     )
                                   }
-                                  inputProps={{ min: 0, step: 0.01 }}
+                                  inputProps={{ step: 0.01 }}
                                 />
                               </TableCell>
                               <TableCell>

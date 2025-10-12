@@ -72,7 +72,8 @@ const ensureNumeric = (data: any): any => {
     for (const key in result) {
       // Handle monetary values
       if (key === "subtotal" || key === "total" || key === "unitPrice") {
-        result[key] = parseFloat(Number(result[key] || 0).toFixed(2));
+        const numValue = Number(result[key]);
+        result[key] = isNaN(numValue) ? 0 : parseFloat(numValue.toFixed(2));
       }
       // Handle quantities as integers with minimum value of 1
       else if (key === "quantity") {
@@ -83,7 +84,12 @@ const ensureNumeric = (data: any): any => {
         result[key] = result[key].map((item: any) => ({
           ...item,
           quantity: Math.max(1, parseInt(String(item.quantity)) || 1),
-          unitPrice: parseFloat(Number(item.unitPrice || 0).toFixed(2)),
+          unitPrice: parseFloat(
+            (isNaN(Number(item.unitPrice))
+              ? 0
+              : Number(item.unitPrice)
+            ).toFixed(2)
+          ),
           total: parseFloat(
             (
               Math.max(1, parseInt(String(item.quantity)) || 1) *

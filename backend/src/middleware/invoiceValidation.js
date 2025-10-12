@@ -38,16 +38,16 @@ export const validateInvoice = [
     .withMessage("Quantity must be at least 1"),
 
   body("animalSections.*.items.*.unitPrice")
-    .isFloat({ min: 0 })
-    .withMessage("Unit price must be a positive number"),
+    .isFloat()
+    .withMessage("Unit price must be a number"),
 
   body("animalSections.*.items.*.total")
-    .isFloat({ min: 0 })
-    .withMessage("Total must be a positive number"),
+    .isFloat()
+    .withMessage("Total must be a number"),
 
   body("animalSections.*.subtotal")
-    .isFloat({ min: 0 })
-    .withMessage("Animal section subtotal must be a positive number"),
+    .isFloat()
+    .withMessage("Animal section subtotal must be a number"),
 
   body("date")
     .notEmpty()
@@ -67,13 +67,9 @@ export const validateInvoice = [
       return true;
     }),
 
-  body("subtotal")
-    .isFloat({ min: 0 })
-    .withMessage("Subtotal must be a positive number"),
+  body("subtotal").isFloat().withMessage("Subtotal must be a number"),
 
-  body("total")
-    .isFloat({ min: 0 })
-    .withMessage("Total must be a positive number"),
+  body("total").isFloat().withMessage("Total must be a number"),
 
   body("status")
     .optional()

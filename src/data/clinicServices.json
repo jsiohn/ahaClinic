@@ -109,6 +109,10 @@
       {
         "name": "Donated Carrier",
         "price": "$10"
+      },
+      {
+        "name": "Deposit",
+        "price": "$-50"
       }
     ]
   },
