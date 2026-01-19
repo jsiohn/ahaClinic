@@ -14,7 +14,7 @@ async function createInitialAdmin() {
 
     // Connect to MongoDB
     const MONGODB_URI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/ahaclinic";
+      process.env.MONGODB_URI || "mongodb://localhost:27017/ahaClinic";
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB");
 
