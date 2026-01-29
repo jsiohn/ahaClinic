@@ -62,6 +62,7 @@ export interface Animal {
   vaccineDate?: Date; // Vaccination Date
   nextVaccineDate?: Date; // Vaccination Date Next
   tagNumber?: string; // Tag Number
+  county?: string; // County
   vaccineSerial?: string; // Vaccine Serial
   vaccineManufacturer?: string; // Vaccine Manufacturer
   lotExpiration?: Date; // Vaccine Lot Expiration
@@ -117,7 +118,7 @@ export interface Invoice {
   invoiceNumber: string;
   clientId: string;
   date: Date;
-  dueDate: Date;
+
   animalSections: InvoiceAnimalSection[];
   subtotal: number;
   total: number;

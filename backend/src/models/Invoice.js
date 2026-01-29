@@ -43,10 +43,7 @@ const invoiceSchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
-  dueDate: {
-    type: Date,
-    required: true,
-  },
+
   animalSections: [
     {
       animalId: {
@@ -124,7 +121,7 @@ invoiceSchema.pre("save", function (next) {
 invoiceSchema.index({ client: 1 });
 invoiceSchema.index({ status: 1 });
 invoiceSchema.index({ date: 1 });
-invoiceSchema.index({ dueDate: 1 });
+
 invoiceSchema.index({ "animalSections.animalId": 1 });
 invoiceSchema.index({ client: 1, status: 1 });
 invoiceSchema.index({ client: 1, date: -1 });

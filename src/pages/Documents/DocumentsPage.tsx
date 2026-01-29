@@ -248,7 +248,7 @@ export default function DocumentsPage() {
       setUploading(true);
 
       // Create a new File object from the edited PDF bytes
-      const editedPdfBlob = new Blob([editedPdfBytes], {
+      const editedPdfBlob = new Blob([editedPdfBytes as any], {
         type: "application/pdf",
       });
       const editedPdfFile = new File([editedPdfBlob], selectedDocument.name, {
@@ -552,7 +552,7 @@ export default function DocumentsPage() {
       const blankFormBytes = await createMedicalFormTemplate();
 
       // Create a Blob and File from the bytes
-      const blankFormBlob = new Blob([blankFormBytes], {
+      const blankFormBlob = new Blob([blankFormBytes as any], {
         type: "application/pdf",
       });
       const blankFormFile = new File(

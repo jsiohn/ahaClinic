@@ -95,43 +95,43 @@ export default function OrganizationAnimals({
 
       const transformedData = Array.isArray(data)
         ? data.map((animal: any) => ({
-            id: animal._id,
-            name: animal.name,
-            species: animal.species,
-            breed: animal.breed,
-            color: animal.color,
-            age: animal.age,
-            ageYears: animal.ageYears,
-            ageMonths: animal.ageMonths,
-            gender: animal.gender,
-            weight: animal.weight != null ? parseFloat(animal.weight) : null,
-            organization: animal.organization?._id || organization.id,
-            organizationName: animal.organization?.name || organization.name,
-            medicalHistory: animal.medicalHistory || [],
-            microchipNumber: animal.microchipNumber,
-            dateOfBirth: animal.dateOfBirth
-              ? new Date(animal.dateOfBirth)
-              : undefined,
-            isSpayedNeutered: animal.isSpayedNeutered,
-            spayNeuterDate: animal.spayNeuterDate
-              ? new Date(animal.spayNeuterDate)
-              : undefined,
-            vaccineDate: animal.vaccineDate
-              ? new Date(animal.vaccineDate)
-              : undefined,
-            nextVaccineDate: animal.nextVaccineDate
-              ? new Date(animal.nextVaccineDate)
-              : undefined,
-            tagNumber: animal.tagNumber,
-            vaccineSerial: animal.vaccineSerial,
-            lotExpiration: animal.lotExpiration
-              ? new Date(animal.lotExpiration)
-              : undefined,
-            notes: animal.notes,
-            isActive: animal.isActive,
-            createdAt: new Date(animal.createdAt),
-            updatedAt: new Date(animal.updatedAt),
-          }))
+          id: animal._id,
+          name: animal.name,
+          species: animal.species,
+          breed: animal.breed,
+          color: animal.color,
+          age: animal.age,
+          ageYears: animal.ageYears,
+          ageMonths: animal.ageMonths,
+          gender: animal.gender,
+          weight: animal.weight != null ? parseFloat(animal.weight) : null,
+          organization: animal.organization?._id || organization.id,
+          organizationName: animal.organization?.name || organization.name,
+          medicalHistory: animal.medicalHistory || [],
+          microchipNumber: animal.microchipNumber,
+          dateOfBirth: animal.dateOfBirth
+            ? new Date(animal.dateOfBirth)
+            : undefined,
+          isSpayedNeutered: animal.isSpayedNeutered,
+          spayNeuterDate: animal.spayNeuterDate
+            ? new Date(animal.spayNeuterDate)
+            : undefined,
+          vaccineDate: animal.vaccineDate
+            ? new Date(animal.vaccineDate)
+            : undefined,
+          nextVaccineDate: animal.nextVaccineDate
+            ? new Date(animal.nextVaccineDate)
+            : undefined,
+          county: animal.county,
+          vaccineSerial: animal.vaccineSerial,
+          lotExpiration: animal.lotExpiration
+            ? new Date(animal.lotExpiration)
+            : undefined,
+          notes: animal.notes,
+          isActive: animal.isActive,
+          createdAt: new Date(animal.createdAt),
+          updatedAt: new Date(animal.updatedAt),
+        }))
         : [];
 
       setAnimals(transformedData);
@@ -170,8 +170,8 @@ export default function OrganizationAnimals({
         console.error("Error deleting animal:", err);
         setError(
           err?.response?.data?.message ||
-            err.message ||
-            "Failed to delete animal"
+          err.message ||
+          "Failed to delete animal"
         );
       }
     }
@@ -245,11 +245,11 @@ export default function OrganizationAnimals({
         prevAnimals.map((a) =>
           a.id === animal.id
             ? {
-                ...a,
-                medicalHistory: a.medicalHistory.filter(
-                  (record) => record.id !== medicalRecord.id
-                ),
-              }
+              ...a,
+              medicalHistory: a.medicalHistory.filter(
+                (record) => record.id !== medicalRecord.id
+              ),
+            }
             : a
         )
       );
@@ -259,11 +259,11 @@ export default function OrganizationAnimals({
         setSelectedAnimal((prev) =>
           prev
             ? {
-                ...prev,
-                medicalHistory: prev.medicalHistory.filter(
-                  (record) => record.id !== medicalRecord.id
-                ),
-              }
+              ...prev,
+              medicalHistory: prev.medicalHistory.filter(
+                (record) => record.id !== medicalRecord.id
+              ),
+            }
             : null
         );
       }
@@ -271,8 +271,8 @@ export default function OrganizationAnimals({
       console.error("Error deleting medical record:", err);
       setError(
         err?.response?.data?.message ||
-          err.message ||
-          "Failed to delete medical record"
+        err.message ||
+        "Failed to delete medical record"
       );
     }
   };
@@ -326,35 +326,35 @@ export default function OrganizationAnimals({
         prevAnimals.map((animal) =>
           animal.id === updatedAnimal._id
             ? {
-                ...updatedAnimal,
-                id: updatedAnimal._id,
-                organization:
-                  updatedAnimal.organization?._id || organization.id,
-                organizationName:
-                  updatedAnimal.organization?.name || organization.name,
-                medicalHistory: updatedAnimal.medicalHistory || [],
-                microchipNumber: updatedAnimal.microchipNumber,
-                dateOfBirth: updatedAnimal.dateOfBirth
-                  ? new Date(updatedAnimal.dateOfBirth)
-                  : undefined,
-                isSpayedNeutered: updatedAnimal.isSpayedNeutered,
-                spayNeuterDate: updatedAnimal.spayNeuterDate
-                  ? new Date(updatedAnimal.spayNeuterDate)
-                  : undefined,
-                vaccineDate: updatedAnimal.vaccineDate
-                  ? new Date(updatedAnimal.vaccineDate)
-                  : undefined,
-                nextVaccineDate: updatedAnimal.nextVaccineDate
-                  ? new Date(updatedAnimal.nextVaccineDate)
-                  : undefined,
-                lotExpiration: updatedAnimal.lotExpiration
-                  ? new Date(updatedAnimal.lotExpiration)
-                  : undefined,
-                notes: updatedAnimal.notes,
-                isActive: updatedAnimal.isActive,
-                createdAt: new Date(updatedAnimal.createdAt),
-                updatedAt: new Date(updatedAnimal.updatedAt),
-              }
+              ...updatedAnimal,
+              id: updatedAnimal._id,
+              organization:
+                updatedAnimal.organization?._id || organization.id,
+              organizationName:
+                updatedAnimal.organization?.name || organization.name,
+              medicalHistory: updatedAnimal.medicalHistory || [],
+              microchipNumber: updatedAnimal.microchipNumber,
+              dateOfBirth: updatedAnimal.dateOfBirth
+                ? new Date(updatedAnimal.dateOfBirth)
+                : undefined,
+              isSpayedNeutered: updatedAnimal.isSpayedNeutered,
+              spayNeuterDate: updatedAnimal.spayNeuterDate
+                ? new Date(updatedAnimal.spayNeuterDate)
+                : undefined,
+              vaccineDate: updatedAnimal.vaccineDate
+                ? new Date(updatedAnimal.vaccineDate)
+                : undefined,
+              nextVaccineDate: updatedAnimal.nextVaccineDate
+                ? new Date(updatedAnimal.nextVaccineDate)
+                : undefined,
+              lotExpiration: updatedAnimal.lotExpiration
+                ? new Date(updatedAnimal.lotExpiration)
+                : undefined,
+              notes: updatedAnimal.notes,
+              isActive: updatedAnimal.isActive,
+              createdAt: new Date(updatedAnimal.createdAt),
+              updatedAt: new Date(updatedAnimal.updatedAt),
+            }
             : animal
         )
       );
@@ -397,8 +397,8 @@ export default function OrganizationAnimals({
       console.error("Error saving medical record:", err);
       setError(
         err?.response?.data?.message ||
-          err.message ||
-          "Failed to save medical record"
+        err.message ||
+        "Failed to save medical record"
       );
     }
   };
@@ -445,7 +445,7 @@ export default function OrganizationAnimals({
           nextVaccineDate: responseData.nextVaccineDate
             ? new Date(responseData.nextVaccineDate)
             : undefined,
-          tagNumber: responseData.tagNumber,
+          county: responseData.county,
           vaccineSerial: responseData.vaccineSerial,
           lotExpiration: responseData.lotExpiration
             ? new Date(responseData.lotExpiration)
@@ -499,7 +499,7 @@ export default function OrganizationAnimals({
           nextVaccineDate: responseData.nextVaccineDate
             ? new Date(responseData.nextVaccineDate)
             : undefined,
-          tagNumber: responseData.tagNumber,
+          county: responseData.county,
           vaccineSerial: responseData.vaccineSerial,
           lotExpiration: responseData.lotExpiration
             ? new Date(responseData.lotExpiration)
@@ -598,7 +598,7 @@ export default function OrganizationAnimals({
         "Client Email": organization.email || "",
         "Client Address": organization.address || "",
         "Client Address 2": "",
-        County: "",
+        County: animal.county || "",
       });
 
       const filledPdfBytes = await pdfUtils.fillFormFields(formBytes, formData);
@@ -931,7 +931,7 @@ export default function OrganizationAnimals({
                         label={
                           selectedAnimal.gender
                             ? selectedAnimal.gender.charAt(0).toUpperCase() +
-                              selectedAnimal.gender.slice(1)
+                            selectedAnimal.gender.slice(1)
                             : "Unknown"
                         }
                         size="small"
@@ -951,8 +951,8 @@ export default function OrganizationAnimals({
                       {selectedAnimal.microchipNumber || "Not microchipped"}
                     </Typography>
                     <Typography variant="body1">
-                      <strong>Tag Number:</strong>{" "}
-                      {selectedAnimal.tagNumber || "Not specified"}
+                      <strong>County:</strong>{" "}
+                      {selectedAnimal.county || "Not specified"}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -967,8 +967,8 @@ export default function OrganizationAnimals({
                       <strong>Date of Birth:</strong>{" "}
                       {selectedAnimal.dateOfBirth
                         ? new Date(
-                            selectedAnimal.dateOfBirth
-                          ).toLocaleDateString()
+                          selectedAnimal.dateOfBirth
+                        ).toLocaleDateString()
                         : "Unknown"}
                     </Typography>
                     <Typography variant="body1" gutterBottom component="div">
@@ -996,16 +996,16 @@ export default function OrganizationAnimals({
                       <strong>Vaccine Date:</strong>{" "}
                       {selectedAnimal.vaccineDate
                         ? new Date(
-                            selectedAnimal.vaccineDate
-                          ).toLocaleDateString()
+                          selectedAnimal.vaccineDate
+                        ).toLocaleDateString()
                         : "Not specified"}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Next Vaccine Date:</strong>{" "}
                       {selectedAnimal.nextVaccineDate
                         ? new Date(
-                            selectedAnimal.nextVaccineDate
-                          ).toLocaleDateString()
+                          selectedAnimal.nextVaccineDate
+                        ).toLocaleDateString()
                         : "Not specified"}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
@@ -1016,8 +1016,8 @@ export default function OrganizationAnimals({
                       <strong>Lot Expiration:</strong>{" "}
                       {selectedAnimal.lotExpiration
                         ? new Date(
-                            selectedAnimal.lotExpiration
-                          ).toLocaleDateString()
+                          selectedAnimal.lotExpiration
+                        ).toLocaleDateString()
                         : "Not specified"}
                     </Typography>
                   </CardContent>
@@ -1052,7 +1052,7 @@ export default function OrganizationAnimals({
                 <Card variant="outlined">
                   <CardContent>
                     {selectedAnimal.medicalHistory &&
-                    selectedAnimal.medicalHistory.length > 0 ? (
+                      selectedAnimal.medicalHistory.length > 0 ? (
                       <List>
                         {selectedAnimal.medicalHistory.map((record, index) => (
                           <ListItem
@@ -1066,9 +1066,8 @@ export default function OrganizationAnimals({
                                 <Typography variant="subtitle2">
                                   {`${new Date(
                                     record.date
-                                  ).toLocaleDateString()} - ${
-                                    record.procedure
-                                  }`}
+                                  ).toLocaleDateString()} - ${record.procedure
+                                    }`}
                                 </Typography>
                               }
                               secondary={

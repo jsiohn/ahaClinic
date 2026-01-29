@@ -33,7 +33,7 @@ interface AnimalFormData {
   color?: string;
   vaccineDate?: string;
   nextVaccineDate?: string;
-  tagNumber?: string;
+  county?: string;
   vaccineSerial?: string;
   vaccineManufacturer?: string;
   lotExpiration?: string;
@@ -125,7 +125,7 @@ const schema = yup.object().shape({
       if (!value) return true;
       return !isNaN(Date.parse(value));
     }),
-  tagNumber: yup.string().optional(),
+  county: yup.string().optional(),
   vaccineSerial: yup.string().optional(),
   lotExpiration: yup
     .string()
@@ -172,7 +172,7 @@ export default function OrganizationAnimalForm({
       nextVaccineDate: animal?.nextVaccineDate
         ? formatDateForInput(animal.nextVaccineDate)
         : "",
-      tagNumber: animal?.tagNumber || "",
+      county: animal?.county || "",
       vaccineSerial: animal?.vaccineSerial || "",
       lotExpiration: animal?.lotExpiration
         ? formatDateForInput(animal.lotExpiration)
@@ -216,7 +216,7 @@ export default function OrganizationAnimalForm({
       nextVaccineDate: data.nextVaccineDate
         ? createLocalDate(data.nextVaccineDate)
         : undefined,
-      tagNumber: data.tagNumber,
+      county: data.county,
       vaccineSerial: data.vaccineSerial,
       lotExpiration: data.lotExpiration
         ? createLocalDate(data.lotExpiration)
@@ -413,7 +413,7 @@ export default function OrganizationAnimalForm({
                       watchedSpayNeuterStatus !== "YES"
                         ? "Select 'Yes' for spayed/neutered to enable this field"
                         : errors.spayNeuterDate?.message ||
-                          "Enter the date when the animal was spayed/neutered"
+                        "Enter the date when the animal was spayed/neutered"
                     }
                     InputLabelProps={{
                       shrink: true,
@@ -500,15 +500,15 @@ export default function OrganizationAnimalForm({
             </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
-                name="tagNumber"
+                name="county"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Tag Number"
+                    label="County"
                     fullWidth
-                    error={!!errors.tagNumber}
-                    helperText={errors.tagNumber?.message}
+                    error={!!errors.county}
+                    helperText={errors.county?.message}
                   />
                 )}
               />

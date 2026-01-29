@@ -55,17 +55,7 @@ export const validateInvoice = [
     .isISO8601()
     .withMessage("Invalid date format"),
 
-  body("dueDate")
-    .notEmpty()
-    .withMessage("Due date is required")
-    .isISO8601()
-    .withMessage("Invalid date format")
-    .custom((value, { req }) => {
-      if (new Date(value) < new Date(req.body.date)) {
-        throw new Error("Due date must be after the invoice date");
-      }
-      return true;
-    }),
+
 
   body("subtotal").isFloat().withMessage("Subtotal must be a number"),
 

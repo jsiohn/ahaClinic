@@ -12,7 +12,7 @@ interface PopulatedInvoice {
   invoiceNumber: string;
   clientId: string;
   date: Date;
-  dueDate: Date;
+
   subtotal: number;
   total: number;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
@@ -93,9 +93,7 @@ export const generateInvoicePdf = async (
     const invoiceDate = invoice.date
       ? new Date(invoice.date).toLocaleDateString()
       : "N/A";
-    const dueDate = invoice.dueDate
-      ? new Date(invoice.dueDate).toLocaleDateString()
-      : "N/A";
+
 
     page.drawText(`Date: ${invoiceDate}`, {
       x: 50,
@@ -105,17 +103,11 @@ export const generateInvoicePdf = async (
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    page.drawText(`Due Date: ${dueDate}`, {
-      x: 50,
-      y: height - 190,
-      size: 10,
-      font,
-      color: rgb(0.3, 0.3, 0.3),
-    });
+
 
     page.drawText(`Status: ${invoice.status || "N/A"}`, {
       x: 50,
-      y: height - 210,
+      y: height - 190, // Adjusted Y position
       size: 10,
       font,
       color: rgb(0.3, 0.3, 0.3),
@@ -170,13 +162,13 @@ export const generateInvoicePdf = async (
     const animalInfo =
       invoice.animalSections && invoice.animalSections.length > 0
         ? invoice.animalSections
-            .map((section) => {
-              const animal = section.animal;
-              return animal
-                ? `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
-                : "Animal information not available";
-            })
-            .join(", ")
+          .map((section) => {
+            const animal = section.animal;
+            return animal
+              ? `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
+              : "Animal information not available";
+          })
+          .join(", ")
         : "Animal information not available";
 
     // Client and Animal details
@@ -400,8 +392,7 @@ export const generateInvoicePdf = async (
         if (section.animalId && typeof section.animalId === "object") {
           const animal = section.animalId as any;
           page.drawText(
-            `Animal: ${animal.name || "Unknown"} (${
-              animal.species || "Unknown"
+            `Animal: ${animal.name || "Unknown"} (${animal.species || "Unknown"
             })`,
             {
               x: 60,
@@ -699,8 +690,7 @@ export const generateInvoicePdf = async (
     return pdfBytes;
   } catch (error) {
     throw new Error(
-      `Failed to generate PDF: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to generate PDF: ${error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }
@@ -1232,10 +1222,9 @@ export const generateMedicalHistoryPdf = async (animal: {
 
     yPos -= 15;
     page.drawText(
-      `Gender: ${
-        animal.gender
-          ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
-          : "Unknown"
+      `Gender: ${animal.gender
+        ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
+        : "Unknown"
       }`,
       {
         x: 70,
@@ -1407,8 +1396,7 @@ export const generateMedicalHistoryPdf = async (animal: {
     return pdfBytes;
   } catch (error) {
     throw new Error(
-      `Failed to generate medical history PDF: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to generate medical history PDF: ${error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }

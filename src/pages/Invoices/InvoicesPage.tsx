@@ -77,34 +77,34 @@ interface ApiInvoice {
   invoiceNumber: string;
   clientId: string;
   date: string; // Date comes as string from API
-  dueDate: string; // Date comes as string from API
+
   client?:
-    | {
-        _id: string;
-        id?: string;
-        firstName?: string;
-        lastName?: string;
-        name?: string; // For organizations
-        email?: string;
-        address?: {
-          street?: string;
-          city?: string;
-          state?: string;
-          zipCode?: string;
-          country?: string;
-          county?: string;
-        };
-      }
-    | string;
+  | {
+    _id: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string; // For organizations
+    email?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      county?: string;
+    };
+  }
+  | string;
   animalSections: {
     animalId:
-      | {
-          _id: string;
-          id?: string;
-          name: string;
-          species: string;
-        }
-      | string;
+    | {
+      _id: string;
+      id?: string;
+      name: string;
+      species: string;
+    }
+    | string;
     items: {
       description: string;
       procedure: string;
@@ -166,15 +166,15 @@ export default function InvoicesPage() {
         typeof invoice.subtotal === "string"
           ? parseFloat(invoice.subtotal)
           : typeof invoice.subtotal === "number"
-          ? invoice.subtotal
-          : 0;
+            ? invoice.subtotal
+            : 0;
 
       const total =
         typeof invoice.total === "string"
           ? parseFloat(invoice.total)
           : typeof invoice.total === "number"
-          ? invoice.total
-          : subtotal; // Default total to subtotal when no tax
+            ? invoice.total
+            : subtotal; // Default total to subtotal when no tax
 
       // Extract client ID properly with type checking
       let clientId: string = "";
@@ -240,7 +240,7 @@ export default function InvoicesPage() {
         client: typeof invoice.client === "object" ? invoice.client : undefined,
         animalSections,
         date: new Date(invoice.date),
-        dueDate: new Date(invoice.dueDate),
+
         paymentMethod: invoice.paymentMethod,
         paymentDate: invoice.paymentDate
           ? new Date(invoice.paymentDate)
@@ -363,8 +363,7 @@ export default function InvoicesPage() {
       }, 2000);
     } catch (error) {
       setError(
-        `Failed to generate or print invoice: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Failed to generate or print invoice: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     } finally {
@@ -601,9 +600,9 @@ export default function InvoicesPage() {
       renderCell: (params: GridRenderCellParams) => {
         const animalNames = params.row.animalSections
           ? params.row.animalSections
-              .map((section: any) => section.animal?.name)
-              .filter((name: string) => name)
-              .join(", ")
+            .map((section: any) => section.animal?.name)
+            .filter((name: string) => name)
+            .join(", ")
           : "No Animals";
         return <span>{animalNames}</span>;
       },
@@ -778,11 +777,11 @@ export default function InvoicesPage() {
           rows={
             Array.isArray(filteredInvoices)
               ? filteredInvoices.map((invoice) => ({
-                  ...invoice,
-                  // Explicitly convert monetary values to numbers to ensure they're correctly displayed
-                  subtotal: Number(invoice.subtotal || 0),
-                  total: Number(invoice.total || 0),
-                }))
+                ...invoice,
+                // Explicitly convert monetary values to numbers to ensure they're correctly displayed
+                subtotal: Number(invoice.subtotal || 0),
+                total: Number(invoice.total || 0),
+              }))
               : []
           }
           columns={columns}
@@ -791,7 +790,7 @@ export default function InvoicesPage() {
               paginationModel: { page: 0, pageSize: 10 },
             },
             sorting: {
-              sortModel: [{ field: "date", sort: "desc" }],
+
             },
           }}
           pageSizeOptions={[10, 20, 50]}
@@ -868,10 +867,7 @@ export default function InvoicesPage() {
                       <strong>Date:</strong>{" "}
                       {formatDateForDisplay(selectedInvoice.date)}
                     </Typography>
-                    <Typography variant="body1" gutterBottom>
-                      <strong>Due Date:</strong>{" "}
-                      {formatDateForDisplay(selectedInvoice.dueDate)}
-                    </Typography>{" "}
+
                     <Typography variant="body1" gutterBottom component="div">
                       <strong>Status:</strong>{" "}
                       <Chip
@@ -907,18 +903,18 @@ export default function InvoicesPage() {
                     <Typography variant="body1" gutterBottom>
                       <strong>Client:</strong>{" "}
                       {selectedInvoice.client?.firstName &&
-                      selectedInvoice.client?.lastName
+                        selectedInvoice.client?.lastName
                         ? `${selectedInvoice.client.firstName} ${selectedInvoice.client.lastName}`
                         : selectedInvoice.client?.name || "Unknown Client"}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
                       <strong>Animals:</strong>{" "}
                       {selectedInvoice.animalSections &&
-                      selectedInvoice.animalSections.length > 0
+                        selectedInvoice.animalSections.length > 0
                         ? selectedInvoice.animalSections
-                            .map((section) => section.animal?.name)
-                            .filter((name) => name)
-                            .join(", ")
+                          .map((section) => section.animal?.name)
+                          .filter((name) => name)
+                          .join(", ")
                         : "No animals"}
                     </Typography>
                   </CardContent>
@@ -950,7 +946,7 @@ export default function InvoicesPage() {
                 <Card variant="outlined">
                   <CardContent>
                     {selectedInvoice.animalSections &&
-                    selectedInvoice.animalSections.length > 0 ? (
+                      selectedInvoice.animalSections.length > 0 ? (
                       <Box>
                         {selectedInvoice.animalSections.map(
                           (section, sectionIndex) => {
@@ -994,13 +990,11 @@ export default function InvoicesPage() {
                                 {section.items && section.items.length > 0 ? (
                                   section.items.map((item, itemIndex) => (
                                     <Box
-                                      key={`item-${
-                                        section.animalId
-                                      }-${itemIndex}-${
-                                        typeof item.id === "string"
+                                      key={`item-${section.animalId
+                                        }-${itemIndex}-${typeof item.id === "string"
                                           ? item.id
                                           : itemIndex
-                                      }`}
+                                        }`}
                                       sx={{
                                         mb: 1,
                                         p: 1.5,

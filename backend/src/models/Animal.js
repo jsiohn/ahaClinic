@@ -47,6 +47,7 @@ const animalSchema = new mongoose.Schema({
   vaccineDate: Date,
   nextVaccineDate: Date,
   tagNumber: String,
+  county: String,
   vaccineSerial: String,
   vaccineManufacturer: String,
   lotExpiration: Date,

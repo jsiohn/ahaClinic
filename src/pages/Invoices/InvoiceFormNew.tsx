@@ -46,7 +46,7 @@ import {
   createLocalDate,
   formatDateForInput,
   getTodayForInput,
-  getDateDaysFromNow,
+
 } from "../../utils/dateUtils";
 
 // Combined interface for clients and organizations in the dropdown
@@ -160,16 +160,16 @@ interface InvoiceFormData {
   clientId: string;
   selectedAnimals: string[];
   date: string;
-  dueDate: string;
+
   invoiceNumber: string;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?:
-    | "cash"
-    | "credit_card"
-    | "bank_transfer"
-    | "check"
-    | ""
-    | null;
+  | "cash"
+  | "credit_card"
+  | "bank_transfer"
+  | "check"
+  | ""
+  | null;
   paymentDate?: string | null;
 }
 
@@ -181,7 +181,7 @@ const schema = yup.object().shape({
     .min(1, "At least one animal is required")
     .required(),
   date: yup.string().required("Date is required"),
-  dueDate: yup.string().required("Due date is required"),
+
   invoiceNumber: yup
     .string()
     .required("Invoice number is required")
@@ -306,9 +306,7 @@ export default function InvoiceForm({
       date: invoice?.date
         ? formatDateForInput(invoice.date)
         : getTodayForInput(),
-      dueDate: invoice?.dueDate
-        ? formatDateForInput(invoice.dueDate)
-        : formatDateForInput(getDateDaysFromNow(30)),
+
       invoiceNumber: invoice?.invoiceNumber || generateInvoiceNumber(),
       status: invoice?.status || "draft",
       paymentMethod: invoice?.paymentMethod || null,
@@ -331,28 +329,26 @@ export default function InvoiceForm({
         // Transform clients and organizations into a combined options array
         const clients = Array.isArray(clientResponse)
           ? clientResponse.map((client: any) => ({
-              id: client._id || client.id,
-              name: `${client.firstName} ${client.lastName}`,
-              type: "client" as const,
-              email: client.email || "",
-              phone: client.phone || "",
-              address: `${client.address?.street || ""} ${
-                client.address?.city || ""
+            id: client._id || client.id,
+            name: `${client.firstName} ${client.lastName}`,
+            type: "client" as const,
+            email: client.email || "",
+            phone: client.phone || "",
+            address: `${client.address?.street || ""} ${client.address?.city || ""
               }`.trim(),
-            }))
+          }))
           : [];
 
         const organizations = Array.isArray(orgResponse)
           ? orgResponse.map((org: any) => ({
-              id: org._id || org.id,
-              name: org.name,
-              type: "organization" as const,
-              email: org.contactEmail || "",
-              phone: org.contactPhone || "",
-              address: `${org.address?.street || ""} ${
-                org.address?.city || ""
+            id: org._id || org.id,
+            name: org.name,
+            type: "organization" as const,
+            email: org.contactEmail || "",
+            phone: org.contactPhone || "",
+            address: `${org.address?.street || ""} ${org.address?.city || ""
               }`.trim(),
-            }))
+          }))
           : [];
 
         const combinedOptions = [...clients, ...organizations];
@@ -408,9 +404,9 @@ export default function InvoiceForm({
         // Transform animals
         const transformedAnimals = Array.isArray(animalResponse)
           ? animalResponse.map((animal: any) => ({
-              ...animal,
-              id: animal._id || animal.id,
-            }))
+            ...animal,
+            id: animal._id || animal.id,
+          }))
           : [];
         setAnimals(transformedAnimals);
 
@@ -483,24 +479,24 @@ export default function InvoiceForm({
   // Filter animals based on selected client or organization
   const filteredAnimals = selectedClient
     ? animals.filter((animal) => {
-        const animalClientId =
-          typeof animal.client === "object" && animal.client
-            ? (animal.client as any)._id || (animal.client as any).id
-            : animal.client;
+      const animalClientId =
+        typeof animal.client === "object" && animal.client
+          ? (animal.client as any)._id || (animal.client as any).id
+          : animal.client;
 
-        const animalOrgId =
-          typeof animal.organization === "object" && animal.organization
-            ? (animal.organization as any)._id ||
-              (animal.organization as any).id
-            : animal.organization;
+      const animalOrgId =
+        typeof animal.organization === "object" && animal.organization
+          ? (animal.organization as any)._id ||
+          (animal.organization as any).id
+          : animal.organization;
 
-        const isMatch =
-          selectedClient.type === "client"
-            ? animalClientId === selectedClient.id
-            : animalOrgId === selectedClient.id;
+      const isMatch =
+        selectedClient.type === "client"
+          ? animalClientId === selectedClient.id
+          : animalOrgId === selectedClient.id;
 
-        return isMatch;
-      })
+      return isMatch;
+    })
     : animals; // Show all animals when no client is selected
 
   const getAnimalOptionLabel = (option: Animal) => {
@@ -726,7 +722,7 @@ export default function InvoiceForm({
       })),
       invoiceNumber: data.invoiceNumber,
       date: createLocalDate(data.date),
-      dueDate: createLocalDate(data.dueDate),
+
       status: data.status,
       paymentMethod: data.paymentMethod === "" ? null : data.paymentMethod,
       paymentDate: data.paymentDate
@@ -823,10 +819,10 @@ export default function InvoiceForm({
                           invoice
                             ? "Animals cannot be changed after invoice creation"
                             : animalsLoading
-                            ? "Loading animals..."
-                            : !selectedClient
-                            ? "Select a client first to filter animals, or choose from all animals"
-                            : errors.selectedAnimals?.message
+                              ? "Loading animals..."
+                              : !selectedClient
+                                ? "Select a client first to filter animals, or choose from all animals"
+                                : errors.selectedAnimals?.message
                         }
                         inputProps={{
                           ...params.inputProps,
@@ -859,25 +855,7 @@ export default function InvoiceForm({
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
-              <Controller
-                name="dueDate"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Due Date"
-                    type="date"
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    error={!!errors.dueDate}
-                    helperText={errors.dueDate?.message}
-                  />
-                )}
-              />
-            </Grid>
+
 
             <Grid item xs={12} sm={4}>
               <Controller
@@ -1030,9 +1008,9 @@ export default function InvoiceForm({
                                   value={
                                     item.procedure
                                       ? dynamicServiceOptions.find(
-                                          (service) =>
-                                            service.name === item.procedure
-                                        ) || null
+                                        (service) =>
+                                          service.name === item.procedure
+                                      ) || null
                                       : null
                                   }
                                   onChange={(_, selectedService) => {
