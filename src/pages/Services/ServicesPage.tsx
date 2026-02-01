@@ -51,7 +51,7 @@ export default function ServicesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [editingService, setEditingService] = useState<{
     categoryIndex: number;
     serviceIndex: number;
@@ -105,7 +105,7 @@ export default function ServicesPage() {
     };
     const currentCategories = categories || [];
     setCategories([...currentCategories, newCategory]);
-    setEditingCategory(`New Category-${currentCategories.length}`);
+    setEditingCategory(currentCategories.length);
   };
 
   const addService = (categoryIndex: number) => {
@@ -268,8 +268,7 @@ export default function ServicesPage() {
                         pr: 2,
                       }}
                     >
-                      {editingCategory ===
-                      `${category.category}-${categoryIndex}` ? (
+                      {editingCategory === categoryIndex ? (
                         <TextField
                           value={category.category}
                           onChange={(e) =>
@@ -292,9 +291,7 @@ export default function ServicesPage() {
                           sx={{ flexGrow: 1, cursor: "pointer" }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingCategory(
-                              `${category.category}-${categoryIndex}`
-                            );
+                            setEditingCategory(categoryIndex);
                           }}
                         >
                           {category.category} ({category.services.length}{" "}
@@ -363,7 +360,7 @@ export default function ServicesPage() {
                                     <TableCell>
                                       {editingService?.categoryIndex ===
                                         categoryIndex &&
-                                      editingService?.serviceIndex ===
+                                        editingService?.serviceIndex ===
                                         serviceIndex ? (
                                         <TextField
                                           value={service.name}

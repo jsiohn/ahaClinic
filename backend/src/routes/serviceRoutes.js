@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { auth, requirePermission } from "../middleware/auth.js";
 import { PERMISSIONS } from "../config/roles.js";
+import ServiceCategory from "../models/ServiceCategory.js";
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to the services JSON file
+// Path to the services JSON file (for initial seeding only)
 const SERVICES_FILE_PATH = path.join(
   __dirname,
   "../../../src/data/clinicServices.json"
@@ -20,11 +21,39 @@ const SERVICES_FILE_PATH = path.join(
 // GET /api/services - Retrieve all services
 router.get("/", auth, async (req, res) => {
   try {
-    const servicesData = await fs.readFile(SERVICES_FILE_PATH, "utf-8");
-    const services = JSON.parse(servicesData);
-    res.json(services);
+    // Check if we have services in the database
+    let services = await ServiceCategory.find().sort({ category: 1 });
+
+    // If database is empty, seed from JSON file
+    if (services.length === 0) {
+      try {
+        const servicesData = await fs.readFile(SERVICES_FILE_PATH, "utf-8");
+        const jsonServices = JSON.parse(servicesData);
+
+        // Insert services into database
+        await ServiceCategory.insertMany(jsonServices);
+        services = await ServiceCategory.find().sort({ category: 1 });
+
+        console.log("Services seeded from JSON file to database");
+      } catch (seedError) {
+        console.error("Error seeding services from file:", seedError);
+        // If seeding fails, return empty array
+        return res.json([]);
+      }
+    }
+
+    // Convert MongoDB documents to plain objects without _id and __v
+    const plainServices = services.map((cat) => ({
+      category: cat.category,
+      services: cat.services.map((svc) => ({
+        name: svc.name,
+        price: svc.price,
+      })),
+    }));
+
+    res.json(plainServices);
   } catch (error) {
-    console.error("Error reading services file:", error);
+    console.error("Error reading services:", error);
     res.status(500).json({
       message: "Failed to load services",
       error: error.message,
@@ -78,32 +107,9 @@ router.put(
         }
       }
 
-      // Create backup of current services file
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const backupDir = path.join(__dirname, "../../../backups/services");
-      const backupPath = path.join(
-        backupDir,
-        `clinicServices.${timestamp}.${req.user.username}.json`
-      );
-
-      try {
-        // Ensure backup directory exists
-        await fs.mkdir(backupDir, { recursive: true });
-
-        const currentData = await fs.readFile(SERVICES_FILE_PATH, "utf-8");
-        await fs.writeFile(backupPath, currentData);
-        console.log(`Services backup created: ${backupPath}`);
-      } catch (backupError) {
-        console.warn("Warning: Failed to create backup:", backupError.message);
-        // Continue with update even if backup fails
-      }
-
-      // Write the new services data
-      await fs.writeFile(
-        SERVICES_FILE_PATH,
-        JSON.stringify(services, null, 2),
-        "utf-8"
-      );
+      // Delete all existing services and insert new ones
+      await ServiceCategory.deleteMany({});
+      await ServiceCategory.insertMany(services);
 
       console.log(`Services updated by user: ${req.user.username}`);
 
@@ -111,10 +117,9 @@ router.put(
         message: "Services updated successfully",
         updatedBy: req.user.username,
         updatedAt: new Date().toISOString(),
-        backupCreated: true,
       });
     } catch (error) {
-      console.error("Error updating services file:", error);
+      console.error("Error updating services:", error);
       res.status(500).json({
         message: "Failed to update services",
         error: error.message,
