@@ -24,9 +24,9 @@ export function createLocalDate(dateString: string): Date {
  * @returns Date string in YYYY-MM-DD format
  */
 export function formatDateForInput(
-  date: Date | string | null | undefined
+  date: Date | string | null | undefined,
 ): string {
-  if (!date) return new Date().toISOString().split("T")[0];
+  if (!date) return "";
 
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
@@ -46,7 +46,7 @@ export function formatDateForInput(
  */
 export function formatDateForDisplay(
   date: Date | string | null | undefined,
-  options: Intl.DateTimeFormatOptions = {}
+  options: Intl.DateTimeFormatOptions = {},
 ): string {
   if (!date) return "Not specified";
 

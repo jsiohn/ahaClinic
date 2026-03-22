@@ -205,27 +205,23 @@ export default function AnimalForm({
       weight: data.weight ? Number(data.weight) : null,
       client: data.clientId || undefined,
       microchipNumber: data.microchipNumber,
-      dateOfBirth: data.dateOfBirth
-        ? createLocalDate(data.dateOfBirth)
-        : undefined,
+      dateOfBirth: data.dateOfBirth ? createLocalDate(data.dateOfBirth) : null,
       isSpayedNeutered: isSpayedNeutered,
       spayNeuterDate:
         isSpayedNeutered && data.spayNeuterDate
           ? createLocalDate(data.spayNeuterDate)
-          : undefined,
+          : null,
       color: data.color,
-      vaccineDate: data.vaccineDate
-        ? createLocalDate(data.vaccineDate)
-        : undefined,
+      vaccineDate: data.vaccineDate ? createLocalDate(data.vaccineDate) : null,
       nextVaccineDate: data.nextVaccineDate
         ? createLocalDate(data.nextVaccineDate)
-        : undefined,
+        : null,
       tagNumber: data.tagNumber,
       vaccineSerial: data.vaccineSerial,
       vaccineManufacturer: data.vaccineManufacturer,
       lotExpiration: data.lotExpiration
         ? createLocalDate(data.lotExpiration)
-        : undefined,
+        : null,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),

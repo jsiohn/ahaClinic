@@ -7,7 +7,7 @@ export const validateInvoice = [
     .withMessage("Invoice number is required")
     .matches(/^[A-Z0-9-]+$/)
     .withMessage(
-      "Invoice number can only contain uppercase letters, numbers, and hyphens"
+      "Invoice number can only contain uppercase letters, numbers, and hyphens",
     ),
 
   body("client")
@@ -55,8 +55,6 @@ export const validateInvoice = [
     .isISO8601()
     .withMessage("Invalid date format"),
 
-
-
   body("subtotal").isFloat().withMessage("Subtotal must be a number"),
 
   body("total").isFloat().withMessage("Total must be a number"),
@@ -71,7 +69,10 @@ export const validateInvoice = [
     .isIn(["cash", "credit_card", "bank_transfer", "check", null])
     .withMessage("Invalid payment method"),
 
-  body("paymentDate").optional().isISO8601().withMessage("Invalid date format"),
+  body("paymentDate")
+    .optional({ nullable: true })
+    .isISO8601()
+    .withMessage("Invalid date format"),
 
   body("notes").optional().trim(),
 

@@ -16,7 +16,10 @@ export const validateAnimal = [
     .withMessage("Species must be CANINE, FELINE, or OTHER"),
   body("breed").optional().trim(),
 
-  body("dateOfBirth").optional().isISO8601().withMessage("Invalid date format"),
+  body("dateOfBirth")
+    .optional({ nullable: true })
+    .isISO8601()
+    .withMessage("Invalid date format"),
 
   body("gender")
     .optional()
@@ -38,9 +41,24 @@ export const validateAnimal = [
     .withMessage("isSpayedNeutered must be a boolean"),
 
   body("spayNeuterDate")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601()
     .withMessage("Invalid spay/neuter date format"),
+
+  body("vaccineDate")
+    .optional({ nullable: true })
+    .isISO8601()
+    .withMessage("Invalid vaccine date format"),
+
+  body("nextVaccineDate")
+    .optional({ nullable: true })
+    .isISO8601()
+    .withMessage("Invalid next vaccine date format"),
+
+  body("lotExpiration")
+    .optional({ nullable: true })
+    .isISO8601()
+    .withMessage("Invalid lot expiration date format"),
 
   body("client").optional().isMongoId().withMessage("Invalid client ID"),
 

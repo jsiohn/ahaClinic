@@ -201,26 +201,22 @@ export default function OrganizationAnimalForm({
       organization: organization.id,
       organizationName: organization.name,
       microchipNumber: data.microchipNumber,
-      dateOfBirth: data.dateOfBirth
-        ? createLocalDate(data.dateOfBirth)
-        : undefined,
+      dateOfBirth: data.dateOfBirth ? createLocalDate(data.dateOfBirth) : null,
       isSpayedNeutered: isSpayedNeutered,
       spayNeuterDate:
         isSpayedNeutered && data.spayNeuterDate
           ? createLocalDate(data.spayNeuterDate)
-          : undefined,
+          : null,
       color: data.color,
-      vaccineDate: data.vaccineDate
-        ? createLocalDate(data.vaccineDate)
-        : undefined,
+      vaccineDate: data.vaccineDate ? createLocalDate(data.vaccineDate) : null,
       nextVaccineDate: data.nextVaccineDate
         ? createLocalDate(data.nextVaccineDate)
-        : undefined,
+        : null,
       county: data.county,
       vaccineSerial: data.vaccineSerial,
       lotExpiration: data.lotExpiration
         ? createLocalDate(data.lotExpiration)
-        : undefined,
+        : null,
       id: animal?.id,
       medicalHistory: animal?.medicalHistory || [],
       createdAt: animal?.createdAt || new Date(),
@@ -413,7 +409,7 @@ export default function OrganizationAnimalForm({
                       watchedSpayNeuterStatus !== "YES"
                         ? "Select 'Yes' for spayed/neutered to enable this field"
                         : errors.spayNeuterDate?.message ||
-                        "Enter the date when the animal was spayed/neutered"
+                          "Enter the date when the animal was spayed/neutered"
                     }
                     InputLabelProps={{
                       shrink: true,

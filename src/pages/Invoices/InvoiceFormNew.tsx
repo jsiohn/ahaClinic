@@ -46,7 +46,6 @@ import {
   createLocalDate,
   formatDateForInput,
   getTodayForInput,
-
 } from "../../utils/dateUtils";
 
 // Combined interface for clients and organizations in the dropdown
@@ -74,7 +73,7 @@ interface ServiceCategory {
 }
 
 const transformServicesData = (
-  servicesData: ServiceCategory[]
+  servicesData: ServiceCategory[],
 ): ServiceOption[] => {
   const services: ServiceOption[] = [];
 
@@ -141,7 +140,7 @@ const filterOptions = (options: ServiceOption[], { inputValue }: any) => {
   return options.filter(
     (option) =>
       option.name.toLowerCase().includes(searchTerm) ||
-      option.category.toLowerCase().includes(searchTerm)
+      option.category.toLowerCase().includes(searchTerm),
   );
 };
 
@@ -164,12 +163,12 @@ interface InvoiceFormData {
   invoiceNumber: string;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?:
-  | "cash"
-  | "credit_card"
-  | "bank_transfer"
-  | "check"
-  | ""
-  | null;
+    | "cash"
+    | "credit_card"
+    | "bank_transfer"
+    | "check"
+    | ""
+    | null;
   paymentDate?: string | null;
 }
 
@@ -187,7 +186,7 @@ const schema = yup.object().shape({
     .required("Invoice number is required")
     .matches(
       /^[A-Z0-9-]+$/,
-      "Invoice number can only contain uppercase letters, numbers, and hyphens"
+      "Invoice number can only contain uppercase letters, numbers, and hyphens",
     ),
   status: yup
     .string()
@@ -220,13 +219,13 @@ export default function InvoiceForm({
   };
 
   const [animalSections, setAnimalSections] = useState<InvoiceAnimalSection[]>(
-    initializeAnimalSections()
+    initializeAnimalSections(),
   );
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [animalsLoading, setAnimalsLoading] = useState<boolean>(false);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(
-    null
+    null,
   );
   const [selectedAnimals, setSelectedAnimals] = useState<Animal[]>([]);
   const [servicesData, setServicesData] = useState<ServiceCategory[]>([]);
@@ -248,7 +247,7 @@ export default function InvoiceForm({
       invoice.animalSections.forEach((section) => {
         section.items.forEach((item) => {
           const foundInAvailable = availableServices.find(
-            (s) => s.name === item.procedure
+            (s) => s.name === item.procedure,
           );
 
           if (
@@ -329,26 +328,28 @@ export default function InvoiceForm({
         // Transform clients and organizations into a combined options array
         const clients = Array.isArray(clientResponse)
           ? clientResponse.map((client: any) => ({
-            id: client._id || client.id,
-            name: `${client.firstName} ${client.lastName}`,
-            type: "client" as const,
-            email: client.email || "",
-            phone: client.phone || "",
-            address: `${client.address?.street || ""} ${client.address?.city || ""
+              id: client._id || client.id,
+              name: `${client.firstName} ${client.lastName}`,
+              type: "client" as const,
+              email: client.email || "",
+              phone: client.phone || "",
+              address: `${client.address?.street || ""} ${
+                client.address?.city || ""
               }`.trim(),
-          }))
+            }))
           : [];
 
         const organizations = Array.isArray(orgResponse)
           ? orgResponse.map((org: any) => ({
-            id: org._id || org.id,
-            name: org.name,
-            type: "organization" as const,
-            email: org.contactEmail || "",
-            phone: org.contactPhone || "",
-            address: `${org.address?.street || ""} ${org.address?.city || ""
+              id: org._id || org.id,
+              name: org.name,
+              type: "organization" as const,
+              email: org.contactEmail || "",
+              phone: org.contactPhone || "",
+              address: `${org.address?.street || ""} ${
+                org.address?.city || ""
               }`.trim(),
-          }))
+            }))
           : [];
 
         const combinedOptions = [...clients, ...organizations];
@@ -357,7 +358,7 @@ export default function InvoiceForm({
         // Set selected options if editing an existing invoice
         if (invoice) {
           const matchingClient = combinedOptions.find(
-            (c) => c.id === invoice.clientId
+            (c) => c.id === invoice.clientId,
           );
           if (matchingClient) {
             setSelectedClient(matchingClient);
@@ -404,9 +405,9 @@ export default function InvoiceForm({
         // Transform animals
         const transformedAnimals = Array.isArray(animalResponse)
           ? animalResponse.map((animal: any) => ({
-            ...animal,
-            id: animal._id || animal.id,
-          }))
+              ...animal,
+              id: animal._id || animal.id,
+            }))
           : [];
         setAnimals(transformedAnimals);
 
@@ -415,14 +416,14 @@ export default function InvoiceForm({
           const matchingAnimals = transformedAnimals.filter((a) =>
             invoice.animalSections?.some(
               (section) =>
-                section.animalId === a.id || section.animalId === a._id
-            )
+                section.animalId === a.id || section.animalId === a._id,
+            ),
           );
           if (matchingAnimals.length > 0) {
             setSelectedAnimals(matchingAnimals);
             setValue(
               "selectedAnimals",
-              matchingAnimals.map((a) => a.id)
+              matchingAnimals.map((a) => a.id),
             );
           }
         }
@@ -452,7 +453,7 @@ export default function InvoiceForm({
 
     // Remove sections for unselected animals
     const filteredSections = animalSections.filter((section) =>
-      selectedAnimalIds.includes(section.animalId)
+      selectedAnimalIds.includes(section.animalId),
     );
 
     // Add sections for newly selected animals
@@ -479,24 +480,24 @@ export default function InvoiceForm({
   // Filter animals based on selected client or organization
   const filteredAnimals = selectedClient
     ? animals.filter((animal) => {
-      const animalClientId =
-        typeof animal.client === "object" && animal.client
-          ? (animal.client as any)._id || (animal.client as any).id
-          : animal.client;
+        const animalClientId =
+          typeof animal.client === "object" && animal.client
+            ? (animal.client as any)._id || (animal.client as any).id
+            : animal.client;
 
-      const animalOrgId =
-        typeof animal.organization === "object" && animal.organization
-          ? (animal.organization as any)._id ||
-          (animal.organization as any).id
-          : animal.organization;
+        const animalOrgId =
+          typeof animal.organization === "object" && animal.organization
+            ? (animal.organization as any)._id ||
+              (animal.organization as any).id
+            : animal.organization;
 
-      const isMatch =
-        selectedClient.type === "client"
-          ? animalClientId === selectedClient.id
-          : animalOrgId === selectedClient.id;
+        const isMatch =
+          selectedClient.type === "client"
+            ? animalClientId === selectedClient.id
+            : animalOrgId === selectedClient.id;
 
-      return isMatch;
-    })
+        return isMatch;
+      })
     : animals; // Show all animals when no client is selected
 
   const getAnimalOptionLabel = (option: Animal) => {
@@ -517,7 +518,7 @@ export default function InvoiceForm({
     setSelectedAnimals(animals);
     setValue(
       "selectedAnimals",
-      animals.map((animal) => animal.id)
+      animals.map((animal) => animal.id),
     );
   };
 
@@ -527,7 +528,7 @@ export default function InvoiceForm({
     if (!section) return { subtotal: 0 };
 
     const validItems = section.items.filter(
-      (item) => item.procedure.trim() !== "" || item.description.trim() !== ""
+      (item) => item.procedure.trim() !== "" || item.description.trim() !== "",
     );
 
     const subtotal = validItems.reduce((sum, item) => {
@@ -563,7 +564,7 @@ export default function InvoiceForm({
     sectionIndex: number,
     itemIndex: number,
     field: keyof InvoiceItem,
-    value: string | number
+    value: string | number,
   ) => {
     const newSections = [...animalSections];
     const section = newSections[sectionIndex];
@@ -693,7 +694,7 @@ export default function InvoiceForm({
         ...section,
         items: section.items.filter(
           (item) =>
-            item.procedure.trim() !== "" || item.description.trim() !== ""
+            item.procedure.trim() !== "" || item.description.trim() !== "",
         ),
       }))
       .filter((section) => section.items.length > 0);
@@ -715,7 +716,7 @@ export default function InvoiceForm({
           quantity: Number(item.quantity),
           unitPrice: parseFloat(Number(item.unitPrice).toFixed(2)),
           total: parseFloat(
-            (Number(item.quantity) * Number(item.unitPrice)).toFixed(2)
+            (Number(item.quantity) * Number(item.unitPrice)).toFixed(2),
           ),
         })),
         subtotal: parseFloat(section.subtotal.toFixed(2)),
@@ -725,9 +726,7 @@ export default function InvoiceForm({
 
       status: data.status,
       paymentMethod: data.paymentMethod === "" ? null : data.paymentMethod,
-      paymentDate: data.paymentDate
-        ? createLocalDate(data.paymentDate)
-        : undefined,
+      paymentDate: data.paymentDate ? createLocalDate(data.paymentDate) : null,
       subtotal: parseFloat(subtotal.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
     };
@@ -800,7 +799,7 @@ export default function InvoiceForm({
                     getOptionLabel={getAnimalOptionLabel}
                     onChange={(_, newValue) => {
                       const validAnimals = newValue.filter(
-                        (animal): animal is Animal => animal !== null
+                        (animal): animal is Animal => animal !== null,
                       );
                       handleAnimalSelectionChange(validAnimals);
                     }}
@@ -854,8 +853,6 @@ export default function InvoiceForm({
                 )}
               />
             </Grid>
-
-
 
             <Grid item xs={12} sm={4}>
               <Controller
@@ -1008,9 +1005,9 @@ export default function InvoiceForm({
                                   value={
                                     item.procedure
                                       ? dynamicServiceOptions.find(
-                                        (service) =>
-                                          service.name === item.procedure
-                                      ) || null
+                                          (service) =>
+                                            service.name === item.procedure,
+                                        ) || null
                                       : null
                                   }
                                   onChange={(_, selectedService) => {
@@ -1019,19 +1016,19 @@ export default function InvoiceForm({
                                         sectionIndex,
                                         itemIndex,
                                         "procedure",
-                                        selectedService.name
+                                        selectedService.name,
                                       );
                                       updateSectionItem(
                                         sectionIndex,
                                         itemIndex,
                                         "description",
-                                        selectedService.name
+                                        selectedService.name,
                                       );
                                       updateSectionItem(
                                         sectionIndex,
                                         itemIndex,
                                         "unitPrice",
-                                        selectedService.price
+                                        selectedService.price,
                                       );
                                     } else {
                                       // Clear the service selection
@@ -1039,19 +1036,19 @@ export default function InvoiceForm({
                                         sectionIndex,
                                         itemIndex,
                                         "procedure",
-                                        ""
+                                        "",
                                       );
                                       updateSectionItem(
                                         sectionIndex,
                                         itemIndex,
                                         "description",
-                                        ""
+                                        "",
                                       );
                                       updateSectionItem(
                                         sectionIndex,
                                         itemIndex,
                                         "unitPrice",
-                                        0
+                                        0,
                                       );
                                     }
                                   }}
@@ -1116,7 +1113,7 @@ export default function InvoiceForm({
                                       sectionIndex,
                                       itemIndex,
                                       "description",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   sx={{ maxWidth: 140 }}
@@ -1133,7 +1130,7 @@ export default function InvoiceForm({
                                       sectionIndex,
                                       itemIndex,
                                       "quantity",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   inputProps={{ min: 1 }}
@@ -1150,7 +1147,7 @@ export default function InvoiceForm({
                                       sectionIndex,
                                       itemIndex,
                                       "unitPrice",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   inputProps={{ step: 0.01 }}
@@ -1222,7 +1219,7 @@ export default function InvoiceForm({
                       Total Services:{" "}
                       {animalSections.reduce(
                         (sum, section) => sum + section.items.length,
-                        0
+                        0,
                       )}
                     </Typography>
                   </Grid>

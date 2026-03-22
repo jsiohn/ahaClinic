@@ -55,17 +55,17 @@ export interface Animal {
   notes?: string;
   isActive?: boolean;
   microchipNumber?: string;
-  dateOfBirth?: Date;
+  dateOfBirth?: Date | null;
   isSpayedNeutered?: boolean;
-  spayNeuterDate?: Date;
+  spayNeuterDate?: Date | null;
   color?: string; // Animal Color
-  vaccineDate?: Date; // Vaccination Date
-  nextVaccineDate?: Date; // Vaccination Date Next
+  vaccineDate?: Date | null; // Vaccination Date
+  nextVaccineDate?: Date | null; // Vaccination Date Next
   tagNumber?: string; // Tag Number
   county?: string; // County
   vaccineSerial?: string; // Vaccine Serial
   vaccineManufacturer?: string; // Vaccine Manufacturer
-  lotExpiration?: Date; // Vaccine Lot Expiration
+  lotExpiration?: Date | null; // Vaccine Lot Expiration
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,7 +124,7 @@ export interface Invoice {
   total: number;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
-  paymentDate?: Date;
+  paymentDate?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

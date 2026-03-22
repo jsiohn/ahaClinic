@@ -17,7 +17,7 @@ interface PopulatedInvoice {
   total: number;
   status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   paymentMethod?: "cash" | "credit_card" | "bank_transfer" | "check" | null;
-  paymentDate?: Date;
+  paymentDate?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   client?: {
@@ -45,7 +45,7 @@ interface PopulatedInvoice {
 }
 
 export const generateInvoicePdf = async (
-  invoice: PopulatedInvoice
+  invoice: PopulatedInvoice,
 ): Promise<Uint8Array> => {
   try {
     const pdfDoc = await PDFDocument.create();
@@ -94,7 +94,6 @@ export const generateInvoicePdf = async (
       ? new Date(invoice.date).toLocaleDateString()
       : "N/A";
 
-
     page.drawText(`Date: ${invoiceDate}`, {
       x: 50,
       y: height - 170,
@@ -102,8 +101,6 @@ export const generateInvoicePdf = async (
       font,
       color: rgb(0.3, 0.3, 0.3),
     });
-
-
 
     page.drawText(`Status: ${invoice.status || "N/A"}`, {
       x: 50,
@@ -132,7 +129,7 @@ export const generateInvoicePdf = async (
             size: 10,
             font,
             color: rgb(0.3, 0.3, 0.3),
-          }
+          },
         );
       }
 
@@ -162,13 +159,13 @@ export const generateInvoicePdf = async (
     const animalInfo =
       invoice.animalSections && invoice.animalSections.length > 0
         ? invoice.animalSections
-          .map((section) => {
-            const animal = section.animal;
-            return animal
-              ? `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
-              : "Animal information not available";
-          })
-          .join(", ")
+            .map((section) => {
+              const animal = section.animal;
+              return animal
+                ? `${animal.name || "Unknown"} (${animal.species || "Unknown"})`
+                : "Animal information not available";
+            })
+            .join(", ")
         : "Animal information not available";
 
     // Client and Animal details
@@ -392,7 +389,8 @@ export const generateInvoicePdf = async (
         if (section.animalId && typeof section.animalId === "object") {
           const animal = section.animalId as any;
           page.drawText(
-            `Animal: ${animal.name || "Unknown"} (${animal.species || "Unknown"
+            `Animal: ${animal.name || "Unknown"} (${
+              animal.species || "Unknown"
             })`,
             {
               x: 60,
@@ -400,7 +398,7 @@ export const generateInvoicePdf = async (
               size: 12,
               font: boldFont,
               color: rgb(0.1, 0.1, 0.1),
-            }
+            },
           );
           currentY -= 25;
         }
@@ -412,7 +410,7 @@ export const generateInvoicePdf = async (
           const descriptionLines = wrapText(item.description || "", 30);
           const maxLines = Math.max(
             procedureLines.length,
-            descriptionLines.length
+            descriptionLines.length,
           );
           const dynamicItemHeight = Math.max(25, maxLines * 14 + 10); // 14px per line + 10px padding
 
@@ -683,15 +681,16 @@ export const generateInvoicePdf = async (
         size: 10,
         font,
         color: rgb(0.3, 0.3, 0.3),
-      }
+      },
     );
     // Serialize the PDF document to bytes
     const pdfBytes = await pdfDoc.save();
     return pdfBytes;
   } catch (error) {
     throw new Error(
-      `Failed to generate PDF: ${error instanceof Error ? error.message : "Unknown error"
-      }`
+      `Failed to generate PDF: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
     );
   }
 };
@@ -755,7 +754,7 @@ function wrapText(text: string, maxChars: number): string[] {
  */
 export const generatePdfFromElement = async (
   elementId: string,
-  fileName: string
+  fileName: string,
 ): Promise<void> => {
   const element = document.getElementById(elementId);
   if (!element) {
@@ -828,7 +827,7 @@ export const editPdfFile = async (file: File): Promise<Uint8Array> => {
  * Extract all form fields from a PDF document with their types and values
  */
 export const extractFormFields = async (
-  bytes: Uint8Array
+  bytes: Uint8Array,
 ): Promise<
   Record<string, { type: string; value: string | boolean | string[] }>
 > => {
@@ -905,7 +904,7 @@ export const extractFormFields = async (
  */
 export const fillFormFields = async (
   bytes: Uint8Array,
-  fieldData: Record<string, string | boolean | string[]>
+  fieldData: Record<string, string | boolean | string[]>,
 ): Promise<Uint8Array> => {
   const pdfDoc = await PDFDocument.load(bytes);
   const form = pdfDoc.getForm();
@@ -1188,7 +1187,7 @@ export const generateMedicalHistoryPdf = async (animal: {
         size: 10,
         font: font,
         color: rgb(0.1, 0.1, 0.1),
-      }
+      },
     );
 
     yPos -= 15;
@@ -1222,9 +1221,10 @@ export const generateMedicalHistoryPdf = async (animal: {
 
     yPos -= 15;
     page.drawText(
-      `Gender: ${animal.gender
-        ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
-        : "Unknown"
+      `Gender: ${
+        animal.gender
+          ? animal.gender.charAt(0).toUpperCase() + animal.gender.slice(1)
+          : "Unknown"
       }`,
       {
         x: 70,
@@ -1232,7 +1232,7 @@ export const generateMedicalHistoryPdf = async (animal: {
         size: 10,
         font: font,
         color: rgb(0.1, 0.1, 0.1),
-      }
+      },
     );
 
     yPos -= 15;
@@ -1244,7 +1244,7 @@ export const generateMedicalHistoryPdf = async (animal: {
         size: 10,
         font: font,
         color: rgb(0.1, 0.1, 0.1),
-      }
+      },
     );
 
     yPos -= 15;
@@ -1256,7 +1256,7 @@ export const generateMedicalHistoryPdf = async (animal: {
         size: 10,
         font: font,
         color: rgb(0.1, 0.1, 0.1),
-      }
+      },
     );
 
     if (animal.clientName) {
@@ -1307,7 +1307,7 @@ export const generateMedicalHistoryPdf = async (animal: {
             size: 11,
             font: boldFont,
             color: rgb(0.1, 0.1, 0.1),
-          }
+          },
         );
 
         yPos -= 15;
@@ -1388,7 +1388,7 @@ export const generateMedicalHistoryPdf = async (animal: {
         size: 8,
         font: font,
         color: rgb(0.6, 0.6, 0.6),
-      }
+      },
     );
 
     // Serialize the PDF document to bytes
@@ -1396,8 +1396,9 @@ export const generateMedicalHistoryPdf = async (animal: {
     return pdfBytes;
   } catch (error) {
     throw new Error(
-      `Failed to generate medical history PDF: ${error instanceof Error ? error.message : "Unknown error"
-      }`
+      `Failed to generate medical history PDF: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
     );
   }
 };
